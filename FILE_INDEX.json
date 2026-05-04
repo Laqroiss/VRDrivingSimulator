@@ -1,0 +1,197 @@
+{
+  "project": {
+    "name": "VRDrivingSimulator",
+    "engine": "Unity 6 (6000.0.43f1)",
+    "renderPipeline": "URP 17.0.4",
+    "scene": "Assets/Scenes/SampleScene.unity"
+  },
+  "scripts": {
+    "vehicle": [
+      {
+        "file": "Assets/Scripts/Car.cs",
+        "classes": ["Engine", "WheelProperties", "Car"],
+        "role": "core_vehicle_controller",
+        "description": "  : raycast-, , ,  ,  (/),  , -  . Engine — RPM/, WheelProperties —  .",
+        "entryPoints": ["Start", "FixedUpdate"],
+        "publicAPI": ["GetWheelPosition(int)", "WheelCount", "userInput", "currentTransMode", "rb", "forwards", "isBraking"]
+      },
+      {
+        "file": "Assets/Scripts/CarHUD.cs",
+        "classes": ["CarHUD"],
+        "role": "legacy_hud",
+        "description": " HUD: , , .  UnityEngine.UI.Text.   ExamUI.",
+        "dependsOn": ["Car"]
+      },
+      {
+        "file": "Assets/Scripts/CarIndicators.cs",
+        "classes": ["CarIndicators"],
+        "role": "turn_signals",
+        "description": " (Z/C),  (X).  3D-  UI-.   .",
+        "dependsOn": ["Car"],
+        "publicAPI": ["LeftIndicatorOn", "RightIndicatorOn", "HazardLightsOn", "TurnOnLeft()", "TurnOffLeft()", "TurnOnHazard()", "SpeedKmh", "IsReversing"]
+      },
+      {
+        "file": "Assets/Scripts/CameraSwitch.cs",
+        "classes": ["CameraSwitch"],
+        "role": "camera",
+        "description": " 1st/3rd person    V."
+      },
+      {
+        "file": "Assets/Scripts/MouseHeadLook.cs",
+        "classes": ["MouseHeadLook"],
+        "role": "camera",
+        "description": " : yaw + pitch  .  ."
+      }
+    ],
+    "exam": [
+      {
+        "file": "Assets/Scripts/ExamManager.cs",
+        "classes": ["ExamManager"],
+        "role": "exam_controller_singleton",
+        "description": "   (Singleton). FSM: WaitingStart → InProgress → ParkingActive/EmergencyStopActive → Finished.  20 ,  ,  , UnityEvent'.",
+        "entryPoints": ["Awake", "Update"],
+        "publicAPI": ["Instance", "State", "StartExam()", "FinishExam(bool)", "AddError(string)", "StartParking(bool)", "CompleteParking(bool)", "CompleteRailwayCrossing()", "StartEmergencyStop()", "CompleteEmergencyStop()", "Errors", "ExamTimeLeft", "RearParkingDone", "ParallelParkingDone", "RailwayCrossingDone", "EmergencyStopDone"],
+        "events": ["OnExamStart", "OnExamFinish", "OnError", "OnSuccess"]
+      },
+      {
+        "file": "Assets/Scripts/ExamTrigger.cs",
+        "classes": ["ExamTrigger"],
+        "role": "exam_start_finish",
+        "description": "Trigger- / .  —     .  —  .  .",
+        "dependsOn": ["ExamManager", "CarBordureDetector", "CarIndicators"]
+      },
+      {
+        "file": "Assets/Scripts/ExamUI.cs",
+        "classes": ["ExamUI"],
+        "role": "exam_hud",
+        "description": " HUD :   (, , ),  (, , ), , ,  .",
+        "dependsOn": ["ExamManager", "Car", "CarIndicators"]
+      },
+      {
+        "file": "Assets/Scripts/StatusPanel.cs",
+        "classes": ["StatusPanel"],
+        "role": "exercise_checklist",
+        "description": "     (4 ).     ExamManager.",
+        "dependsOn": ["ExamManager"]
+      }
+    ],
+    "exercises": [
+      {
+        "file": "Assets/Scripts/ParkingZone.cs",
+        "classes": ["ParkingZone"],
+        "role": "exercise",
+        "description": "  ( / ).     Car.GetWheelPosition(),   2.5 .",
+        "dependsOn": ["ExamManager", "Car"]
+      },
+      {
+        "file": "Assets/Scripts/RailwayCrossing.cs",
+        "classes": ["RailwayCrossing"],
+        "role": "exercise",
+        "description": "/ .    (coroutine).     2 .",
+        "dependsOn": ["ExamManager", "CarBordureDetector"]
+      },
+      {
+        "file": "Assets/Scripts/EmergencyStop.cs",
+        "classes": ["EmergencyStop"],
+        "role": "exercise",
+        "description": " .    (3-10 ).    5  +  .",
+        "dependsOn": ["ExamManager", "CarIndicators", "CarBordureDetector"]
+      },
+      {
+        "file": "Assets/Scripts/HillStartExercise.cs",
+        "classes": ["HillStartExercise"],
+        "role": "exercise",
+        "description": ".     3 ,      (> 1 /).",
+        "dependsOn": ["ExamManager", "Car"]
+      },
+      {
+        "file": "Assets/Scripts/PedestrianExercise.cs",
+        "classes": ["PedestrianExercise"],
+        "role": "exercise",
+        "description": " .     3   .",
+        "dependsOn": ["ExamManager", "Car"]
+      }
+    ],
+    "traffic": [
+      {
+        "file": "Assets/Scripts/TrafficLight.cs",
+        "classes": ["TrafficLight"],
+        "role": "traffic",
+        "description": " . Enum  (Red/RedYellow/Green/Yellow/Off).  PointLight'  emission .",
+        "publicAPI": ["SetState(LightState)", "currentState"]
+      },
+      {
+        "file": "Assets/Scripts/TrafficIntersection.cs",
+        "classes": ["TrafficIntersection"],
+        "role": "traffic",
+        "description": " . Coroutine-:  →  →  → +   .",
+        "dependsOn": ["TrafficLight"]
+      },
+      {
+        "file": "Assets/Scripts/RedLightDetector.cs",
+        "classes": ["RedLightDetector"],
+        "role": "traffic_violation",
+        "description": "-  .      — AddError.",
+        "dependsOn": ["ExamManager", "TrafficLight", "Car"]
+      }
+    ],
+    "bordure": [
+      {
+        "file": "Assets/Scripts/BordureContact.cs",
+        "classes": ["BordureContact", "BordureManager", "WheelBordureDetector"],
+        "role": "bordure_collision",
+        "description": "BordureContact —      (OnCollisionEnter). BordureManager — - BordureContact   Bordure_ . WheelBordureDetector —   .",
+        "dependsOn": ["ExamManager"]
+      },
+      {
+        "file": "Assets/Scripts/CarBordureDetector.cs",
+        "classes": ["CarBordureDetector"],
+        "role": "bordure_overlap",
+        "description": "Capsule-overlap     (FixedUpdate). Debug Gizmos.",
+        "dependsOn": ["ExamManager"]
+      },
+      {
+        "file": "Assets/Scripts/BordurePlacer.cs",
+        "classes": ["BordurePlacer", "BordurePlacerEditor"],
+        "role": "editor_tool",
+        "description": "Editor-  :   (Q/Z  SceneView)  . , , - . Custom Inspector  ."
+      }
+    ]
+  },
+  "assets": {
+    "scenes": ["Assets/Scenes/SampleScene.unity"],
+    "prefabs": [
+      "Assets/Prefabs/TrafficLight1.fbx.prefab",
+      "Assets/Prefabs/Wheel.prefab"
+    ],
+    "models": [
+      "Assets/Models/8c4b35e5d30d4751ab094bc108b6af29.fbx.fbx",
+      "Assets/Models/Planchet2.fbx"
+    ],
+    "materials": [
+      "Assets/Map_Base.mat",
+      "Assets/Svetofor_Material.mat",
+      "Assets/WhiteLine.mat",
+      "Assets/Materials/DefaultMaterial_emissive.mat"
+    ],
+    "terrain": "Assets/New Terrain.asset",
+    "inputActions": "Assets/InputSystem_Actions.inputactions"
+  },
+  "packages": {
+    "core": [
+      "com.unity.inputsystem@1.13.1",
+      "com.unity.render-pipelines.universal@17.0.4",
+      "com.unity.xr.interaction.toolkit@3.0.10",
+      "com.unity.xr.management@4.5.4",
+      "com.unity.xr.mock-hmd@1.5.0-exp.3"
+    ],
+    "ui": [
+      "com.unity.ugui@2.0.0"
+    ],
+    "tools": [
+      "com.unity.ai.navigation@2.0.6",
+      "com.unity.timeline@1.8.7",
+      "com.unity.visualscripting@1.9.5"
+    ]
+  }
+}
