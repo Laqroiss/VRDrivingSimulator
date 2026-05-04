@@ -1,0 +1,197 @@
+{
+  "project": {
+    "name": "VRDrivingSimulator",
+    "engine": "Unity 6 (6000.0.43f1)",
+    "renderPipeline": "URP 17.0.4",
+    "scene": "Assets/Scenes/SampleScene.unity"
+  },
+  "scripts": {
+    "vehicle": [
+      {
+        "file": "Assets/Scripts/Car.cs",
+        "classes": ["Engine", "WheelProperties", "Car"],
+        "role": "core_vehicle_controller",
+        "description": "Кастомная физика авто: raycast-колёса, подвеска, трение, следы заноса, КПП (авто/ручная), ручной тормоз, анти-откат на склоне. Engine — RPM/КПП, WheelProperties — данные колеса.",
+        "entryPoints": ["Start", "FixedUpdate"],
+        "publicAPI": ["GetWheelPosition(int)", "WheelCount", "userInput", "currentTransMode", "rb", "forwards", "isBraking"]
+      },
+      {
+        "file": "Assets/Scripts/CarHUD.cs",
+        "classes": ["CarHUD"],
+        "role": "legacy_hud",
+        "description": "Простой HUD: спидометр, тахометр, передача. Использует UnityEngine.UI.Text. Заменён функционалом ExamUI.",
+        "dependsOn": ["Car"]
+      },
+      {
+        "file": "Assets/Scripts/CarIndicators.cs",
+        "classes": ["CarIndicators"],
+        "role": "turn_signals",
+        "description": "Поворотники (Z/C), аварийка (X). Управляет 3D-лайтами и UI-иконками. Мигание по таймеру.",
+        "dependsOn": ["Car"],
+        "publicAPI": ["LeftIndicatorOn", "RightIndicatorOn", "HazardLightsOn", "TurnOnLeft()", "TurnOffLeft()", "TurnOnHazard()", "SpeedKmh", "IsReversing"]
+      },
+      {
+        "file": "Assets/Scripts/CameraSwitch.cs",
+        "classes": ["CameraSwitch"],
+        "role": "camera",
+        "description": "Переключение 1st/3rd person камеры по клавише V."
+      },
+      {
+        "file": "Assets/Scripts/MouseHeadLook.cs",
+        "classes": ["MouseHeadLook"],
+        "role": "camera",
+        "description": "Обзор мышью: yaw + pitch с ограничениями. Блокирует курсор."
+      }
+    ],
+    "exam": [
+      {
+        "file": "Assets/Scripts/ExamManager.cs",
+        "classes": ["ExamManager"],
+        "role": "exam_controller_singleton",
+        "description": "Центральный менеджер экзамена (Singleton). FSM: WaitingStart → InProgress → ParkingActive/EmergencyStopActive → Finished. Таймер 20 мин, контроль скорости, список ошибок, UnityEvent'ы.",
+        "entryPoints": ["Awake", "Update"],
+        "publicAPI": ["Instance", "State", "StartExam()", "FinishExam(bool)", "AddError(string)", "StartParking(bool)", "CompleteParking(bool)", "CompleteRailwayCrossing()", "StartEmergencyStop()", "CompleteEmergencyStop()", "Errors", "ExamTimeLeft", "RearParkingDone", "ParallelParkingDone", "RailwayCrossingDone", "EmergencyStopDone"],
+        "events": ["OnExamStart", "OnExamFinish", "OnError", "OnSuccess"]
+      },
+      {
+        "file": "Assets/Scripts/ExamTrigger.cs",
+        "classes": ["ExamTrigger"],
+        "role": "exam_start_finish",
+        "description": "Trigger-зона старта/финиша экзамена. Старт — когда машина выезжает из зоны. Финиш — при въезде. Проверяет поворотники.",
+        "dependsOn": ["ExamManager", "CarBordureDetector", "CarIndicators"]
+      },
+      {
+        "file": "Assets/Scripts/ExamUI.cs",
+        "classes": ["ExamUI"],
+        "role": "exam_hud",
+        "description": "Полноценный HUD экзамена: верхняя панель (режим, таймер, прогресс), дашборд (спидометр, тахометр, передача), индикаторы, уведомления, экран результатов.",
+        "dependsOn": ["ExamManager", "Car", "CarIndicators"]
+      },
+      {
+        "file": "Assets/Scripts/StatusPanel.cs",
+        "classes": ["StatusPanel"],
+        "role": "exercise_checklist",
+        "description": "Панель с чекбоксами выполненных упражнений (4 шт). Обновляется каждый кадр из ExamManager.",
+        "dependsOn": ["ExamManager"]
+      }
+    ],
+    "exercises": [
+      {
+        "file": "Assets/Scripts/ParkingZone.cs",
+        "classes": ["ParkingZone"],
+        "role": "exercise",
+        "description": "Зона парковки (задняя / параллельная). Проверяет позиции колёс через Car.GetWheelPosition(), требует удержание 2.5 сек.",
+        "dependsOn": ["ExamManager", "Car"]
+      },
+      {
+        "file": "Assets/Scripts/RailwayCrossing.cs",
+        "classes": ["RailwayCrossing"],
+        "role": "exercise",
+        "description": "Ж/Д переезд. Периодически запускает поезд (coroutine). Проверяет остановку и ожидание 2 сек.",
+        "dependsOn": ["ExamManager", "CarBordureDetector"]
+      },
+      {
+        "file": "Assets/Scripts/EmergencyStop.cs",
+        "classes": ["EmergencyStop"],
+        "role": "exercise",
+        "description": "Экстренная остановка. Срабатывает с задержкой (3-10 сек). Проверяет остановку за 5 сек + включение аварийки.",
+        "dependsOn": ["ExamManager", "CarIndicators", "CarBordureDetector"]
+      },
+      {
+        "file": "Assets/Scripts/HillStartExercise.cs",
+        "classes": ["HillStartExercise"],
+        "role": "exercise",
+        "description": "Эстакада. Машина должна остановиться на 3 сек, затем тронуться без отката назад (> 1 м/с).",
+        "dependsOn": ["ExamManager", "Car"]
+      },
+      {
+        "file": "Assets/Scripts/PedestrianExercise.cs",
+        "classes": ["PedestrianExercise"],
+        "role": "exercise",
+        "description": "Пешеходный переход. Машина должна остановиться на 3 сек в зоне.",
+        "dependsOn": ["ExamManager", "Car"]
+      }
+    ],
+    "traffic": [
+      {
+        "file": "Assets/Scripts/TrafficLight.cs",
+        "classes": ["TrafficLight"],
+        "role": "traffic",
+        "description": "Один светофор. Enum состояний (Red/RedYellow/Green/Yellow/Off). Управляет PointLight'ами и emission материалов.",
+        "publicAPI": ["SetState(LightState)", "currentState"]
+      },
+      {
+        "file": "Assets/Scripts/TrafficIntersection.cs",
+        "classes": ["TrafficIntersection"],
+        "role": "traffic",
+        "description": "Контроллер перекрёстка. Coroutine-цикл: зелёный → мигание → жёлтый → красный+жёлтый для двух сторон.",
+        "dependsOn": ["TrafficLight"]
+      },
+      {
+        "file": "Assets/Scripts/RedLightDetector.cs",
+        "classes": ["RedLightDetector"],
+        "role": "traffic_violation",
+        "description": "Триггер-зона за светофором. Если авто проезжает на красный — AddError.",
+        "dependsOn": ["ExamManager", "TrafficLight", "Car"]
+      }
+    ],
+    "bordure": [
+      {
+        "file": "Assets/Scripts/BordureContact.cs",
+        "classes": ["BordureContact", "BordureManager", "WheelBordureDetector"],
+        "role": "bordure_collision",
+        "description": "BordureContact — штраф при столкновении с бордюром (OnCollisionEnter). BordureManager — авто-добавление BordureContact на все Bordure_ объекты. WheelBordureDetector — аналогично для колёс.",
+        "dependsOn": ["ExamManager"]
+      },
+      {
+        "file": "Assets/Scripts/CarBordureDetector.cs",
+        "classes": ["CarBordureDetector"],
+        "role": "bordure_overlap",
+        "description": "Capsule-overlap детекция бордюров корпусом авто (FixedUpdate). Debug Gizmos.",
+        "dependsOn": ["ExamManager"]
+      },
+      {
+        "file": "Assets/Scripts/BordurePlacer.cs",
+        "classes": ["BordurePlacer", "BordurePlacerEditor"],
+        "role": "editor_tool",
+        "description": "Editor-инструмент расстановки бордюров: режим точек (Q/Z в SceneView) или дуги. Генерация, очистка, авто-поиск точек. Custom Inspector с кнопками."
+      }
+    ]
+  },
+  "assets": {
+    "scenes": ["Assets/Scenes/SampleScene.unity"],
+    "prefabs": [
+      "Assets/Prefabs/TrafficLight1.fbx.prefab",
+      "Assets/Prefabs/Wheel.prefab"
+    ],
+    "models": [
+      "Assets/Models/8c4b35e5d30d4751ab094bc108b6af29.fbx.fbx",
+      "Assets/Models/Planchet2.fbx"
+    ],
+    "materials": [
+      "Assets/Map_Base.mat",
+      "Assets/Svetofor_Material.mat",
+      "Assets/WhiteLine.mat",
+      "Assets/Materials/DefaultMaterial_emissive.mat"
+    ],
+    "terrain": "Assets/New Terrain.asset",
+    "inputActions": "Assets/InputSystem_Actions.inputactions"
+  },
+  "packages": {
+    "core": [
+      "com.unity.inputsystem@1.13.1",
+      "com.unity.render-pipelines.universal@17.0.4",
+      "com.unity.xr.interaction.toolkit@3.0.10",
+      "com.unity.xr.management@4.5.4",
+      "com.unity.xr.mock-hmd@1.5.0-exp.3"
+    ],
+    "ui": [
+      "com.unity.ugui@2.0.0"
+    ],
+    "tools": [
+      "com.unity.ai.navigation@2.0.6",
+      "com.unity.timeline@1.8.7",
+      "com.unity.visualscripting@1.9.5"
+    ]
+  }
+}

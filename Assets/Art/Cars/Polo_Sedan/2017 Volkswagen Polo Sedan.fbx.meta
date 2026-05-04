@@ -1,0 +1,322 @@
+fileFormatVersion: 2
+guid: d04dbe1dff27c6a47974014ed2c4ce2a
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: etk800
+    second: {fileID: 2100000, guid: 6da3932d3fb25da47ba2d034558cc35e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mirror
+    second: {fileID: 2100000, guid: 885e241f193c0ef42b6d062175e8d370, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17_glass
+    second: {fileID: 2100000, guid: 2b80d5da0c8ba9f459706805b5f8cccd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17_glass_int
+    second: {fileID: 2100000, guid: 0f7a0987259066247b97ef2ca9969aa3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17_red
+    second: {fileID: 2100000, guid: c5e161f8c575e3b4087d825156468b27, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17black
+    second: {fileID: 2100000, guid: 566682853e83f5a4f87975ea4d6f588e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17body
+    second: {fileID: 2100000, guid: 79aaa63fd1bcb524f905568e84d85677, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17chrome
+    second: {fileID: 2100000, guid: 82706e876efc312469fde6a85c199520, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17clock
+    second: {fileID: 2100000, guid: edf45e9d3e0195a49a485f555b86716e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17fog
+    second: {fileID: 2100000, guid: b1f53b8e77008844a9ac6c4f604487d2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17gabarit
+    second: {fileID: 2100000, guid: 06b052a024f04b94cbee882ae2f9c727, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17gauges
+    second: {fileID: 2100000, guid: 14d9fd279f60ab941b6513ac7a7de298, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17gauges2
+    second: {fileID: 2100000, guid: b53c55ac2148bf947becb64f1a770bc4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17head
+    second: {fileID: 2100000, guid: c3579ec6c2b772e4ea38ba8edaa656a5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17kover
+    second: {fileID: 2100000, guid: c1d4575700ad3fd478a9a493571b38ad, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17light
+    second: {fileID: 2100000, guid: 372caf249e327024eac0058905fa1518, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17lightR
+    second: {fileID: 2100000, guid: 831bcb9ac6516a8488a72b5d2c42d0c9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17lightglass_R
+    second: {fileID: 2100000, guid: f702e80a02c9fce4b865e1e172ff2544, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17long
+    second: {fileID: 2100000, guid: 3f185962eb447e74aaaf32c6450c692a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17plastik
+    second: {fileID: 2100000, guid: 0d380f5f0a8ff8f43b0b66e040909f09, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pov_L
+    second: {fileID: 2100000, guid: 35d511173f0a183498581713b2be3eda, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pov_R
+    second: {fileID: 2100000, guid: 6a7dcd4553b16d84ab2f99278aee215c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribchek
+    second: {fileID: 2100000, guid: 91df4f84c62f7e84f87364e9ab8ef724, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribfuel
+    second: {fileID: 2100000, guid: 1c2704b26e067ea4d9e2b7e69bd595c9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribhazard
+    second: {fileID: 2100000, guid: b05f036edf4f53143ae91152ffa1cb03, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribhigh
+    second: {fileID: 2100000, guid: 868d7f36d637c8649a618be80bd51139, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17priblow
+    second: {fileID: 2100000, guid: 6ab0d44980043fa409cf4d575ad7f441, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribparkin
+    second: {fileID: 2100000, guid: 66b519f877610f24bb355b855397e4c8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribpov_L
+    second: {fileID: 2100000, guid: c71e4e3f83d9e9e4aaac8438cd627d54, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17pribpov_R
+    second: {fileID: 2100000, guid: b0aeea91b6c6e6840bf5fb5b8d1df905, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17reve
+    second: {fileID: 2100000, guid: a95d9145844d2064badf180c641de3e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17roof
+    second: {fileID: 2100000, guid: c68b7d9925542c24eb39d8676428bbe6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17run
+    second: {fileID: 2100000, guid: 5e27ee32e125afa4ab2fed127fa04488, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17salon
+    second: {fileID: 2100000, guid: 4c5e9d74c779b314f87ffa754267bb2e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17salon2
+    second: {fileID: 2100000, guid: af6d3cfedc0de8f4286f6a8e17e58a41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17seats
+    second: {fileID: 2100000, guid: 0864cf8080b2527499ae2fd38cae36bc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17seats2
+    second: {fileID: 2100000, guid: 5beb4d2cfcc76dd4c84fde3ef33c5710, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17sgray
+    second: {fileID: 2100000, guid: 73e5d0f5adf9896469cdbbb86a32ae7a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17stop
+    second: {fileID: 2100000, guid: 344b4290184aa0249be2808d8dd0dabd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: polo17wheel
+    second: {fileID: 2100000, guid: f3fdaaa20b259444f926f7f4e7980009, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: sunburst
+    second: {fileID: 2100000, guid: c083c7a1db63b9c498260569e4663900, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: sunburst_engine
+    second: {fileID: 2100000, guid: 6611aaab8a77ffc439f11587f45cb5b3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tire_01a
+    second: {fileID: 2100000, guid: 67f780d14ff875948b30bb2afe5fbfd4, type: 2}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
