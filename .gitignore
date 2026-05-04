@@ -1,16 +1,6 @@
 # Claude Code working directory
 .claude/
 
-# Large reference/asset files that exceed GitHub's 100MB limit
-Assets/Reference/gemini2_upscayl_10x_high-fidelity-4x.png
-Assets/Reference/gemini2_upscayl_10x_high-fidelity-4x.png.meta
-
-# Large skybox EXR files (>50MB) - use Git LFS or host externally if needed
-Assets/SkyBoxes/german_town_street_4k.exr
-Assets/SkyBoxes/german_town_street_4k.exr.meta
-Assets/SkyBoxes/grasslands_sunset_4k.exr
-Assets/SkyBoxes/grasslands_sunset_4k.exr.meta
-
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
