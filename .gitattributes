@@ -1,0 +1,2 @@
+*.exr filter=lfs diff=lfs merge=lfs -text
+Assets/Reference/gemini2_upscayl_10x_high-fidelity-4x.png filter=lfs diff=lfs merge=lfs -text
