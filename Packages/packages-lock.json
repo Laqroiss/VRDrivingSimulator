@@ -325,7 +325,7 @@
       "url": "https://packages.unity.com"
     },
     "net.gree.unity-webview": {
-      "version": "file:C:/Users/laqroiss/Desktop/unity-webview-master/dist/package",
+      "version": "file:unity-webview",
       "depth": 0,
       "source": "local",
       "dependencies": {}
