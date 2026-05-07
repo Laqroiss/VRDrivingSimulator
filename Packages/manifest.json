@@ -18,7 +18,7 @@
     "com.unity.xr.mock-hmd": "1.5.0-exp.3",
     "com.unity.xr.oculus": "4.5.4",
     "com.unity.xr.openxr": "1.16.1",
-    "net.gree.unity-webview": "file:C:/Users/laqroiss/Desktop/unity-webview-master/dist/package",
+    "net.gree.unity-webview": "file:unity-webview",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",
     "com.unity.modules.ai": "1.0.0",

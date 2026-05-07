@@ -1,0 +1,21 @@
+{
+    "name": "unity-webview",
+    "references": [],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Android",
+        "Editor",
+        "iOS",
+        "macOSStandalone",
+        "WebGL",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}
