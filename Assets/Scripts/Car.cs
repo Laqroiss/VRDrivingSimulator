@@ -282,6 +282,14 @@ public class Car : MonoBehaviour
     public bool throttleAssist = true;
     public bool brakeAssist = true;
     [HideInInspector] public Vector2 userInput = Vector2.zero;
+    public enum InputMode { Keyboard, Wheel }
+    [Header("Режим управления")]
+    public InputMode inputMode = InputMode.Keyboard;
+
+    [HideInInspector] public bool  externalInput    = false;
+    [HideInInspector] public float externalThrottle = 0f;
+    [HideInInspector] public float externalBrake    = 0f;
+    [HideInInspector] public float externalSteer    = 0f;
     public float downforce = 0.16f;
     [HideInInspector] public float isBraking = 0f;
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
@@ -325,6 +333,8 @@ public class Car : MonoBehaviour
 
     void Update()
     {
+        externalInput = (inputMode == InputMode.Wheel);
+
         if (LegacyInput.GetKeyDown(KeyCode.R))
         {
             transform.rotation = Quaternion.identity;
@@ -333,12 +343,23 @@ public class Car : MonoBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        // В Park нельзя ничего делать
-        if (transmissionMode == TransmissionMode.Park) return;
+        // В Park — только выход из Park разрешён (F или S), всё остальное заблокировано
+        if (transmissionMode == TransmissionMode.Park)
+        {
+            if (LegacyInput.GetKeyDown(KeyCode.F))
+                transmissionMode = TransmissionMode.Drive;
+            else if (LegacyInput.GetKeyDown(KeyCode.S))
+                transmissionMode = TransmissionMode.Reverse;
+            return;
+        }
 
         // Переключение режима трансмиссии (защита: нельзя на ходу переключать D↔R)
         float currentSpeedKmh = rb.linearVelocity.magnitude * 3.6f;
-        if (LegacyInput.GetKeyDown(KeyCode.S))
+        if (LegacyInput.GetKeyDown(KeyCode.P))
+        {
+            transmissionMode = TransmissionMode.Park; // Park всегда разрешён
+        }
+        else if (LegacyInput.GetKeyDown(KeyCode.S))
         {
             if (currentSpeedKmh < shiftLockSpeed)
                 transmissionMode = TransmissionMode.Reverse;
@@ -353,53 +374,59 @@ public class Car : MonoBehaviour
                 Debug.LogWarning($"<color=#FF8C00>[GEAR LOCK]</color> Нельзя включить Drive на скорости {currentSpeedKmh:F1} км/ч. Остановитесь.");
         }
 
-        // Управление: только Vertical-axis (W/Up). Знак throttle определяется режимом.
-        userInput.x = Mathf.Lerp(userInput.x, LegacyInput.GetAxisRaw("Horizontal") / (1 + rb.linearVelocity.magnitude / 28f), 0.2f);
-        float rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical")); // только газ вперёд по оси
-        float signedThrottle = transmissionMode == TransmissionMode.Reverse ? -rawThrottle
-                              : transmissionMode == TransmissionMode.Neutral ? 0f
-                              : rawThrottle;
+        // ── Ввод ──────────────────────────────────────────────────────────────
+        float rawThrottle = 0f;
+        bool  brakePedal  = false;
 
-        // Creep (крип) + engine braking: на D/R без газа и без тормоза
-        bool brakePedalCheck = LegacyInput.GetKey(KeyCode.Space);
-        if (rawThrottle < 0.05f
-            && !brakePedalCheck
-            && transmissionMode != TransmissionMode.Neutral)
+        if (externalInput)
+        {
+            // WheelInput пишет только сырые значения, Car.cs сам применяет всю логику
+            float steerTarget = externalSteer / (1f + rb.linearVelocity.magnitude / 28f);
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 0.15f);
+            rawThrottle = externalThrottle;
+            brakePedal  = externalBrake > 0.02f;
+        }
+        else
+        {
+            userInput.x = Mathf.Lerp(userInput.x,
+                LegacyInput.GetAxisRaw("Horizontal") / (1f + rb.linearVelocity.magnitude / 28f), 0.2f);
+            rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical"));
+            brakePedal  = LegacyInput.GetKey(KeyCode.Space);
+        }
+
+        // ── Creep + engine brake (всегда, независимо от источника ввода) ────
+        float signedThrottle = transmissionMode == TransmissionMode.Reverse ? -rawThrottle
+                             : transmissionMode == TransmissionMode.Neutral  ? 0f
+                             : rawThrottle;
+
+        if (rawThrottle < 0.05f && !brakePedal && transmissionMode != TransmissionMode.Neutral)
         {
             float fwdSpeedKmh = Vector3.Dot(rb.linearVelocity, transform.forward) * 3.6f;
-
             if (transmissionMode == TransmissionMode.Drive)
             {
                 if (creepEnabled && fwdSpeedKmh < creepSpeedKmh)
-                    signedThrottle = creepThrottle;          // ползёт вперёд до целевой скорости
+                    signedThrottle = creepThrottle;
                 else if (fwdSpeedKmh > creepSpeedKmh)
-                    signedThrottle = -engineBrakeFactor;     // engine brake выше скорости крипа
+                    signedThrottle = -engineBrakeFactor;
             }
-            else // Reverse
+            else
             {
                 if (creepEnabled && fwdSpeedKmh > -creepSpeedKmh)
-                    signedThrottle = -creepThrottle;         // ползёт назад
+                    signedThrottle = -creepThrottle;
                 else if (fwdSpeedKmh < -creepSpeedKmh)
-                    signedThrottle = engineBrakeFactor;      // engine brake назад
+                    signedThrottle = engineBrakeFactor;
             }
         }
 
         userInput.y = Mathf.Lerp(userInput.y, signedThrottle, 0.2f);
 
-        // Педаль тормоза — Space (основной тормоз, аналоговый по нажатию)
-        bool brakePedal = LegacyInput.GetKey(KeyCode.Space);
-
-        // Тормозим, когда направление движения противоположно выбранной передаче (доп. защита)
         float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
         bool wrongDirection =
             (transmissionMode == TransmissionMode.Drive   && forwardSpeed < -0.5f) ||
             (transmissionMode == TransmissionMode.Reverse && forwardSpeed >  0.5f);
-
-        // Hill hold: на склоне в зоне упражнения, при отсутствии газа и почти нулевой скорости — держим тормоз
         bool hillHold = hillHoldAllowed
                         && Mathf.Abs(rawThrottle) < 0.05f
                         && rb.linearVelocity.magnitude < hillHoldSpeedThreshold;
-
         bool isBraking = brakePedal || (wrongDirection && Mathf.Abs(rawThrottle) > 0.05f) || hillHold;
         if (isBraking) userInput.y = 0;
 
@@ -441,7 +468,8 @@ public class Car : MonoBehaviour
             if (s > 0.3f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
 
             // Apply throttle with TCS - more responsive for F1
-            float finalThrottle = userInput.y * (1f - w.tcsReduction);
+            float inputY = transmissionMode == TransmissionMode.Neutral ? 0f : userInput.y;
+            float finalThrottle = inputY * (1f - w.tcsReduction);
             if (float.IsNaN(finalThrottle) || float.IsInfinity(finalThrottle))
                 finalThrottle = 0f;
             w.input.y = Mathf.Lerp(w.input.y, finalThrottle, 0.95f * Time.deltaTime * 60f);
@@ -620,12 +648,22 @@ public class Car : MonoBehaviour
         averageWheelAngularVelocity /= wheels.Length;
         e.SetRPM(averageWheelAngularVelocity);
 
-        // Park режим — машина полностью заблокирована (меню, стоянка)
+        // Park — тормозим и блокируем только после остановки
         if (transmissionMode == TransmissionMode.Park)
         {
-            rb.linearVelocity  = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            foreach (var w in wheels) w.angularVelocity = 0f;
+            float spd = rb.linearVelocity.magnitude;
+            if (spd < 0.3f)
+            {
+                // Скорость достаточно мала — фиксируем
+                rb.linearVelocity  = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                foreach (var w in wheels) w.angularVelocity = 0f;
+            }
+            else
+            {
+                // Ещё едем — применяем экстренное торможение через колёса
+                foreach (var w in wheels) w.brake = 1f;
+            }
         }
 
         // Полный стоп-холд: в зоне HillStopZone + зажат тормоз = машина прибита к точке

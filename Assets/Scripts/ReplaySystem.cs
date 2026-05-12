@@ -15,13 +15,14 @@ public class ReplaySystem : MonoBehaviour
 
     struct ReplayFrame
     {
-        public Vector3     carPos;
-        public Quaternion  carRot;
-        public Vector3[]   wheelPos;
-        public Quaternion[] wheelRot;
-        public float       speed;
-        public int         gear;
-        public float       rpm;
+        public Vector3      carPos;
+        public Quaternion   carRot;
+        public Vector3[]    wheelPos;
+        public Quaternion[] wheelRot;        // steering/position rotation (wheelObject)
+        public Quaternion[] wheelVisualRot;  // spin rotation (wheelObject.GetChild(0))
+        public float        speed;
+        public int          gear;
+        public float        rpm;
     }
 
     // ── Одна запись (попытка) ─────────────────────────────────────────────
@@ -36,9 +37,10 @@ public class ReplaySystem : MonoBehaviour
     // ── Инспектор ─────────────────────────────────────────────────────────
 
     [Header("Ссылки")]
-    public Car    car;
-    public Camera replayCamera;
-    public Camera driverCamera;
+    public Car         car;
+    public Camera      replayCamera;
+    public Camera      driverCamera;
+    public EngineAudio engineAudio;  // для звука во время повтора
 
     [Header("Запись")]
     public float recordFPS      = 30f;
@@ -75,21 +77,52 @@ public class ReplaySystem : MonoBehaviour
     private float               _recordTimer = 0f;
     private int                 _sessionNum  = 0;
 
+    private AudioSource         _replayEngineSource;
+    private bool                _autoCreatedCamera = false;
     private bool                _replaying   = false;
+    private bool                _scrubbing   = false;
+    private float               _replayStart = 0f;
+    private float               _replayOffset = 0f;
     private ReplaySession       _activeSession;
     private Coroutine           _replayCoroutine;
     private GameObject          _ghost;
     private Transform[]         _ghostWheels;
+
+    // ── Камера повтора ────────────────────────────────────────────────────
+    public enum CameraMode { Follow, Orbit, Free }
+    private CameraMode _camMode   = CameraMode.Follow;
+    private float      _orbitYaw  = 180f;
+    private float      _orbitPitch = 20f;
+    private float      _orbitDist  = 8f;
+    private Vector3    _freePos;
+    private float      _freeYaw;
+    private float      _freePitch;
 
     // ── Unity ─────────────────────────────────────────────────────────────
 
     void Start()
     {
         if (car == null) car = FindAnyObjectByType<Car>();
+        if (engineAudio == null) engineAudio = FindAnyObjectByType<EngineAudio>();
+
+        // 2D AudioSource для повтора — клонируем клип из engineAudio
+        if (engineAudio != null && engineAudio.engineSource != null)
+        {
+            _replayEngineSource = gameObject.AddComponent<AudioSource>();
+            _replayEngineSource.clip        = engineAudio.engineSource.clip;
+            _replayEngineSource.loop        = true;
+            _replayEngineSource.spatialBlend = 0f; // 2D — позиция не важна
+            _replayEngineSource.volume      = 0f;
+            _replayEngineSource.playOnAwake = false;
+            _replayEngineSource.Play();
+        }
 
         btnRecord?.onClick.AddListener(ToggleRecording);
         btnReplayPlay?.onClick.AddListener(() => StartReplay(_activeSession));
         btnReplayStop?.onClick.AddListener(StopReplay);
+
+        if (replaySlider != null)
+            replaySlider.onValueChanged.AddListener(OnSliderChanged);
 
         if (replayPlayerPanel != null) replayPlayerPanel.SetActive(false);
 
@@ -98,6 +131,14 @@ public class ReplaySystem : MonoBehaviour
 
     void Update()
     {
+        // Tab — показать/скрыть курсор для работы с UI повторов
+        if (LegacyInput.GetKeyDown(KeyCode.Tab))
+        {
+            bool locked = Cursor.lockState == CursorLockMode.Locked;
+            Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible   = locked;
+        }
+
         if (LegacyInput.GetKeyDown(keyRecord))
             ToggleRecording();
 
@@ -111,6 +152,10 @@ public class ReplaySystem : MonoBehaviour
 
         if (LegacyInput.GetKeyDown(keyStopReplay))
             StopReplay();
+
+        // Камера повтора — обновляем в Update чтобы ввод всегда читался корректно
+        if (_replaying && replayCamera != null && _ghost != null)
+            UpdateReplayCamera();
     }
 
     void FixedUpdate()
@@ -132,8 +177,9 @@ public class ReplaySystem : MonoBehaviour
 
         if (car.wheels != null)
         {
-            f.wheelPos = new Vector3[car.wheels.Length];
-            f.wheelRot = new Quaternion[car.wheels.Length];
+            f.wheelPos       = new Vector3[car.wheels.Length];
+            f.wheelRot       = new Quaternion[car.wheels.Length];
+            f.wheelVisualRot = new Quaternion[car.wheels.Length];
             for (int i = 0; i < car.wheels.Length; i++)
             {
                 var wo = car.wheels[i].wheelObject;
@@ -141,6 +187,9 @@ public class ReplaySystem : MonoBehaviour
                 {
                     f.wheelPos[i] = wo.transform.position;
                     f.wheelRot[i] = wo.transform.rotation;
+                    // Спин (вращение вокруг оси) живёт на первом дочернем объекте
+                    if (wo.transform.childCount > 0)
+                        f.wheelVisualRot[i] = wo.transform.GetChild(0).rotation;
                 }
             }
         }
@@ -216,15 +265,16 @@ public class ReplaySystem : MonoBehaviour
             if (replayEntryPrefab != null)
             {
                 var entry = Instantiate(replayEntryPrefab, replayListParent);
+                entry.SetActive(true);
                 var label = entry.GetComponentInChildren<TextMeshProUGUI>();
                 if (label != null)
                     label.text = $"{s.name}  —  {s.duration:F1} сек";
                 var btn = entry.GetComponent<Button>();
-                btn?.onClick.AddListener(() => SelectReplay(s));
+                btn?.onClick.AddListener(() => StartReplay(s));
+
             }
             else
             {
-                // Нет префаба — просто лог
                 Debug.Log($"[Replay] Доступен повтор: {s.name} ({s.duration:F1} сек)");
             }
         }
@@ -251,8 +301,52 @@ public class ReplaySystem : MonoBehaviour
         if (_replaying) StopReplay();
 
         CreateGhost();
-        if (driverCamera != null) driverCamera.gameObject.SetActive(false);
-        if (replayCamera != null) replayCamera.gameObject.SetActive(true);
+
+        // Если replayCamera не назначена — создаём временную
+        if (replayCamera == null)
+        {
+            var camGO = new GameObject("ReplayCam_Auto");
+            replayCamera = camGO.AddComponent<Camera>();
+            replayCamera.fieldOfView = driverCamera != null ? driverCamera.fieldOfView : 60f;
+            _autoCreatedCamera = true;
+        }
+
+        if (driverCamera != null) driverCamera.enabled = false;
+        replayCamera.gameObject.SetActive(true);
+        // Отключаем все скрипты на replayCamera чтобы они не перехватывали управление
+        foreach (var mono in replayCamera.GetComponents<MonoBehaviour>())
+            mono.enabled = false;
+        if (engineAudio != null) engineAudio.enabled = false;
+        if (_replayEngineSource != null) _replayEngineSource.volume = engineAudio?.volumeIdle ?? 0.4f;
+
+        // Показываем панель плеера и настраиваем слайдер
+        _activeSession = session;
+        if (replayPlayerPanel != null) replayPlayerPanel.SetActive(true);
+        if (replaySlider != null)
+        {
+            replaySlider.minValue = 0;
+            replaySlider.maxValue = session.frames.Count - 1;
+            replaySlider.value    = 0;
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+
+        _camMode    = CameraMode.Follow;
+        _orbitDist  = Mathf.Abs(cameraOffset.z);
+        _orbitPitch = 20f;
+        _orbitYaw   = 180f;
+
+        // Начальная позиция камеры за машиной
+        if (replayCamera != null && _ghost != null)
+        {
+            var startPos = _ghost.transform.TransformPoint(cameraOffset);
+            replayCamera.transform.position = startPos;
+            replayCamera.transform.LookAt(_ghost.transform.position + Vector3.up);
+            _freePos   = startPos;
+            _freeYaw   = replayCamera.transform.eulerAngles.y;
+            _freePitch = replayCamera.transform.eulerAngles.x;
+        }
 
         _replaying = true;
         _replayCoroutine = StartCoroutine(ReplayRoutine(session));
@@ -262,44 +356,185 @@ public class ReplaySystem : MonoBehaviour
     {
         _replaying = false;
         if (_replayCoroutine != null) StopCoroutine(_replayCoroutine);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible   = false;
+
+        if (driverCamera != null) driverCamera.enabled = true;
+        if (replayCamera != null)
+        {
+            if (_autoCreatedCamera)
+            {
+                Destroy(replayCamera.gameObject);
+                replayCamera = null;
+                _autoCreatedCamera = false;
+            }
+            else
+            {
+                // Возвращаем скрипты и прячем камеру
+                foreach (var mono in replayCamera.GetComponents<MonoBehaviour>())
+                    mono.enabled = true;
+                replayCamera.gameObject.SetActive(false);
+            }
+        }
+        if (engineAudio != null) engineAudio.enabled = true;
+        if (_replayEngineSource != null) _replayEngineSource.volume = 0f;
         DestroyGhost();
-        if (driverCamera != null) driverCamera.gameObject.SetActive(true);
-        if (replayCamera != null) replayCamera.gameObject.SetActive(false);
         if (replayPlayerPanel != null) replayPlayerPanel.SetActive(false);
     }
 
     IEnumerator ReplayRoutine(ReplaySession session)
     {
-        float startTime = Time.time;
-        float duration  = session.duration;
+        _replayStart  = Time.time;
+        _replayOffset = 0f;
+        float duration = session.duration;
 
         while (_replaying)
         {
-            float elapsed = Time.time - startTime;
-            if (elapsed >= duration) { StopReplay(); yield break; }
+            int idx;
 
-            float t   = elapsed / duration;
-            int   idx = Mathf.Clamp(Mathf.FloorToInt(t * session.frames.Count), 0, session.frames.Count - 1);
+            if (_scrubbing && replaySlider != null)
+            {
+                // Юзер тащит слайдер — индекс берём прямо из него
+                idx = Mathf.Clamp(Mathf.RoundToInt(replaySlider.value), 0, session.frames.Count - 1);
+            }
+            else
+            {
+                float elapsed = (Time.time - _replayStart) + _replayOffset;
+                if (elapsed >= duration) { StopReplay(); yield break; }
+                float t = elapsed / duration;
+                idx = Mathf.Clamp(Mathf.FloorToInt(t * session.frames.Count), 0, session.frames.Count - 1);
+
+                if (replaySlider != null)
+                {
+                    // Меняем без триггера listener — иначе зациклимся
+                    replaySlider.SetValueWithoutNotify(idx);
+                }
+            }
 
             ApplyFrame(session.frames[idx]);
 
-            if (replaySlider    != null) replaySlider.value = idx;
             if (replayTimeLabel != null)
             {
                 var f = session.frames[idx];
-                replayTimeLabel.text = $"{elapsed:F1}s  {f.speed:F0} км/ч  D{f.gear}  {f.rpm:F0} RPM";
+                float secs = idx / recordFPS;
+                replayTimeLabel.text = $"{secs:F1}s / {duration:F1}s  •  {f.speed:F0} км/ч  D{f.gear}  {f.rpm:F0} RPM";
             }
 
-            if (replayCamera != null && _ghost != null)
+            // Звук двигателя по записанным данным
+            if (_replayEngineSource != null && engineAudio != null && car != null)
             {
-                var target = _ghost.transform.TransformPoint(cameraOffset);
-                replayCamera.transform.position = Vector3.Lerp(
-                    replayCamera.transform.position, target, Time.deltaTime * 5f);
-                replayCamera.transform.LookAt(_ghost.transform.position + Vector3.up);
+                var rf = session.frames[idx];
+                float rpmT = Mathf.InverseLerp(car.e.idleRPM, car.e.maxRPM, rf.rpm);
+                _replayEngineSource.pitch  = Mathf.Lerp(engineAudio.pitchAtIdle, engineAudio.pitchAtMax, rpmT);
+                float speedT = Mathf.Clamp01(rf.speed / 100f);
+                _replayEngineSource.volume = Mathf.Lerp(engineAudio.volumeIdle, engineAudio.volumeMax, speedT);
             }
 
             yield return null;
         }
+    }
+
+    // ── Камера повтора ────────────────────────────────────────────────────
+
+    void UpdateReplayCamera()
+    {
+        var ghostPos = _ghost.transform.position;
+
+        // C — переключение режима
+        if (LegacyInput.GetKeyDown(KeyCode.C))
+        {
+            _camMode = (CameraMode)(((int)_camMode + 1) % 3);
+            if (_camMode == CameraMode.Free)
+            {
+                _freePos   = replayCamera.transform.position;
+                _freeYaw   = replayCamera.transform.eulerAngles.y;
+                _freePitch = replayCamera.transform.eulerAngles.x;
+            }
+            Debug.Log($"[Replay Cam] Режим: {_camMode}  pos={replayCamera.transform.position}");
+        }
+
+        bool  rmb    = LegacyInput.GetKey(KeyCode.Mouse1);
+        float mouseX = LegacyInput.GetAxis("Mouse X");
+        float mouseY = LegacyInput.GetAxis("Mouse Y");
+        float scroll = UnityEngine.InputSystem.Mouse.current?.scroll.y.ReadValue() * 0.01f ?? 0f;
+
+
+        switch (_camMode)
+        {
+            case CameraMode.Follow:
+            {
+                var target = _ghost.transform.TransformPoint(cameraOffset);
+                replayCamera.transform.position = Vector3.Lerp(
+                    replayCamera.transform.position, target, Time.deltaTime * 5f);
+                replayCamera.transform.LookAt(ghostPos + Vector3.up);
+                break;
+            }
+
+            case CameraMode.Orbit:
+            {
+                if (rmb)
+                {
+                    _orbitYaw   += mouseX * 3f;
+                    _orbitPitch -= mouseY * 3f;
+                    _orbitPitch  = Mathf.Clamp(_orbitPitch, -30f, 80f);
+                }
+                _orbitDist -= scroll * 5f;
+                _orbitDist  = Mathf.Clamp(_orbitDist, 2f, 40f);
+
+                var rot = Quaternion.Euler(_orbitPitch, _orbitYaw, 0f);
+                replayCamera.transform.position = ghostPos + rot * new Vector3(0f, 0f, -_orbitDist);
+                replayCamera.transform.LookAt(ghostPos + Vector3.up * 0.8f);
+                break;
+            }
+
+            case CameraMode.Free:
+            {
+                if (rmb)
+                {
+                    _freeYaw   += mouseX * 3f;
+                    _freePitch -= mouseY * 3f;
+                    _freePitch  = Mathf.Clamp(_freePitch, -89f, 89f);
+                }
+                var freeRot = Quaternion.Euler(_freePitch, _freeYaw, 0f);
+
+                float speed = 10f * Time.deltaTime;
+                if (LegacyInput.GetKey(KeyCode.LeftShift)) speed *= 3f;
+                Vector3 move = Vector3.zero;
+                if (LegacyInput.GetKey(KeyCode.W) || LegacyInput.GetKey(KeyCode.UpArrow))    move += freeRot * Vector3.forward;
+                if (LegacyInput.GetKey(KeyCode.S) || LegacyInput.GetKey(KeyCode.DownArrow))  move -= freeRot * Vector3.forward;
+                if (LegacyInput.GetKey(KeyCode.A) || LegacyInput.GetKey(KeyCode.LeftArrow))  move -= freeRot * Vector3.right;
+                if (LegacyInput.GetKey(KeyCode.D) || LegacyInput.GetKey(KeyCode.RightArrow)) move += freeRot * Vector3.right;
+                if (LegacyInput.GetKey(KeyCode.E)) move += Vector3.up;
+                if (LegacyInput.GetKey(KeyCode.Q)) move -= Vector3.up;
+
+                _freePos += move * speed;
+                replayCamera.transform.SetPositionAndRotation(_freePos, freeRot);
+                break;
+            }
+        }
+    }
+
+    void OnSliderChanged(float value)
+    {
+        if (!_replaying || _activeSession == null) return;
+
+        // Помечаем что идёт scrub (на следующем кадре корутина возьмёт значение слайдера)
+        _scrubbing = true;
+
+        // После небольшой паузы (когда юзер отпустил мышь) возобновляем нормальное воспроизведение
+        CancelInvoke(nameof(EndScrub));
+        Invoke(nameof(EndScrub), 0.1f);
+    }
+
+    void EndScrub()
+    {
+        if (!_replaying || _activeSession == null) { _scrubbing = false; return; }
+
+        // Возобновляем воспроизведение с позиции слайдера
+        int idx = Mathf.RoundToInt(replaySlider.value);
+        _replayOffset = idx / recordFPS;
+        _replayStart  = Time.time;
+        _scrubbing    = false;
     }
 
     void ApplyFrame(ReplayFrame f)
@@ -309,8 +544,17 @@ public class ReplaySystem : MonoBehaviour
 
         if (_ghostWheels != null && f.wheelPos != null)
             for (int i = 0; i < _ghostWheels.Length && i < f.wheelPos.Length; i++)
-                if (_ghostWheels[i] != null)
-                    _ghostWheels[i].SetPositionAndRotation(f.wheelPos[i], f.wheelRot[i]);
+            {
+                var gw = _ghostWheels[i];
+                if (gw == null) continue;
+                // Позиция и steering — на контейнере (wheelObject)
+                gw.localPosition = _ghost.transform.InverseTransformPoint(f.wheelPos[i]);
+                gw.localRotation = Quaternion.Inverse(f.carRot) * f.wheelRot[i];
+                // Спин — на первом дочернем (wheelVisual = GetChild(0))
+                if (f.wheelVisualRot != null && gw.childCount > 0)
+                    gw.GetChild(0).localRotation =
+                        Quaternion.Inverse(gw.rotation) * f.wheelVisualRot[i];
+            }
     }
 
     // ── Призрак ───────────────────────────────────────────────────────────
@@ -321,25 +565,76 @@ public class ReplaySystem : MonoBehaviour
         _ghost = Instantiate(car.gameObject);
         _ghost.name = "ReplayGhost";
 
-        foreach (var rb   in _ghost.GetComponentsInChildren<Rigidbody>())    Destroy(rb);
+        foreach (var rb   in _ghost.GetComponentsInChildren<Rigidbody>())     Destroy(rb);
         foreach (var col  in _ghost.GetComponentsInChildren<Collider>())     Destroy(col);
         foreach (var mono in _ghost.GetComponentsInChildren<MonoBehaviour>()) Destroy(mono);
+        // Компоненты не наследующие MonoBehaviour — удаляем отдельно
+        foreach (var cam in _ghost.GetComponentsInChildren<Camera>())        Destroy(cam);
+        foreach (var al  in _ghost.GetComponentsInChildren<AudioListener>()) Destroy(al);
+        foreach (var au  in _ghost.GetComponentsInChildren<AudioSource>())   Destroy(au);
 
+        // Колёса — всегда клонируем отдельно и прикрепляем к ghost
         var ghostWheelList = new List<Transform>();
         if (car.wheels != null)
-            foreach (var w in car.wheels)
-                if (w.wheelObject != null)
+        {
+            for (int i = 0; i < car.wheels.Length; i++)
+            {
+                var w = car.wheels[i];
+                if (w.wheelObject == null)
                 {
-                    var found = _ghost.transform.Find(w.wheelObject.name);
-                    if (found != null) ghostWheelList.Add(found);
+                    Debug.LogWarning($"[Replay] wheels[{i}].wheelObject == null — колесо пропущено");
+                    ghostWheelList.Add(null);
+                    continue;
                 }
+
+                // Проверяем дубликат — если этот wheelObject уже клонировали, берём тот же клон
+                bool duplicate = false;
+                for (int j = 0; j < i; j++)
+                {
+                    if (car.wheels[j].wheelObject == w.wheelObject)
+                    {
+                        ghostWheelList.Add(ghostWheelList[j]);
+                        Debug.LogWarning($"[Replay] wheels[{i}] дублирует wheels[{j}] — общий объект {w.wheelObject.name}");
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (duplicate) continue;
+
+                var clone = Instantiate(w.wheelObject, _ghost.transform); // дочерний объект ghost
+                clone.name = $"GhostWheel_{i}";
+                // Начальная локальная позиция — как у оригинала относительно машины
+                clone.transform.localPosition = car.transform.InverseTransformPoint(w.wheelObject.transform.position);
+                clone.transform.localRotation = Quaternion.Inverse(car.transform.rotation) * w.wheelObject.transform.rotation;
+                foreach (var mono in clone.GetComponentsInChildren<MonoBehaviour>()) Destroy(mono);
+                foreach (var col  in clone.GetComponentsInChildren<Collider>())      Destroy(col);
+                ghostWheelList.Add(clone.transform);
+            }
+        }
         _ghostWheels = ghostWheelList.ToArray();
     }
 
     void DestroyGhost()
     {
         if (_ghost != null) Destroy(_ghost);
-        _ghost = _ghostWheels == null ? null : null;
+        _ghost       = null;
         _ghostWheels = null;
+    }
+
+    // Возвращает путь от root до target в виде "Child/SubChild/..."
+    static string GetRelativePath(Transform root, Transform target)
+    {
+        if (target == null || root == null) return null;
+        if (target == root) return "";
+
+        var parts = new System.Collections.Generic.Stack<string>();
+        var t = target;
+        while (t != null && t != root)
+        {
+            parts.Push(t.name);
+            t = t.parent;
+        }
+        if (t == null) return null; // target не является потомком root
+        return string.Join("/", parts);
     }
 }

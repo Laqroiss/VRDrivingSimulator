@@ -35,6 +35,12 @@ public class DashboardController : MonoBehaviour
     public Color blinkerActiveColor = new Color(1f, 0.6f, 0f, 1f);
     public Color blinkerOffColor = new Color(1f, 0.6f, 0f, 0.2f);
 
+    [Header("Анимация руля")]
+    public Transform steeringWheel;
+    [Tooltip("Максимальный угол поворота руля в градусах (±)")]
+    public float steeringMaxAngle = 450f;
+    public float steeringAnimSpeed = 15f;
+
     [Header("Анимация рычага поворотников")]
     public Transform signalStalk;
     public float stalkRotationAngle = 12f;
@@ -46,7 +52,9 @@ public class DashboardController : MonoBehaviour
     public CarIndicators carIndicators;
 
     private Quaternion _stalkNeutral;
-    private bool _stalkCaptured;
+    private bool       _stalkCaptured;
+    private Quaternion _wheelNeutral;
+    private bool       _wheelCaptured;
 
     void Start()
     {
@@ -55,8 +63,13 @@ public class DashboardController : MonoBehaviour
 
         if (signalStalk != null)
         {
-            _stalkNeutral = signalStalk.localRotation;
+            _stalkNeutral  = signalStalk.localRotation;
             _stalkCaptured = true;
+        }
+        if (steeringWheel != null)
+        {
+            _wheelNeutral  = steeringWheel.localRotation;
+            _wheelCaptured = true;
         }
     }
 
@@ -66,6 +79,7 @@ public class DashboardController : MonoBehaviour
         if (carScript.rb == null) return; // машина ещё не инициализирована (меню)
 
         UpdateEngineUI();
+        UpdateSteeringWheel();
 
         if (carIndicators != null)
         {
@@ -106,6 +120,10 @@ public class DashboardController : MonoBehaviour
 
         switch (carScript.transmissionMode)
         {
+            case Car.TransmissionMode.Park:
+                label = "P";
+                color = neutralColor;
+                break;
             case Car.TransmissionMode.Reverse:
                 label = "R";
                 color = reverseColor;
@@ -142,6 +160,22 @@ public class DashboardController : MonoBehaviour
                        && carIndicators.BlinkVisible;
             rightBlinkerIcon.color = lit ? blinkerActiveColor : blinkerOffColor;
         }
+    }
+
+    void UpdateSteeringWheel()
+    {
+        if (steeringWheel == null) return;
+        if (!_wheelCaptured)
+        {
+            _wheelNeutral  = steeringWheel.localRotation;
+            _wheelCaptured = true;
+        }
+
+        float angle = carScript.userInput.x * steeringMaxAngle;
+        var target = _wheelNeutral * Quaternion.AngleAxis(angle, Vector3.forward);
+        steeringWheel.localRotation = Quaternion.Slerp(
+            steeringWheel.localRotation, target,
+            Mathf.Clamp01(Time.deltaTime * steeringAnimSpeed));
     }
 
     void UpdateStalkAnimation()
