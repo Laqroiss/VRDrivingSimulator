@@ -17,6 +17,7 @@ public class MenuManager : MonoBehaviour
 
 
     [Header("UI")]
+    public Canvas      menuCanvas;   // корневой Canvas меню — для позиционирования в VR
     public CanvasGroup menuPanel;
     public Button      btnStart;
     public Button      btnSettings;
@@ -34,6 +35,10 @@ public class MenuManager : MonoBehaviour
     [Header("XR")]
     [Tooltip("DriverHeadAnchor или XR Origin — отключаем трекинг головы во время меню")]
     public GameObject xrHeadAnchor;
+    [Tooltip("Расстояние от камеры до меню в VR (метры)")]
+    public float vrMenuDistance = 2f;
+    [Tooltip("Масштаб меню в VR")]
+    public float vrMenuScale    = 0.001f;
 
     [Header("Анимация")]
     public float fadeInDuration   = 1.5f;
@@ -41,9 +46,14 @@ public class MenuManager : MonoBehaviour
     public float cockpitFlyTime   = 2.5f; // время перелёта в кабину
 
     private Camera     _cam;
+    private Canvas     _menuCanvas;
     private bool       _menuActive      = true;
+    private bool       _paused          = false;
+    private bool       _inGame          = false;
     private Vector3    _cockpitWorldPos;
     private Quaternion _cockpitWorldRot;
+    private Vector3    _frozenCamPos;
+    private Quaternion _frozenCamRot;
 
     void Start()
     {
@@ -69,19 +79,29 @@ public class MenuManager : MonoBehaviour
         // Отключаем XR трекинг головы — иначе HMD будет перебивать кинематику
         if (xrHeadAnchor != null)
             xrHeadAnchor.SetActive(false);
-        else
-        {
-            // Попытка найти TrackedPoseDriver автоматически
-            var tpd = _cam?.GetComponent<TrackedPoseDriver>();
-            if (tpd != null) tpd.enabled = false;
-        }
+
+        // Отключаем все TrackedPoseDriver в сцене (включая на неактивных объектах)
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = false;
 
         // Ставим камеру на первую точку
         if (_cam != null && cinematicPoints.Length > 0)
         {
-            _cam.transform.SetParent(null); // отвязываем от XR иерархии
+            _cam.transform.SetParent(null);
             _cam.transform.position = cinematicPoints[0].position;
             _cam.transform.rotation = cinematicPoints[0].rotation;
+        }
+
+        // Находим Canvas и отцепляем от иерархии
+        _menuCanvas = menuCanvas;
+        if (_menuCanvas == null && menuPanel != null)
+            _menuCanvas = menuPanel.GetComponentInParent<Canvas>();
+
+        if (_menuCanvas != null)
+        {
+            _menuCanvas.gameObject.SetActive(true);
+            _menuCanvas.renderMode  = RenderMode.WorldSpace;
+            _menuCanvas.worldCamera = _cam;
         }
 
         // Кнопки
@@ -126,6 +146,16 @@ public class MenuManager : MonoBehaviour
 
     void Update()
     {
+        if (_inGame)
+        {
+            if (LegacyInput.GetKeyDown(KeyCode.Escape))
+            {
+                if (_paused) ResumeGame();
+                else         PauseGame();
+            }
+            return;
+        }
+
         if (!_menuActive) return;
         if (LegacyInput.GetKeyDown(KeyCode.Return) || LegacyInput.GetKeyDown(KeyCode.KeypadEnter))
             StartGame();
@@ -134,6 +164,7 @@ public class MenuManager : MonoBehaviour
         else if (LegacyInput.GetKeyDown(KeyCode.Escape))
             QuitGame();
     }
+
 
     // ── Кинематика ────────────────────────────────────────────────────────
 
@@ -204,7 +235,14 @@ public class MenuManager : MonoBehaviour
     {
         // Прячем меню
         yield return StartCoroutine(FadeMenu(1f, 0f, fadeOutDuration));
-        if (menuPanel != null) menuPanel.gameObject.SetActive(false);
+        if (menuPanel != null)
+            menuPanel.gameObject.SetActive(false);
+        else if (_cam != null)
+        {
+            // Фолбек: прячем весь Canvas под камерой
+            var c = _cam.GetComponentInChildren<Canvas>();
+            if (c != null) c.gameObject.SetActive(false);
+        }
 
         // Плавный перелёт к запомненной позиции кабины (XR ещё выключен)
         yield return StartCoroutine(FlyTo(_cockpitWorldPos, _cockpitWorldRot, cockpitFlyTime));
@@ -221,18 +259,100 @@ public class MenuManager : MonoBehaviour
                 _cam.transform.localRotation = Quaternion.identity;
             }
         }
-        else
-        {
-            var tpd = _cam?.GetComponent<TrackedPoseDriver>();
-            if (tpd != null) tpd.enabled = true;
-        }
+
+        // Включаем TrackedPoseDriver обратно — игрок в кабине, голова снова управляет камерой
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = true;
 
         // Снимаем Park — водитель может переключить в Drive и поехать
         if (car != null)
             car.transmissionMode = Car.TransmissionMode.Neutral;
 
-        // Экзамен запускается автоматически через триггер StartLine в сцене
-        Destroy(gameObject);
+        // Переходим в режим паузы (ESC во время игры)
+        _inGame = true;
+
+        // Меняем кнопку Start на Resume
+        var startLabel = btnStart?.GetComponentInChildren<TextMeshProUGUI>();
+        if (startLabel != null) startLabel.text = "Продолжить";
+
+        if (keyHintText != null)
+            keyHintText.text = "[Esc] — Продолжить     [Tab] — Настройки     [Q] — Выход";
+
+        // Перевешиваем btnStart на ResumeGame
+        btnStart?.onClick.RemoveAllListeners();
+        btnStart?.onClick.AddListener(ResumeGame);
+    }
+
+    // ── Пауза ─────────────────────────────────────────────────────────────
+
+    void PauseGame()
+    {
+        if (_paused) return;
+        _paused = true;
+        Time.timeScale = 0f;
+
+        // Отцепляем камеру от HeadPitch — она остаётся на месте в мире
+        if (_cam != null)
+            _cam.transform.SetParent(null, true);
+
+        // Отключаем XR трекинг
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+
+        if (menuPanel != null)
+        {
+            menuPanel.gameObject.SetActive(true);
+            menuPanel.alpha = 0f;
+            StartCoroutine(FadeMenuUnscaled(0f, 1f, fadeInDuration));
+        }
+    }
+
+    void ResumeGame()
+    {
+        if (!_paused) return;
+        _paused = false;
+        StartCoroutine(ResumeRoutine());
+    }
+
+    IEnumerator ResumeRoutine()
+    {
+        yield return StartCoroutine(FadeMenuUnscaled(1f, 0f, fadeOutDuration));
+        if (menuPanel != null)
+            menuPanel.gameObject.SetActive(false);
+
+        // Возвращаем камеру обратно в HeadPitch
+        var pitch = GameObject.Find("HeadPitch");
+        if (pitch != null && _cam != null)
+        {
+            _cam.transform.SetParent(pitch.transform, false);
+            _cam.transform.localPosition = Vector3.zero;
+            _cam.transform.localRotation = Quaternion.identity;
+        }
+
+        // Включаем XR трекинг
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible   = false;
+
+        Time.timeScale = 1f;
+    }
+
+    IEnumerator FadeMenuUnscaled(float from, float to, float duration)
+    {
+        if (menuPanel == null) yield break;
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            menuPanel.alpha = Mathf.Lerp(from, to, t / duration);
+            yield return null;
+        }
+        menuPanel.alpha = to;
     }
 
     // ── Настройки / Выход ─────────────────────────────────────────────────

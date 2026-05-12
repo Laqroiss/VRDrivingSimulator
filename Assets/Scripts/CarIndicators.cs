@@ -17,10 +17,10 @@ public class CarIndicators : MonoBehaviour
     public KeyCode hazardLightKey = KeyCode.X;
 
     [Header("3D световые объекты (необязательно)")]
-    [Tooltip("GameObject с компонентом Light или MeshRenderer для левого поворотника")]
-    public GameObject leftIndicatorLight;
-    [Tooltip("GameObject с компонентом Light или MeshRenderer для правого поворотника")]
-    public GameObject rightIndicatorLight;
+    [Tooltip("Все объекты левого поворотника: спереди, сзади, зеркало")]
+    public GameObject[] leftIndicatorLights;
+    [Tooltip("Все объекты правого поворотника: спереди, сзади, зеркало")]
+    public GameObject[] rightIndicatorLights;
 
     [Header("UI иконки на Canvas (необязательно)")]
     [Tooltip("Иконка левого поворотника. Если управляется из DashboardController — оставь пустым")]
@@ -137,13 +137,13 @@ public class CarIndicators : MonoBehaviour
 
         if (leftShouldBlink)
         {
-            if (leftIndicatorLight != null) leftIndicatorLight.SetActive(_blinkState);
+            SetLights(leftIndicatorLights, _blinkState);
             if (leftUIIcon != null) leftUIIcon.color = uiColor;
         }
 
         if (rightShouldBlink)
         {
-            if (rightIndicatorLight != null) rightIndicatorLight.SetActive(_blinkState);
+            SetLights(rightIndicatorLights, _blinkState);
             if (rightUIIcon != null) rightUIIcon.color = uiColor;
         }
     }
@@ -202,7 +202,7 @@ public class CarIndicators : MonoBehaviour
     {
         LeftIndicatorOn = false;
         _leftArmed = false;
-        if (leftIndicatorLight != null) leftIndicatorLight.SetActive(false);
+        SetLights(leftIndicatorLights, false);
         if (leftUIIcon != null) leftUIIcon.color = iconOffColor;
         Debug.Log("CarIndicators: Левый поворотник ВЫКЛ");
     }
@@ -224,7 +224,7 @@ public class CarIndicators : MonoBehaviour
     {
         RightIndicatorOn = false;
         _rightArmed = false;
-        if (rightIndicatorLight != null) rightIndicatorLight.SetActive(false);
+        SetLights(rightIndicatorLights, false);
         if (rightUIIcon != null) rightUIIcon.color = iconOffColor;
         Debug.Log("CarIndicators: Правый поворотник ВЫКЛ");
     }
@@ -247,10 +247,17 @@ public class CarIndicators : MonoBehaviour
     public void TurnOffHazard()
     {
         HazardLightsOn = false;
-        if (leftIndicatorLight != null) leftIndicatorLight.SetActive(false);
-        if (rightIndicatorLight != null) rightIndicatorLight.SetActive(false);
+        SetLights(leftIndicatorLights,  false);
+        SetLights(rightIndicatorLights, false);
         ResetIconColors();
         Debug.Log("CarIndicators: Аварийка ВЫКЛ");
+    }
+
+    private void SetLights(GameObject[] lights, bool active)
+    {
+        if (lights == null) return;
+        foreach (var go in lights)
+            if (go != null) go.SetActive(active);
     }
 
     // ─── Вспомогательные ─────────────────────────────────────────────────────

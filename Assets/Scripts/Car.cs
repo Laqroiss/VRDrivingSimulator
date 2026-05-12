@@ -269,6 +269,12 @@ public class Car : MonoBehaviour
 
     public int WheelCount => wheels != null ? wheels.Length : 0;
 
+    [Header("Стоп-сигналы")]
+    public GameObject[] brakeLights;
+
+    [Header("Фонари заднего хода")]
+    public GameObject[] reverseLights;
+
     [Header("Debug")]
     public bool debugLog = true;
     [Tooltip("Интервал между периодическими логами состояния, сек")]
@@ -429,6 +435,8 @@ public class Car : MonoBehaviour
                         && rb.linearVelocity.magnitude < hillHoldSpeedThreshold;
         bool isBraking = brakePedal || (wrongDirection && Mathf.Abs(rawThrottle) > 0.05f) || hillHold;
         if (isBraking) userInput.y = 0;
+        SetBrakeLights(isBraking);
+        SetReverseLights(transmissionMode == TransmissionMode.Reverse);
 
         for (int i = 0; i < wheels.Length; i++)
         {
@@ -688,5 +696,28 @@ public class Car : MonoBehaviour
         {
             _isHardLocked = false;
         }
+    }
+
+    private bool _brakeLightsOn   = false;
+    private bool _reverseLightsOn = false;
+    public  bool BrakeLightsOn   => _brakeLightsOn;
+    public  bool ReverseLightsOn => _reverseLightsOn;
+
+    void SetBrakeLights(bool on)
+    {
+        if (on == _brakeLightsOn) return;
+        _brakeLightsOn = on;
+        if (brakeLights == null) return;
+        foreach (var go in brakeLights)
+            if (go != null) go.SetActive(on);
+    }
+
+    void SetReverseLights(bool on)
+    {
+        if (on == _reverseLightsOn) return;
+        _reverseLightsOn = on;
+        if (reverseLights == null) return;
+        foreach (var go in reverseLights)
+            if (go != null) go.SetActive(on);
     }
 }
