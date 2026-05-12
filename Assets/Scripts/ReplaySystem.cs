@@ -23,6 +23,12 @@ public class ReplaySystem : MonoBehaviour
         public float        speed;
         public int          gear;
         public float        rpm;
+        // Lights
+        public bool         brakeLights;
+        public bool         reverseLights;
+        public bool         leftBlink;
+        public bool         rightBlink;
+        public bool         blinkPhase;
     }
 
     // вв One recording (attempt) ввввввввввввввввввввввввввввввввввввввввввв
@@ -71,6 +77,12 @@ public class ReplaySystem : MonoBehaviour
 
     // вв Runtime ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
+    private CarIndicators        _indicators;
+    private GameObject[]         _ghostBrakeLights;
+    private GameObject[]         _ghostReverseLights;
+    private GameObject[]         _ghostLeftLights;
+    private GameObject[]         _ghostRightLights;
+
     private List<ReplaySession> _sessions    = new List<ReplaySession>();
     private ReplaySession       _current;
     private bool                _recording   = false;
@@ -104,6 +116,7 @@ public class ReplaySystem : MonoBehaviour
     {
         if (car == null) car = FindAnyObjectByType<Car>();
         if (engineAudio == null) engineAudio = FindAnyObjectByType<EngineAudio>();
+        if (car != null) _indicators = car.GetComponent<CarIndicators>();
 
         // 2D AudioSource for replay - clone the clip from engineAudio
         if (engineAudio != null && engineAudio.engineSource != null)
@@ -168,11 +181,16 @@ public class ReplaySystem : MonoBehaviour
 
         var f = new ReplayFrame
         {
-            carPos = car.transform.position,
-            carRot = car.transform.rotation,
-            speed  = car.rb.linearVelocity.magnitude * 3.6f,
-            gear   = car.e.getCurrentGear(),
-            rpm    = car.e.getRPM(),
+            carPos      = car.transform.position,
+            carRot      = car.transform.rotation,
+            speed       = car.rb.linearVelocity.magnitude * 3.6f,
+            gear        = car.e.getCurrentGear(),
+            rpm         = car.e.getRPM(),
+            brakeLights   = car.BrakeLightsOn,
+            reverseLights = car.ReverseLightsOn,
+            leftBlink   = _indicators != null && (_indicators.LeftIndicatorOn  || _indicators.HazardLightsOn),
+            rightBlink  = _indicators != null && (_indicators.RightIndicatorOn || _indicators.HazardLightsOn),
+            blinkPhase  = _indicators != null && _indicators.BlinkVisible,
         };
 
         if (car.wheels != null)
@@ -237,7 +255,7 @@ public class ReplaySystem : MonoBehaviour
     void UpdateRecordButton()
     {
         if (btnRecordLabel == null) return;
-        btnRecordLabel.text = _recording ? "вЏ№  " : "вЏє  ";
+        btnRecordLabel.text = _recording ? "[ ] Stop recording" : "[o] Start recording";
         if (btnRecord != null)
         {
             var img = btnRecord.GetComponent<Image>();
@@ -547,14 +565,18 @@ public class ReplaySystem : MonoBehaviour
             {
                 var gw = _ghostWheels[i];
                 if (gw == null) continue;
-                //   steering вЂ”   (wheelObject)
                 gw.localPosition = _ghost.transform.InverseTransformPoint(f.wheelPos[i]);
                 gw.localRotation = Quaternion.Inverse(f.carRot) * f.wheelRot[i];
-                //  вЂ”    (wheelVisual = GetChild(0))
                 if (f.wheelVisualRot != null && gw.childCount > 0)
                     gw.GetChild(0).localRotation =
                         Quaternion.Inverse(gw.rotation) * f.wheelVisualRot[i];
             }
+
+        // Lights
+        SetGhostLights(_ghostBrakeLights,   f.brakeLights);
+        SetGhostLights(_ghostReverseLights, f.reverseLights);
+        SetGhostLights(_ghostLeftLights,    f.leftBlink  && f.blinkPhase);
+        SetGhostLights(_ghostRightLights,   f.rightBlink && f.blinkPhase);
     }
 
     // вв Ghost ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
@@ -612,13 +634,51 @@ public class ReplaySystem : MonoBehaviour
             }
         }
         _ghostWheels = ghostWheelList.ToArray();
+
+        // Cache light references in the ghost by the same paths as the original
+        _ghostBrakeLights   = FindGhostObjects(car.brakeLights,                    car.transform, _ghost.transform);
+        _ghostReverseLights = FindGhostObjects(car.reverseLights,                  car.transform, _ghost.transform);
+        _ghostLeftLights    = FindGhostObjects(_indicators?.leftIndicatorLights,   car.transform, _ghost.transform);
+        _ghostRightLights   = FindGhostObjects(_indicators?.rightIndicatorLights,  car.transform, _ghost.transform);
+
+        // All lights off by default
+        SetGhostLights(_ghostBrakeLights,   false);
+        SetGhostLights(_ghostReverseLights, false);
+        SetGhostLights(_ghostLeftLights,    false);
+        SetGhostLights(_ghostRightLights,   false);
     }
 
     void DestroyGhost()
     {
         if (_ghost != null) Destroy(_ghost);
-        _ghost       = null;
-        _ghostWheels = null;
+        _ghost              = null;
+        _ghostWheels        = null;
+        _ghostBrakeLights   = null;
+        _ghostReverseLights = null;
+        _ghostLeftLights    = null;
+        _ghostRightLights   = null;
+    }
+
+    static GameObject[] FindGhostObjects(GameObject[] originals, Transform origRoot, Transform ghostRoot)
+    {
+        if (originals == null) return new GameObject[0];
+        var result = new GameObject[originals.Length];
+        for (int i = 0; i < originals.Length; i++)
+        {
+            if (originals[i] == null) continue;
+            string path = GetRelativePath(origRoot, originals[i].transform);
+            if (path == null) continue;
+            var t = ghostRoot.Find(path);
+            if (t != null) result[i] = t.gameObject;
+        }
+        return result;
+    }
+
+    static void SetGhostLights(GameObject[] lights, bool active)
+    {
+        if (lights == null) return;
+        foreach (var go in lights)
+            if (go != null) go.SetActive(active);
     }
 
     // Returns the path from root to target as "Child/SubChild/..."

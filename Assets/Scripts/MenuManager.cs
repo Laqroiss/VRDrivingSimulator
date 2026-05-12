@@ -17,6 +17,7 @@ public class MenuManager : MonoBehaviour
 
 
     [Header("UI")]
+    public Canvas      menuCanvas;   // root menu Canvas - for VR positioning
     public CanvasGroup menuPanel;
     public Button      btnStart;
     public Button      btnSettings;
@@ -34,6 +35,10 @@ public class MenuManager : MonoBehaviour
     [Header("XR")]
     [Tooltip("DriverHeadAnchor or XR Origin - head tracking is disabled during the menu")]
     public GameObject xrHeadAnchor;
+    [Tooltip("Distance from camera to menu in VR (meters)")]
+    public float vrMenuDistance = 2f;
+    [Tooltip("Menu scale in VR")]
+    public float vrMenuScale    = 0.001f;
 
     [Header("Animation")]
     public float fadeInDuration   = 1.5f;
@@ -41,9 +46,14 @@ public class MenuManager : MonoBehaviour
     public float cockpitFlyTime   = 2.5f; // fly-into-cockpit time
 
     private Camera     _cam;
+    private Canvas     _menuCanvas;
     private bool       _menuActive      = true;
+    private bool       _paused          = false;
+    private bool       _inGame          = false;
     private Vector3    _cockpitWorldPos;
     private Quaternion _cockpitWorldRot;
+    private Vector3    _frozenCamPos;
+    private Quaternion _frozenCamRot;
 
     void Start()
     {
@@ -69,19 +79,29 @@ public class MenuManager : MonoBehaviour
         // Disable XR head tracking - otherwise the HMD overrides the cinematic
         if (xrHeadAnchor != null)
             xrHeadAnchor.SetActive(false);
-        else
-        {
-            //   TrackedPoseDriver 
-            var tpd = _cam?.GetComponent<TrackedPoseDriver>();
-            if (tpd != null) tpd.enabled = false;
-        }
+
+        // Disable every TrackedPoseDriver in the scene (including on inactive objects)
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = false;
 
         // Place the camera at the first point
         if (_cam != null && cinematicPoints.Length > 0)
         {
-            _cam.transform.SetParent(null); //   XR 
+            _cam.transform.SetParent(null);
             _cam.transform.position = cinematicPoints[0].position;
             _cam.transform.rotation = cinematicPoints[0].rotation;
+        }
+
+        // Find the Canvas and detach it from the hierarchy
+        _menuCanvas = menuCanvas;
+        if (_menuCanvas == null && menuPanel != null)
+            _menuCanvas = menuPanel.GetComponentInParent<Canvas>();
+
+        if (_menuCanvas != null)
+        {
+            _menuCanvas.gameObject.SetActive(true);
+            _menuCanvas.renderMode  = RenderMode.WorldSpace;
+            _menuCanvas.worldCamera = _cam;
         }
 
         // 
@@ -126,6 +146,16 @@ public class MenuManager : MonoBehaviour
 
     void Update()
     {
+        if (_inGame)
+        {
+            if (LegacyInput.GetKeyDown(KeyCode.Escape))
+            {
+                if (_paused) ResumeGame();
+                else         PauseGame();
+            }
+            return;
+        }
+
         if (!_menuActive) return;
         if (LegacyInput.GetKeyDown(KeyCode.Return) || LegacyInput.GetKeyDown(KeyCode.KeypadEnter))
             StartGame();
@@ -134,6 +164,7 @@ public class MenuManager : MonoBehaviour
         else if (LegacyInput.GetKeyDown(KeyCode.Escape))
             QuitGame();
     }
+
 
     // тт Cinematic ттттттттттттттттттттттттттттттттттттттттттттттттттттттттт
 
@@ -204,7 +235,14 @@ public class MenuManager : MonoBehaviour
     {
         // Hide the menu
         yield return StartCoroutine(FadeMenu(1f, 0f, fadeOutDuration));
-        if (menuPanel != null) menuPanel.gameObject.SetActive(false);
+        if (menuPanel != null)
+            menuPanel.gameObject.SetActive(false);
+        else if (_cam != null)
+        {
+            // Fallback: hide the whole Canvas under the camera
+            var c = _cam.GetComponentInChildren<Canvas>();
+            if (c != null) c.gameObject.SetActive(false);
+        }
 
         //       (XR  )
         yield return StartCoroutine(FlyTo(_cockpitWorldPos, _cockpitWorldRot, cockpitFlyTime));
@@ -221,18 +259,100 @@ public class MenuManager : MonoBehaviour
                 _cam.transform.localRotation = Quaternion.identity;
             }
         }
-        else
-        {
-            var tpd = _cam?.GetComponent<TrackedPoseDriver>();
-            if (tpd != null) tpd.enabled = true;
-        }
+
+        // Re-enable TrackedPoseDriver - player is in the cockpit, head drives the camera again
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = true;
 
         // Leave Park - the driver can shift to Drive and go
         if (car != null)
             car.transmissionMode = Car.TransmissionMode.Neutral;
 
-        //      StartLine  
-        Destroy(gameObject);
+        // Switch to pause mode (ESC during the game)
+        _inGame = true;
+
+        //   Start  Resume
+        var startLabel = btnStart?.GetComponentInChildren<TextMeshProUGUI>();
+        if (startLabel != null) startLabel.text = "Resume";
+
+        if (keyHintText != null)
+            keyHintText.text = "[Esc] Resume     [Tab] Settings     [Q] Quit";
+
+        // Rebind btnStart to ResumeGame
+        btnStart?.onClick.RemoveAllListeners();
+        btnStart?.onClick.AddListener(ResumeGame);
+    }
+
+    // тт Pause ттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттт
+
+    void PauseGame()
+    {
+        if (_paused) return;
+        _paused = true;
+        Time.timeScale = 0f;
+
+        // Detach the camera from HeadPitch - it stays put in the world
+        if (_cam != null)
+            _cam.transform.SetParent(null, true);
+
+        // Disable XR tracking
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+
+        if (menuPanel != null)
+        {
+            menuPanel.gameObject.SetActive(true);
+            menuPanel.alpha = 0f;
+            StartCoroutine(FadeMenuUnscaled(0f, 1f, fadeInDuration));
+        }
+    }
+
+    void ResumeGame()
+    {
+        if (!_paused) return;
+        _paused = false;
+        StartCoroutine(ResumeRoutine());
+    }
+
+    IEnumerator ResumeRoutine()
+    {
+        yield return StartCoroutine(FadeMenuUnscaled(1f, 0f, fadeOutDuration));
+        if (menuPanel != null)
+            menuPanel.gameObject.SetActive(false);
+
+        // Return the camera back into HeadPitch
+        var pitch = GameObject.Find("HeadPitch");
+        if (pitch != null && _cam != null)
+        {
+            _cam.transform.SetParent(pitch.transform, false);
+            _cam.transform.localPosition = Vector3.zero;
+            _cam.transform.localRotation = Quaternion.identity;
+        }
+
+        // Enable XR tracking
+        foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
+            tpd.enabled = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible   = false;
+
+        Time.timeScale = 1f;
+    }
+
+    IEnumerator FadeMenuUnscaled(float from, float to, float duration)
+    {
+        if (menuPanel == null) yield break;
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            menuPanel.alpha = Mathf.Lerp(from, to, t / duration);
+            yield return null;
+        }
+        menuPanel.alpha = to;
     }
 
     // тт Settings / Quit ттттттттттттттттттттттттттттттттттттттттттттттттттттт

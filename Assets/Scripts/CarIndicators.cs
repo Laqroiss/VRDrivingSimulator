@@ -17,10 +17,10 @@ public class CarIndicators : MonoBehaviour
     public KeyCode hazardLightKey = KeyCode.X;
 
     [Header("3D light objects (optional)")]
-    [Tooltip("GameObject   Light  MeshRenderer   ")]
-    public GameObject leftIndicatorLight;
-    [Tooltip("GameObject   Light  MeshRenderer   ")]
-    public GameObject rightIndicatorLight;
+    [Tooltip("All left turn-signal objects: front, rear, mirror")]
+    public GameObject[] leftIndicatorLights;
+    [Tooltip("All right turn-signal objects: front, rear, mirror")]
+    public GameObject[] rightIndicatorLights;
 
     [Header("UI icons on Canvas (optional)")]
     [Tooltip("Left turn-signal icon. Leave empty if driven by DashboardController")]
@@ -137,13 +137,13 @@ public class CarIndicators : MonoBehaviour
 
         if (leftShouldBlink)
         {
-            if (leftIndicatorLight != null) leftIndicatorLight.SetActive(_blinkState);
+            SetLights(leftIndicatorLights, _blinkState);
             if (leftUIIcon != null) leftUIIcon.color = uiColor;
         }
 
         if (rightShouldBlink)
         {
-            if (rightIndicatorLight != null) rightIndicatorLight.SetActive(_blinkState);
+            SetLights(rightIndicatorLights, _blinkState);
             if (rightUIIcon != null) rightUIIcon.color = uiColor;
         }
     }
@@ -202,7 +202,7 @@ public class CarIndicators : MonoBehaviour
     {
         LeftIndicatorOn = false;
         _leftArmed = false;
-        if (leftIndicatorLight != null) leftIndicatorLight.SetActive(false);
+        SetLights(leftIndicatorLights, false);
         if (leftUIIcon != null) leftUIIcon.color = iconOffColor;
         Debug.Log("CarIndicators: Left turn signal OFF");
     }
@@ -224,7 +224,7 @@ public class CarIndicators : MonoBehaviour
     {
         RightIndicatorOn = false;
         _rightArmed = false;
-        if (rightIndicatorLight != null) rightIndicatorLight.SetActive(false);
+        SetLights(rightIndicatorLights, false);
         if (rightUIIcon != null) rightUIIcon.color = iconOffColor;
         Debug.Log("CarIndicators: Right turn signal OFF");
     }
@@ -247,10 +247,17 @@ public class CarIndicators : MonoBehaviour
     public void TurnOffHazard()
     {
         HazardLightsOn = false;
-        if (leftIndicatorLight != null) leftIndicatorLight.SetActive(false);
-        if (rightIndicatorLight != null) rightIndicatorLight.SetActive(false);
+        SetLights(leftIndicatorLights,  false);
+        SetLights(rightIndicatorLights, false);
         ResetIconColors();
         Debug.Log("CarIndicators: Hazards OFF");
+    }
+
+    private void SetLights(GameObject[] lights, bool active)
+    {
+        if (lights == null) return;
+        foreach (var go in lights)
+            if (go != null) go.SetActive(active);
     }
 
     // ттт Helpers ттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттт

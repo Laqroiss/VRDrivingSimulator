@@ -208,7 +208,7 @@ public class ReplayUIBuilder : MonoBehaviour
         cs.selectedColor    = Color.white;
         btn.colors = cs;
 
-        var lbl = MakeSimpleLabel(go, "⏺   ", fontSize * 0.85f);
+        var lbl = MakeSimpleLabel(go, "[o]  ", fontSize * 0.85f);
         lbl.alignment = TextAlignmentOptions.Center;
 
         replaySystem.btnRecord      = btn;
