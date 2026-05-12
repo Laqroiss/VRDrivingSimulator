@@ -130,6 +130,11 @@ public class ExamManager : MonoBehaviour
             ExerciseStatuses[i] = ExerciseStatus.Pending;
     }
 
+    void Start()
+    {
+        if (car == null) car = FindAnyObjectByType<Car>();
+    }
+
     void Update()
     {
         if (State != ExamState.InProgress) return;

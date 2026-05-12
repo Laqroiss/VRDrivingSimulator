@@ -212305,6 +212305,32 @@ Material:
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1 &1432331795 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5396457138335669893, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+  m_PrefabInstance: {fileID: 564294484304365928}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1432331797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1432331795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c04d6b9befa4d468b6303ad2be4482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WheelInput
+  car: {fileID: 1030701742}
+  indicators: {fileID: 0}
+  deadzone: 0.05
+  steerSensitivity: 1
+--- !u!4 &1432331798 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6652608269748996459, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+  m_PrefabInstance: {fileID: 564294484304365928}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1433536895
 GameObject:
   m_ObjectHideFlags: 0
@@ -251900,6 +251926,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1692681778}
   - component: {fileID: 1692681777}
+  - component: {fileID: 1692681779}
   m_Layer: 0
   m_Name: ReplaySystem
   m_TagString: Untagged
@@ -251922,6 +251949,7 @@ MonoBehaviour:
   car: {fileID: 1030701742}
   replayCamera: {fileID: 1757922027}
   driverCamera: {fileID: 1224725075}
+  engineAudio: {fileID: 0}
   recordFPS: 30
   maxSavedReplays: 5
   keyRecord: 282
@@ -251952,6 +251980,39 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1692681779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692681776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d750050562c74a4c892746396180de0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ReplayUIBuilder
+  replaySystem: {fileID: 1692681777}
+  font: {fileID: 11400000, guid: f47dbef6bc4933749ac80a049d6088a2, type: 2}
+  colorBg: {r: 0, g: 0, b: 0, a: 0.72}
+  colorBtn: {r: 0.15, g: 0.15, b: 0.15, a: 1}
+  colorBtnPlay: {r: 0.18, g: 0.72, b: 0.36, a: 1}
+  colorBtnStop: {r: 0.75, g: 0.18, b: 0.18, a: 1}
+  colorBtnRecord: {r: 0.18, g: 0.72, b: 0.36, a: 1}
+  colorText: {r: 1, g: 1, b: 1, a: 1}
+  colorSliderBg: {r: 0.25, g: 0.25, b: 0.25, a: 1}
+  colorSliderFill: {r: 0.24, g: 0.71, b: 1, a: 1}
+  colorSliderKnob: {r: 1, g: 1, b: 1, a: 1}
+  playerPanelW: 700
+  playerPanelH: 180
+  listPanelW: 500
+  listPanelH: 420
+  btnH: 52
+  fontSize: 28
+  smallFontSize: 22
+  padding: 16
+  spacing: 10
+  sliderH: 18
 --- !u!21 &1693032963
 Material:
   serializedVersion: 8
@@ -325796,9 +325857,21 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 1742257223}
+    - target: {fileID: 3093941766952809659, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: steeringWheel
+      value: 
+      objectReference: {fileID: 1432331798}
+    - target: {fileID: 3093941766952809659, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: steeringMaxAngle
+      value: 135
+      objectReference: {fileID: 0}
     - target: {fileID: 3249952562042032854, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
       propertyPath: m_Name
       value: Car_RWD
+      objectReference: {fileID: 0}
+    - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: inputMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8944524703509214454, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -325843,7 +325916,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5396457138335669893, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1432331797}
   m_SourcePrefab: {fileID: 100100000, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

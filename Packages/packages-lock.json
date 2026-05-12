@@ -327,7 +327,7 @@
     "net.gree.unity-webview": {
       "version": "file:unity-webview",
       "depth": 0,
-      "source": "local",
+      "source": "embedded",
       "dependencies": {}
     },
     "com.unity.modules.accessibility": {

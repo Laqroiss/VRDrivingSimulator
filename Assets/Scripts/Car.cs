@@ -282,6 +282,14 @@ public class Car : MonoBehaviour
     public bool throttleAssist = true;
     public bool brakeAssist = true;
     [HideInInspector] public Vector2 userInput = Vector2.zero;
+    public enum InputMode { Keyboard, Wheel }
+    [Header("Input mode")]
+    public InputMode inputMode = InputMode.Keyboard;
+
+    [HideInInspector] public bool  externalInput    = false;
+    [HideInInspector] public float externalThrottle = 0f;
+    [HideInInspector] public float externalBrake    = 0f;
+    [HideInInspector] public float externalSteer    = 0f;
     public float downforce = 0.16f;
     [HideInInspector] public float isBraking = 0f;
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
@@ -325,6 +333,8 @@ public class Car : MonoBehaviour
 
     void Update()
     {
+        externalInput = (inputMode == InputMode.Wheel);
+
         if (LegacyInput.GetKeyDown(KeyCode.R))
         {
             transform.rotation = Quaternion.identity;
@@ -333,12 +343,23 @@ public class Car : MonoBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        //  Park   
-        if (transmissionMode == TransmissionMode.Park) return;
+        // In Park only leaving Park is allowed (F or S), everything else is blocked
+        if (transmissionMode == TransmissionMode.Park)
+        {
+            if (LegacyInput.GetKeyDown(KeyCode.F))
+                transmissionMode = TransmissionMode.Drive;
+            else if (LegacyInput.GetKeyDown(KeyCode.S))
+                transmissionMode = TransmissionMode.Reverse;
+            return;
+        }
 
         // Transmission mode switching (guard: can't shift D<->R while moving)
         float currentSpeedKmh = rb.linearVelocity.magnitude * 3.6f;
-        if (LegacyInput.GetKeyDown(KeyCode.S))
+        if (LegacyInput.GetKeyDown(KeyCode.P))
+        {
+            transmissionMode = TransmissionMode.Park; // Park is always allowed
+        }
+        else if (LegacyInput.GetKeyDown(KeyCode.S))
         {
             if (currentSpeedKmh < shiftLockSpeed)
                 transmissionMode = TransmissionMode.Reverse;
@@ -353,53 +374,59 @@ public class Car : MonoBehaviour
                 Debug.LogWarning($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Drive at {currentSpeedKmh:F1} km/h. Stop first.");
         }
 
-        // :  Vertical-axis (W/Up).  throttle  .
-        userInput.x = Mathf.Lerp(userInput.x, LegacyInput.GetAxisRaw("Horizontal") / (1 + rb.linearVelocity.magnitude / 28f), 0.2f);
-        float rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical")); //     
-        float signedThrottle = transmissionMode == TransmissionMode.Reverse ? -rawThrottle
-                              : transmissionMode == TransmissionMode.Neutral ? 0f
-                              : rawThrottle;
+        // вв Input ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+        float rawThrottle = 0f;
+        bool  brakePedal  = false;
 
-        // Creep () + engine braking:  D/R     
-        bool brakePedalCheck = LegacyInput.GetKey(KeyCode.Space);
-        if (rawThrottle < 0.05f
-            && !brakePedalCheck
-            && transmissionMode != TransmissionMode.Neutral)
+        if (externalInput)
+        {
+            // WheelInput    , Car.cs    
+            float steerTarget = externalSteer / (1f + rb.linearVelocity.magnitude / 28f);
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 0.15f);
+            rawThrottle = externalThrottle;
+            brakePedal  = externalBrake > 0.02f;
+        }
+        else
+        {
+            userInput.x = Mathf.Lerp(userInput.x,
+                LegacyInput.GetAxisRaw("Horizontal") / (1f + rb.linearVelocity.magnitude / 28f), 0.2f);
+            rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical"));
+            brakePedal  = LegacyInput.GetKey(KeyCode.Space);
+        }
+
+        // вв Creep + engine brake (always, regardless of input source) вввв
+        float signedThrottle = transmissionMode == TransmissionMode.Reverse ? -rawThrottle
+                             : transmissionMode == TransmissionMode.Neutral  ? 0f
+                             : rawThrottle;
+
+        if (rawThrottle < 0.05f && !brakePedal && transmissionMode != TransmissionMode.Neutral)
         {
             float fwdSpeedKmh = Vector3.Dot(rb.linearVelocity, transform.forward) * 3.6f;
-
             if (transmissionMode == TransmissionMode.Drive)
             {
                 if (creepEnabled && fwdSpeedKmh < creepSpeedKmh)
-                    signedThrottle = creepThrottle;          //     
+                    signedThrottle = creepThrottle;
                 else if (fwdSpeedKmh > creepSpeedKmh)
-                    signedThrottle = -engineBrakeFactor;     // engine brake   
+                    signedThrottle = -engineBrakeFactor;
             }
-            else // Reverse
+            else
             {
                 if (creepEnabled && fwdSpeedKmh > -creepSpeedKmh)
-                    signedThrottle = -creepThrottle;         //  
+                    signedThrottle = -creepThrottle;
                 else if (fwdSpeedKmh < -creepSpeedKmh)
-                    signedThrottle = engineBrakeFactor;      // engine brake 
+                    signedThrottle = engineBrakeFactor;
             }
         }
 
         userInput.y = Mathf.Lerp(userInput.y, signedThrottle, 0.2f);
 
-        //   вЂ” Space ( ,   )
-        bool brakePedal = LegacyInput.GetKey(KeyCode.Space);
-
-        // ,       (. )
         float forwardSpeed = Vector3.Dot(rb.linearVelocity, transform.forward);
         bool wrongDirection =
             (transmissionMode == TransmissionMode.Drive   && forwardSpeed < -0.5f) ||
             (transmissionMode == TransmissionMode.Reverse && forwardSpeed >  0.5f);
-
-        // Hill hold:     ,        вЂ”  
         bool hillHold = hillHoldAllowed
                         && Mathf.Abs(rawThrottle) < 0.05f
                         && rb.linearVelocity.magnitude < hillHoldSpeedThreshold;
-
         bool isBraking = brakePedal || (wrongDirection && Mathf.Abs(rawThrottle) > 0.05f) || hillHold;
         if (isBraking) userInput.y = 0;
 
@@ -441,7 +468,8 @@ public class Car : MonoBehaviour
             if (s > 0.3f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
 
             // Apply throttle with TCS - more responsive for F1
-            float finalThrottle = userInput.y * (1f - w.tcsReduction);
+            float inputY = transmissionMode == TransmissionMode.Neutral ? 0f : userInput.y;
+            float finalThrottle = inputY * (1f - w.tcsReduction);
             if (float.IsNaN(finalThrottle) || float.IsInfinity(finalThrottle))
                 finalThrottle = 0f;
             w.input.y = Mathf.Lerp(w.input.y, finalThrottle, 0.95f * Time.deltaTime * 60f);
@@ -620,12 +648,22 @@ public class Car : MonoBehaviour
         averageWheelAngularVelocity /= wheels.Length;
         e.SetRPM(averageWheelAngularVelocity);
 
-        // Park  вЂ”    (, )
+        if (physicsDebug) LogPhysics();
         if (transmissionMode == TransmissionMode.Park)
         {
-            rb.linearVelocity  = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            foreach (var w in wheels) w.angularVelocity = 0f;
+            float spd = rb.linearVelocity.magnitude;
+            if (spd < 0.3f)
+            {
+                // Slow enough - lock it
+                rb.linearVelocity  = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                foreach (var w in wheels) w.angularVelocity = 0f;
+            }
+            else
+            {
+                // Still moving - apply emergency braking through the wheels
+                foreach (var w in wheels) w.brake = 1f;
+            }
         }
 
         //  -:   HillStopZone +   =    
