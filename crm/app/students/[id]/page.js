@@ -14,11 +14,14 @@ function dur(s) {
   const m = Math.floor(s / 60), sec = Math.round(s % 60)
   return `${m}:${String(sec).padStart(2, '0')}`
 }
+function initials(name) {
+  return name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+}
 
 export default async function StudentPage({ params }) {
   await connectDB()
   const user = await User.findById(params.id, '-password').lean()
-  if (!user) return <div style={{ padding: 40, color: 'var(--muted)' }}>Курсант не найден</div>
+  if (!user) return <div className="empty-state"><div className="icon">❌</div><p>Курсант не найден</p></div>
 
   const attempts = await Attempt.find({ studentId: params.id }, '-track').sort({ timestamp: -1 }).lean()
   const passed   = attempts.filter(a => a.passed).length
@@ -26,43 +29,47 @@ export default async function StudentPage({ params }) {
   const avgScore = attempts.length
     ? Math.round(attempts.reduce((s, a) => s + (a.totalPenaltyPoints ?? 0), 0) / attempts.length)
     : 0
+  const bestScore = attempts.length
+    ? Math.min(...attempts.map(a => a.totalPenaltyPoints ?? 999))
+    : null
 
   return (
     <div>
-      <Link href="/" style={{ color: 'var(--muted)', fontSize: 13 }}>← Назад</Link>
+      <div className="road-stripe" />
+      <Link href="/admin" style={{ color: 'var(--muted2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
+        ← Назад к списку
+      </Link>
 
       {/* Карточка курсанта */}
-      <div className="card" style={{ marginTop: 16, marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>{user.fullName}</h1>
-            <p style={{ color: 'var(--muted)', marginBottom: 4 }}>📞 {user.phone}</p>
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>Зарегистрирован: {fmt(user.createdAt)}</p>
-          </div>
-          <div style={{ display: 'flex', gap: 32, textAlign: 'center' }}>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{attempts.length}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>ПОПЫТОК</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{passed}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>СДАЛ</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: failed > 0 ? 'var(--red)' : 'var(--muted)' }}>{failed}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>НЕ СДАЛ</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{avgScore}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>СР. БАЛЛОВ</div>
+      <div className="student-hero">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div className="student-avatar">{initials(user.fullName)}</div>
+          <div className="student-info">
+            <div className="student-name">{user.fullName}</div>
+            <div className="student-meta">
+              <span>📞 {user.phone}</span>
+              <span>📅 Зарегистрирован {new Date(user.createdAt).toLocaleDateString('ru-RU')}</span>
             </div>
           </div>
         </div>
+        <div className="student-stats">
+          {[
+            { val: attempts.length, lbl: 'Попыток',     color: 'var(--text)'  },
+            { val: passed,          lbl: 'Сдал',        color: 'var(--green)' },
+            { val: failed,          lbl: 'Не сдал',     color: failed > 0 ? 'var(--red)' : 'var(--muted)' },
+            { val: avgScore,        lbl: 'Ср. баллов',  color: avgScore >= 100 ? 'var(--red)' : 'var(--accent)' },
+          ].map(s => (
+            <div key={s.lbl} className="student-stat">
+              <div className="val" style={{ color: s.color }}>{s.val}</div>
+              <div className="lbl">{s.lbl}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Попытки */}
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>История экзаменов</h2>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* История */}
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>История экзаменов</div>
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -76,22 +83,31 @@ export default async function StudentPage({ params }) {
           </thead>
           <tbody>
             {attempts.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                Нет попыток
+              <tr><td colSpan={6}>
+                <div className="empty-state">
+                  <div className="icon">🚦</div>
+                  <p>Экзаменов ещё не было</p>
+                </div>
               </td></tr>
             )}
             {attempts.map(a => (
               <tr key={a._id.toString()}>
-                <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
                 <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'СДАЛ' : 'НЕ СДАЛ'}</span></td>
-                <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</td>
-                <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Link href={`/attempts/${a._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}>Подробнее →</button>
-                  </Link>
-                  <DeleteButton id={a._id.toString()} />
+                <td>
+                  <span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : a.totalPenaltyPoints <= 20 ? 'var(--green)' : 'var(--text)' }}>
+                    {a.totalPenaltyPoints ?? '—'}
+                  </span>
+                </td>
+                <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Link href={`/attempts/${a._id}`}>
+                      <button className="ghost">Подробнее →</button>
+                    </Link>
+                    <DeleteButton id={a._id.toString()} />
+                  </div>
                 </td>
               </tr>
             ))}

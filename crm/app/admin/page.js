@@ -6,6 +6,9 @@ import Link from 'next/link'
 function fmt(date) {
   return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
+function initials(name) {
+  return name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+}
 
 export default function AdminPage() {
   const [students, setStudents] = useState([])
@@ -37,70 +40,93 @@ export default function AdminPage() {
 
   const totalAttempts = students.reduce((s, u) => s + (u.total || 0), 0)
   const totalPassed   = students.reduce((s, u) => s + (u.passed || 0), 0)
+  const passRate      = totalAttempts ? Math.round(totalPassed / totalAttempts * 100) : 0
 
-  if (loading) return <div style={{ padding: 40, color: 'var(--muted)' }}>Загрузка...</div>
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--muted)' }}>
+      Загрузка данных...
+    </div>
+  )
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="road-stripe" />
+
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Панель администратора</h1>
-          <p style={{ color: 'var(--muted)' }}>
-            Курсантов: {students.length} &nbsp;·&nbsp;
-            Попыток: {totalAttempts} &nbsp;·&nbsp;
-            <span style={{ color: 'var(--green)' }}>Сдали: {totalPassed}</span> &nbsp;·&nbsp;
-            <span style={{ color: 'var(--red)' }}>Не сдали: {totalAttempts - totalPassed}</span>
-          </p>
+          <div className="page-title">Панель администратора</div>
+          <div className="page-sub">Управление курсантами и результатами экзаменов</div>
         </div>
-        <button className="ghost" onClick={logout}>Выйти</button>
+        <button className="btn-ghost ghost" onClick={logout}>Выйти →</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+      {/* Статистика */}
+      <div className="stat-grid stat-grid-4" style={{ marginBottom: 28 }}>
         {[
-          { label: 'Всего курсантов', value: students.length,      color: 'var(--accent)' },
-          { label: 'Всего попыток',   value: totalAttempts,        color: 'var(--text)'   },
-          { label: 'Процент сдачи',   value: totalAttempts ? Math.round(totalPassed / totalAttempts * 100) + '%' : '—', color: 'var(--green)' },
+          { label: 'Курсантов',    value: students.length, sub: 'зарегистрировано',  color: 'var(--blue2)' },
+          { label: 'Попыток',      value: totalAttempts,   sub: 'экзаменов сдано',   color: 'var(--text)' },
+          { label: 'Сдали',        value: totalPassed,     sub: 'успешно',            color: 'var(--green)' },
+          { label: 'Процент сдачи', value: passRate + '%', sub: 'средний результат',  color: passRate >= 70 ? 'var(--green)' : 'var(--accent)' },
         ].map(s => (
-          <div key={s.label} className="card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: s.color, marginBottom: 4 }}>{s.value}</div>
-            <div style={{ color: 'var(--muted)', fontSize: 12 }}>{s.label}</div>
+          <div key={s.label} className="stat-card">
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
+            <div className="stat-sub">{s.sub}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      {/* Поиск */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Список курсантов</div>
         <input type="search" placeholder="Поиск по имени или телефону…"
-          value={search} onChange={e => setSearch(e.target.value)} />
+          value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} />
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Курсант</th><th>Телефон</th><th>Регистрация</th>
-              <th>Попыток</th><th>Сдал</th><th>Не сдал</th><th></th>
+              <th>Курсант</th>
+              <th>Телефон</th>
+              <th>Дата регистрации</th>
+              <th>Попыток</th>
+              <th>Сдал</th>
+              <th>Не сдал</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>Нет курсантов</td></tr>
+              <tr><td colSpan={7}>
+                <div className="empty-state">
+                  <div className="icon">🎓</div>
+                  <p>Курсанты не найдены</p>
+                </div>
+              </td></tr>
             )}
             {filtered.map(u => (
               <tr key={u._id}>
-                <td style={{ fontWeight: 600 }}>{u.fullName}</td>
-                <td style={{ color: 'var(--muted)' }}>{u.phone}</td>
-                <td style={{ color: 'var(--muted)' }}>{fmt(u.createdAt)}</td>
-                <td>{u.total}</td>
-                <td style={{ color: 'var(--green)' }}>{u.passed}</td>
-                <td style={{ color: u.failed > 0 ? 'var(--red)' : 'var(--muted)' }}>{u.failed}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Link href={`/students/${u._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}>Карточка →</button>
-                  </Link>
-                  <button onClick={() => deleteStudent(u._id)}
-                    style={{ fontSize: 12, background: '#450a0a', color: 'var(--red)' }}>
-                    Удалить
-                  </button>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(135deg,#f59e0b,#b45309)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: '#000', flexShrink: 0 }}>
+                      {initials(u.fullName)}
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{u.fullName}</span>
+                  </div>
+                </td>
+                <td style={{ color: 'var(--muted2)' }}>{u.phone}</td>
+                <td style={{ color: 'var(--muted2)' }}>{fmt(u.createdAt)}</td>
+                <td style={{ fontWeight: 600 }}>{u.total}</td>
+                <td style={{ color: 'var(--green)', fontWeight: 600 }}>{u.passed}</td>
+                <td style={{ color: u.failed > 0 ? 'var(--red)' : 'var(--muted)', fontWeight: 600 }}>{u.failed}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Link href={`/students/${u._id}`}>
+                      <button className="ghost">Карточка →</button>
+                    </Link>
+                    <button className="btn-danger" onClick={() => deleteStudent(u._id)}>Удалить</button>
+                  </div>
                 </td>
               </tr>
             ))}

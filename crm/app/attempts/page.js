@@ -17,11 +17,10 @@ function dur(s) {
 
 export default async function AttemptsPage({ searchParams }) {
   await connectDB()
-  const q = searchParams?.q || ''
+  const q      = searchParams?.q || ''
   const filter = q ? { studentName: { $regex: q, $options: 'i' } } : {}
   const attempts = await Attempt.find(filter, '-track').sort({ timestamp: -1 }).limit(200).lean()
 
-  // Подтягиваем реальные имена из User по studentId
   const userIds = [...new Set(attempts.map(a => a.studentId).filter(Boolean))]
   const users   = await User.find({ _id: { $in: userIds } }, 'fullName').lean()
   const userMap = Object.fromEntries(users.map(u => [u._id.toString(), u.fullName]))
@@ -31,21 +30,22 @@ export default async function AttemptsPage({ searchParams }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div className="road-stripe" />
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Все попытки</h1>
-          <p style={{ color: 'var(--muted)' }}>
+          <div className="page-title">Все попытки</div>
+          <div className="page-sub">
             Всего: {total} &nbsp;·&nbsp;
-            <span style={{ color: 'var(--green)' }}>Сдали: {passed}</span> &nbsp;·&nbsp;
-            <span style={{ color: 'var(--red)' }}>Не сдали: {total - passed}</span>
-          </p>
+            <span className="hi">Сдали: {passed}</span> &nbsp;·&nbsp;
+            <span className="lo">Не сдали: {total - passed}</span>
+          </div>
         </div>
         <form method="GET">
           <input type="search" name="q" defaultValue={q} placeholder="Поиск по курсанту…" />
         </form>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -60,29 +60,38 @@ export default async function AttemptsPage({ searchParams }) {
           </thead>
           <tbody>
             {attempts.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                Нет данных
+              <tr><td colSpan={7}>
+                <div className="empty-state">
+                  <div className="icon">📋</div>
+                  <p>Нет данных. Пройдите экзамен в симуляторе.</p>
+                </div>
               </td></tr>
             )}
             {attempts.map(a => {
               const realName = a.studentId ? (userMap[a.studentId] ?? a.studentName) : a.studentName
               return (
                 <tr key={a._id.toString()}>
-                  <td style={{ fontWeight: 500 }}>
+                  <td style={{ fontWeight: 600 }}>
                     {a.studentId
                       ? <Link href={`/students/${a.studentId}`}>{realName}</Link>
                       : realName}
                   </td>
-                  <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
+                  <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
                   <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'СДАЛ' : 'НЕ СДАЛ'}</span></td>
-                  <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</td>
-                  <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                  <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <Link href={`/attempts/${a._id}`}>
-                      <button className="ghost" style={{ fontSize: 12 }}>Подробнее →</button>
-                    </Link>
-                    <DeleteButton id={a._id.toString()} />
+                  <td>
+                    <span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>
+                      {a.totalPenaltyPoints ?? '—'}
+                    </span>
+                  </td>
+                  <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
+                  <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Link href={`/attempts/${a._id}`}>
+                        <button className="ghost">Подробнее →</button>
+                      </Link>
+                      <DeleteButton id={a._id.toString()} />
+                    </div>
                   </td>
                 </tr>
               )

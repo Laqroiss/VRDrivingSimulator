@@ -12,29 +12,37 @@ export default function AdminLoginPage() {
     setError('')
     setBusy(true)
     const res  = await fetch('/api/admin/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ password }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
     })
     const data = await res.json()
     setBusy(false)
     if (!res.ok) { setError(data.error || 'Ошибка'); return }
-    router.push('/')
+    router.push('/admin')
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Вход в систему</h1>
-      <div className="card">
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', color: 'var(--muted)', fontSize: 12, marginBottom: 6 }}>ПАРОЛЬ АДМИНИСТРАТОРА</label>
-          <input type="password" value={password} onChange={e => setPass(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && login()} style={{ width: '100%' }} />
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="icon">🚗</div>
+          <h1>VRDrive CRM</h1>
+          <p>Система управления автошколой</p>
         </div>
-        {error && <p style={{ color: 'var(--red)', marginBottom: 12, fontSize: 13 }}>{error}</p>}
-        <button onClick={login} disabled={busy} style={{ width: '100%' }}>
-          {busy ? 'Вход...' : 'Войти'}
+        <div className="road-stripe" style={{ marginBottom: 24 }} />
+        <div className="form-field">
+          <label>Пароль администратора</label>
+          <input type="password" value={password} placeholder="Введите пароль"
+            onChange={e => setPass(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && login()} />
+        </div>
+        {error && <div className="error-msg">{error}</div>}
+        <button className="btn-primary btn-block" onClick={login} disabled={busy}>
+          {busy ? 'Вход...' : 'Войти в систему'}
         </button>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a href="/cabinet" style={{ fontSize: 13, color: 'var(--muted2)' }}>Личный кабинет курсанта →</a>
+        </div>
       </div>
     </div>
   )
