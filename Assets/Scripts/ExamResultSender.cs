@@ -75,7 +75,7 @@ public class ExamResultSender : MonoBehaviour
 
     void Start()
     {
-        _lights = FindObjectsByType<TrafficIntersection>(FindObjectsSortMode.None);
+        _lights = FindObjectsByType<TrafficIntersection>(FindObjectsInactive.Exclude);
         _lastPhaseA      = new string[_lights.Length];
         _lastPhaseB      = new string[_lights.Length];
         _intersectionIds = new List<int>[_lights.Length];
