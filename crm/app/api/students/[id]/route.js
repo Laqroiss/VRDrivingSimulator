@@ -18,6 +18,26 @@ export async function GET(request, { params }) {
   return NextResponse.json({ user, attempts })
 }
 
+export async function PUT(request, { params }) {
+  if (!isAdmin(request))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await connectDB()
+  const { fullName, phone, password } = await request.json()
+  if (!fullName || !phone)
+    return NextResponse.json({ error: 'Имя и телефон обязательны' }, { status: 400 })
+
+  const update = { fullName: fullName.trim(), phone: phone.trim() }
+
+  if (password) {
+    const bcrypt = await import('bcryptjs')
+    update.password = await bcrypt.hash(password, 10)
+  }
+
+  const user = await User.findByIdAndUpdate(params.id, update, { new: true, select: '-password' })
+  if (!user) return NextResponse.json({ error: 'Не найден' }, { status: 404 })
+  return NextResponse.json(user)
+}
+
 export async function DELETE(request, { params }) {
   if (!isAdmin(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

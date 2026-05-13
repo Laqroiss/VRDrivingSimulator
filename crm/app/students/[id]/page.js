@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import Attempt from '@/models/Attempt'
 import DeleteButton from '@/components/DeleteButton'
+import EditStudentButton from '@/components/EditStudentButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,9 @@ export default async function StudentPage({ params }) {
             <div className="student-meta">
               <span>📞 {user.phone}</span>
               <span>📅 Зарегистрирован {new Date(user.createdAt).toLocaleDateString('ru-RU')}</span>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <EditStudentButton student={{ _id: user._id.toString(), fullName: user.fullName, phone: user.phone }} />
             </div>
           </div>
         </div>
