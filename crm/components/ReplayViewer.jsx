@@ -122,7 +122,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
 
     ctx.save()
     ctx.translate(cx, cy)
-    ctx.rotate(-ang)
+    ctx.rotate(ang - Math.PI / 2)
 
     // Тень
     ctx.save()
