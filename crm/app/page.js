@@ -1,41 +1,35 @@
 import Link from 'next/link'
 import { connectDB } from '@/lib/mongodb'
+import User from '@/models/User'
 import Attempt from '@/models/Attempt'
-import DeleteButton from '@/components/DeleteButton'
-
-function fmt(date) {
-  return new Date(date).toLocaleString('ru-RU', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-function dur(s) {
-  if (!s) return '—'
-  const m = Math.floor(s / 60), sec = Math.round(s % 60)
-  return `${m}:${String(sec).padStart(2, '0')}`
-}
 
 export const dynamic = 'force-dynamic'
 
-export default async function Dashboard({ searchParams }) {
+function fmt(date) {
+  return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+export default async function StudentsPage({ searchParams }) {
   await connectDB()
   const q = searchParams?.q || ''
-  const filter = q ? { studentName: { $regex: q, $options: 'i' } } : {}
-  const attempts = await Attempt.find(filter, '-track').sort({ timestamp: -1 }).limit(200).lean()
 
-  const total  = attempts.length
-  const passed = attempts.filter(a => a.passed).length
+  const filter = q ? { fullName: { $regex: q, $options: 'i' } } : {}
+  const users  = await User.find(filter).sort({ createdAt: -1 }).lean()
+
+  //      
+  const stats = await Promise.all(users.map(async u => {
+    const attempts = await Attempt.find({ studentId: u._id.toString() }, 'passed totalPenaltyPoints timestamp').lean()
+    const passed   = attempts.filter(a => a.passed).length
+    const last     = attempts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+    return { user: u, total: attempts.length, passed, failed: attempts.length - passed, last }
+  }))
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}></h1>
-          <p style={{ color: 'var(--muted)' }}>
-            : {total} &nbsp;&nbsp;
-            <span style={{ color: 'var(--green)' }}>: {passed}</span> &nbsp;&nbsp;
-            <span style={{ color: 'var(--red)' }}> : {total - passed}</span>
-          </p>
+          <p style={{ color: 'var(--muted)' }}> : {users.length}</p>
         </div>
         <form method="GET">
           <input type="search" name="q" defaultValue={q} placeholder="  …" />
@@ -49,33 +43,32 @@ export default async function Dashboard({ searchParams }) {
               <th></th>
               <th></th>
               <th></th>
+              <th></th>
+              <th></th>
               <th> </th>
-              <th></th>
-              <th></th>
+              <th> </th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {attempts.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                 .    .
+            {stats.length === 0 && (
+              <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
+                  
               </td></tr>
             )}
-            {attempts.map(a => (
-              <tr key={a._id.toString()}>
-                <td style={{ fontWeight: 500 }}>{a.studentName}</td>
-                <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
-                <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
-                <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>
-                  {a.totalPenaltyPoints ?? '—'}
-                </td>
-                <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Link href={`/attempts/${a._id}`}>
+            {stats.map(({ user, total, passed, failed, last }) => (
+              <tr key={user._id.toString()}>
+                <td style={{ fontWeight: 600 }}>{user.fullName}</td>
+                <td style={{ color: 'var(--muted)' }}>{user.phone}</td>
+                <td style={{ color: 'var(--muted)' }}>{fmt(user.createdAt)}</td>
+                <td>{total}</td>
+                <td style={{ color: 'var(--green)' }}>{passed}</td>
+                <td style={{ color: failed > 0 ? 'var(--red)' : 'var(--muted)' }}>{failed}</td>
+                <td style={{ color: 'var(--muted)' }}>{last ? fmt(last.timestamp) : '—'}</td>
+                <td>
+                  <Link href={`/students/${user._id}`}>
                     <button className="ghost" style={{ fontSize: 12 }}> →</button>
                   </Link>
-                  <DeleteButton id={a._id.toString()} />
                 </td>
               </tr>
             ))}
