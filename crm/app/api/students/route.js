@@ -3,7 +3,13 @@ import { connectDB } from '@/lib/mongodb'
 import User from '@/models/User'
 import Attempt from '@/models/Attempt'
 
-export async function GET() {
+function isAdmin(request) {
+  return !!request.cookies.get('admin_token')?.value
+}
+
+export async function GET(request) {
+  if (!isAdmin(request))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   await connectDB()
   const users = await User.find({}, '-password').sort({ createdAt: -1 }).lean()
 
