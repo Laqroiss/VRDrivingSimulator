@@ -6,9 +6,9 @@ services:
     command: npm run dev
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/vr-driving-crm
-      - ADMIN_PASSWORD=admin123
       - WATCHPACK_POLLING=true   # hot reload внутри Docker на Windows
     volumes:
       - .:/app                   # исходники пробрасываем с хоста
