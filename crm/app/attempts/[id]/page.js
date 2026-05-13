@@ -3,6 +3,7 @@ import Attempt from '@/models/Attempt'
 import Link from 'next/link'
 import ReplayViewer from '@/components/ReplayViewer'
 import SpeedChart from '@/components/SpeedChart'
+import LaunchReplayButton from '@/components/LaunchReplayButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,7 @@ export default async function AttemptPage({ params }) {
           color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>
           {a.totalPenaltyPoints} б.
         </span>
+        <LaunchReplayButton attemptId={params.id} hasReplay={!!attempt.replayData} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>

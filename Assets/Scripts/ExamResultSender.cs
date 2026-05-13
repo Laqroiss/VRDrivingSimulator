@@ -36,6 +36,9 @@ public class ExamResultSender : MonoBehaviour
         public float x, z;
     }
 
+    /// <summary>Срабатывает после успешной отправки результата. Передаёт ID попытки.</summary>
+    public static event System.Action<string> OnResultSent;
+
     private ExamManager  _exam;
     private Car          _car;
     private TrafficIntersection[] _lights;
@@ -246,12 +249,17 @@ public class ExamResultSender : MonoBehaviour
         {
             _sent = true;
             Debug.Log($"[ExamResultSender] Результат отправлен в CRM. Ответ: {req.downloadHandler.text}");
+            var resp = JsonUtility.FromJson<AttemptResponse>(req.downloadHandler.text);
+            if (!string.IsNullOrEmpty(resp?.id))
+                OnResultSent?.Invoke(resp.id);
         }
         else
         {
             Debug.LogError($"[ExamResultSender] Ошибка отправки: {req.error}");
         }
     }
+
+    [System.Serializable] class AttemptResponse { public string id; }
 
 static string F(float v) => v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
     static string Escape(string s) => s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
