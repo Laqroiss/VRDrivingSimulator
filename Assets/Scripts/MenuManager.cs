@@ -40,6 +40,10 @@ public class MenuManager : MonoBehaviour
     [Tooltip("Menu scale in VR")]
     public float vrMenuScale    = 0.001f;
 
+    [Header("Authentication")]
+    [Tooltip("Drag the object with the AuthManager component here")]
+    public AuthManager authManager;
+
     [Header("Animation")]
     public float fadeInDuration   = 1.5f;
     public float fadeOutDuration  = 0.8f;
@@ -105,7 +109,7 @@ public class MenuManager : MonoBehaviour
         }
 
         // 
-        btnStart?.onClick.AddListener(StartGame);
+        btnStart?.onClick.AddListener(OnStartClicked);
         btnSettings?.onClick.AddListener(ToggleSettings);
         btnQuit?.onClick.AddListener(QuitGame);
 
@@ -158,7 +162,7 @@ public class MenuManager : MonoBehaviour
 
         if (!_menuActive) return;
         if (LegacyInput.GetKeyDown(KeyCode.Return) || LegacyInput.GetKeyDown(KeyCode.KeypadEnter))
-            StartGame();
+            OnStartClicked();
         else if (LegacyInput.GetKeyDown(KeyCode.Tab))
             ToggleSettings();
         else if (LegacyInput.GetKeyDown(KeyCode.Escape))
@@ -223,6 +227,16 @@ public class MenuManager : MonoBehaviour
     }
 
     // тт Start the game тттттттттттттттттттттттттттттттттттттттттттттттттттттт
+
+    void OnStartClicked()
+    {
+        if (authManager != null && !AuthManager.IsLoggedIn)
+        {
+            authManager.RequestAuthThenStart(StartGame);
+            return;
+        }
+        StartGame();
+    }
 
     void StartGame()
     {

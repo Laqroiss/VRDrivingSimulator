@@ -6,7 +6,8 @@ using System.Collections;
 
 /// <summary>
 ///    .
-///      .
+///    AuthManager:     .
+/// AuthManager  ShowMenu()   .
 /// </summary>
 public class MainMenu : MonoBehaviour
 {
@@ -14,7 +15,7 @@ public class MainMenu : MonoBehaviour
     public string gameSceneName = "SampleScene";
 
     [Header("UI ")]
-    public CanvasGroup menuGroup;       //     fade-in
+    public CanvasGroup menuGroup;
     public Button      btnStart;
     public Button      btnSettings;
     public Button      btnQuit;
@@ -24,17 +25,18 @@ public class MainMenu : MonoBehaviour
     public Slider      sliderVolume;
     public TMP_Dropdown dropdownQuality;
 
+    [Header("")]
+    public TMP_Text    greetingText;   // " , <>"
+
     [Header(" ")]
     public float fadeInDuration = 1.2f;
 
     void Start()
     {
-        // 
         btnStart?.onClick.AddListener(OnStart);
         btnSettings?.onClick.AddListener(OnSettings);
         btnQuit?.onClick.AddListener(OnQuit);
 
-        // 
         if (sliderVolume != null)
         {
             sliderVolume.value = PlayerPrefs.GetFloat("Volume", 1f);
@@ -54,16 +56,46 @@ public class MainMenu : MonoBehaviour
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
 
-        //   
+        //    — AuthManager   
+        HideMenu();
+    }
+
+    //  AuthManager    / 
+    public void ShowMenu()
+    {
         if (menuGroup != null)
         {
-            menuGroup.alpha = 0f;
+            menuGroup.gameObject.SetActive(true);
+            menuGroup.alpha          = 0f;
+            menuGroup.interactable   = true;
+            menuGroup.blocksRaycasts = true;
             StartCoroutine(FadeIn());
         }
+
+        // 
+        if (greetingText != null)
+        {
+            string name = PlayerPrefs.GetString(AuthManager.KEY_FULL_NAME, "");
+            greetingText.text = string.IsNullOrEmpty(name) ? "" : $" , {name}";
+        }
+    }
+
+    //  AuthManager    
+    public void HideMenu()
+    {
+        if (menuGroup != null)
+        {
+            menuGroup.alpha          = 0f;
+            menuGroup.interactable   = false;
+            menuGroup.blocksRaycasts = false;
+        }
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
     }
 
     void OnStart()
     {
+        if (!AuthManager.IsLoggedIn) return;
         StartCoroutine(LoadGame());
     }
 
@@ -95,7 +127,6 @@ public class MainMenu : MonoBehaviour
 
     IEnumerator LoadGame()
     {
-        //     
         if (menuGroup != null)
         {
             float t = 0f;

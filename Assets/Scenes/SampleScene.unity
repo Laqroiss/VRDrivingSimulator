@@ -205701,6 +205701,7 @@ GameObject:
   - component: {fileID: 1386819818}
   - component: {fileID: 1386819817}
   - component: {fileID: 1386819819}
+  - component: {fileID: 1386819820}
   m_Layer: 0
   m_Name: 'MenuManager '
   m_TagString: Untagged
@@ -205742,6 +205743,7 @@ MonoBehaviour:
   xrHeadAnchor: {fileID: 79399786}
   vrMenuDistance: 2
   vrMenuScale: 0.002
+  authManager: {fileID: 1386819820}
   fadeInDuration: 1.5
   fadeOutDuration: 0.8
   cockpitFlyTime: 2.5
@@ -205772,6 +205774,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90c7379fdffc5a24db9206a15901bb1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::XRModeSetup
+--- !u!114 &1386819820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386819816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fe4d05e18b09be49a0a8b211cf927b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AuthManager
+  crmUrl: http://localhost:3000/game-login
+  callbackPort: 7777
+  authPanel: {fileID: 0}
+  openBrowserButton: {fileID: 0}
+  statusText: {fileID: 0}
+  mainMenu: {fileID: 0}
 --- !u!1 &1386828032
 GameObject:
   m_ObjectHideFlags: 0
