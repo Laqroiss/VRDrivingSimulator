@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { connectDB } from '@/lib/mongodb'
 import Attempt from '@/models/Attempt'
+import User from '@/models/User'
 import DeleteButton from '@/components/DeleteButton'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +20,12 @@ export default async function AttemptsPage({ searchParams }) {
   const q = searchParams?.q || ''
   const filter = q ? { studentName: { $regex: q, $options: 'i' } } : {}
   const attempts = await Attempt.find(filter, '-track').sort({ timestamp: -1 }).limit(200).lean()
+
+  // Подтягиваем реальные имена из User по studentId
+  const userIds = [...new Set(attempts.map(a => a.studentId).filter(Boolean))]
+  const users   = await User.find({ _id: { $in: userIds } }, 'fullName').lean()
+  const userMap = Object.fromEntries(users.map(u => [u._id.toString(), u.fullName]))
+
   const total  = attempts.length
   const passed = attempts.filter(a => a.passed).length
 
@@ -57,26 +64,29 @@ export default async function AttemptsPage({ searchParams }) {
                 Нет данных
               </td></tr>
             )}
-            {attempts.map(a => (
-              <tr key={a._id.toString()}>
-                <td style={{ fontWeight: 500 }}>
-                  {a.studentId
-                    ? <Link href={`/students/${a.studentId}`}>{a.studentName}</Link>
-                    : a.studentName}
-                </td>
-                <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
-                <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'СДАЛ' : 'НЕ СДАЛ'}</span></td>
-                <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</td>
-                <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Link href={`/attempts/${a._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}>Подробнее →</button>
-                  </Link>
-                  <DeleteButton id={a._id.toString()} />
-                </td>
-              </tr>
-            ))}
+            {attempts.map(a => {
+              const realName = a.studentId ? (userMap[a.studentId] ?? a.studentName) : a.studentName
+              return (
+                <tr key={a._id.toString()}>
+                  <td style={{ fontWeight: 500 }}>
+                    {a.studentId
+                      ? <Link href={`/students/${a.studentId}`}>{realName}</Link>
+                      : realName}
+                  </td>
+                  <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
+                  <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'СДАЛ' : 'НЕ СДАЛ'}</span></td>
+                  <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</td>
+                  <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
+                  <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <Link href={`/attempts/${a._id}`}>
+                      <button className="ghost" style={{ fontSize: 12 }}>Подробнее →</button>
+                    </Link>
+                    <DeleteButton id={a._id.toString()} />
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
