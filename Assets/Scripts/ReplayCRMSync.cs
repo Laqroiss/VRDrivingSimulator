@@ -94,7 +94,7 @@ public class ReplayCRMSync : MonoBehaviour
         _exam         = GetComponent<ExamManager>();
         _car          = FindAnyObjectByType<Car>();
         _railway      = FindAnyObjectByType<RailwayCrossing>();
-        _intersections = FindObjectsByType<TrafficIntersection>(FindObjectsSortMode.None);
+        _intersections = FindObjectsByType<TrafficIntersection>(FindObjectsInactive.Exclude);
         if (_car != null) _indicators = _car.GetComponent<CarIndicators>();
         _lastPhaseA = new string[_intersections.Length];
         _lastPhaseB = new string[_intersections.Length];
@@ -197,7 +197,7 @@ public class ReplayCRMSync : MonoBehaviour
         };
 
         // Поезд
-        if (_railway != null && _railway.trainActive)
+        if (_railway != null && _railway.TrainActive)
         {
             var tp = _railway.TrainPosition;
             f.tx = tp.x; f.ty = tp.y; f.tz = tp.z;
