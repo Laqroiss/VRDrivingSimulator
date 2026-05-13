@@ -26,10 +26,40 @@ public class TrafficIntersection : MonoBehaviour
     public float  PhaseRemaining { get; private set; }
     public float  PhaseDuration  { get; private set; }
 
+    private Coroutine _cycleCoroutine;
+
     void Start()
     {
-        StartCoroutine(TrafficCycle());
+        _cycleCoroutine = StartCoroutine(TrafficCycle());
     }
+
+    public void StopCycle()
+    {
+        if (_cycleCoroutine != null) { StopCoroutine(_cycleCoroutine); _cycleCoroutine = null; }
+    }
+
+    public void ResumeCycle()
+    {
+        if (_cycleCoroutine == null) _cycleCoroutine = StartCoroutine(TrafficCycle());
+    }
+
+    public void ForcePhase(string phaseNameA, string phaseNameB)
+    {
+        PhaseNameA = phaseNameA;
+        PhaseNameB = phaseNameB;
+        SetLights(sideA, ParseState(phaseNameA));
+        SetLights(sideB, ParseState(phaseNameB));
+    }
+
+    static TrafficLight.LightState ParseState(string name) => name switch
+    {
+        "Green"      => TrafficLight.LightState.Green,
+        "BlinkGreen" => TrafficLight.LightState.BlinkingGreen,
+        "Yellow"     => TrafficLight.LightState.Yellow,
+        "Red"        => TrafficLight.LightState.Red,
+        "RedYellow"  => TrafficLight.LightState.RedYellow,
+        _            => TrafficLight.LightState.Off,
+    };
 
     IEnumerator TrafficCycle()
     {

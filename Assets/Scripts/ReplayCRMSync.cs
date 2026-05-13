@@ -7,71 +7,97 @@ using System.Threading;
 using System.Text;
 
 /// <summary>
-///     CRM:
-/// 1.   3D     (15fps).
-/// 2.   ID  вЂ”    CRM.
-/// 3.  HTTP   replayPort       .
+/// Full scene recording and playback via CRM:
+/// - Car (position, rotation, speed, lights)
+/// - Traffic lights (sideA / sideB phase of each intersection)
+/// - Train (position, whether active)
 ///
-///     GameObject  ExamManager  ExamResultSender.
-///  ReplaySystem  Inspector.
+/// Attach to the same GameObject as ExamManager + ExamResultSender.
+/// Drag ReplaySystem into the replaySystem field.
 /// </summary>
 [RequireComponent(typeof(ExamManager))]
 public class ReplayCRMSync : MonoBehaviour
 {
-    // вв    CRM- ввввввввввввввввввввввввввввввввввввв
+    // вв Data formats вввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+
     [System.Serializable]
     public class CRMFrame
     {
-        public float x, y, z;           // 
-        public float qx, qy, qz, qw;   // 
+        // Car
+        public float x, y, z, qx, qy, qz, qw;
         public float speed, rpm;
         public int   gear;
-        public bool  bl, rl, lb, rb, bp; // brake/reverse/left/right blink / blinkPhase
+        public bool  bl, rl, lb, rb, bp;       // brake/reverse/left/right blink/blinkPhase
+        // Train
+        public float tx, ty, tz;
+        public bool  trainActive;
+    }
+
+    // Traffic-light phase change event
+    [System.Serializable]
+    public class LightChange
+    {
+        public float t;     // time from exam start
+        public int   idx;   // TrafficIntersection index in the array
+        public string pA, pB;
     }
 
     [System.Serializable]
     class CRMReplay
     {
-        public float fps;
-        public List<CRMFrame> frames;
+        public float             fps;
+        public List<CRMFrame>    frames;
+        public List<LightChange> lightChanges;
     }
 
     [System.Serializable]
-    class ReplayIdResponse { public string id; }
+    class AttemptIdResponse { public string id; }
 
     // вв Inspector вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
     [Header("References")]
-    public ReplaySystem replaySystem;
+    public ReplaySystem   replaySystem;
 
     [Header("CRM")]
-    public string crmUrl    = "http://localhost:3000";
+    public string crmUrl     = "http://localhost:3000";
     public int    replayPort = 7779;
     public float  recordFPS  = 15f;
 
     // вв Runtime вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
-    private ExamManager     _exam;
-    private Car             _car;
-    private CarIndicators   _indicators;
+    private ExamManager          _exam;
+    private Car                  _car;
+    private CarIndicators        _indicators;
+    private TrafficIntersection[] _intersections;
+    private RailwayCrossing      _railway;
 
-    private List<CRMFrame>  _frames     = new List<CRMFrame>();
-    private bool            _recording  = false;
-    private float           _timer      = 0f;
+    // Recording
+    private List<CRMFrame>    _frames      = new List<CRMFrame>();
+    private List<LightChange> _lightChanges = new List<LightChange>();
+    private string[]          _lastPhaseA;   // previous phase of each intersection
+    private string[]          _lastPhaseB;
+    private bool              _recording   = false;
+    private float             _elapsed     = 0f;
+    private float             _timer       = 0f;
 
-    private HttpListener    _listener;
-    private string          _pendingReplayId; // id      
-    private List<CRMFrame>  _pendingFrames;
-    private float           _pendingFps;
-    private bool            _launchReplay;
+    // Playback
+    private HttpListener      _listener;
+    private bool              _launchReplay;
+    private CRMReplay         _pendingReplay;
+    private bool              _replayRunning;
+    private Coroutine         _sceneReplayCoroutine;
 
     // вв Unity вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
     void Awake()
     {
-        _exam = GetComponent<ExamManager>();
-        _car  = FindAnyObjectByType<Car>();
+        _exam         = GetComponent<ExamManager>();
+        _car          = FindAnyObjectByType<Car>();
+        _railway      = FindAnyObjectByType<RailwayCrossing>();
+        _intersections = FindObjectsByType<TrafficIntersection>(FindObjectsSortMode.None);
         if (_car != null) _indicators = _car.GetComponent<CarIndicators>();
+        _lastPhaseA = new string[_intersections.Length];
+        _lastPhaseB = new string[_intersections.Length];
     }
 
     void Start()
@@ -94,20 +120,35 @@ public class ReplayCRMSync : MonoBehaviour
     {
         if (_recording)
         {
-            _timer += Time.deltaTime;
+            _elapsed += Time.deltaTime;
+            _timer   += Time.deltaTime;
+
             if (_timer >= 1f / recordFPS)
             {
                 _timer = 0f;
                 RecordFrame();
             }
+
+            // Record traffic-light phase-change events
+            for (int i = 0; i < _intersections.Length; i++)
+            {
+                var ti = _intersections[i];
+                if (ti == null) continue;
+                if (ti.PhaseNameA != _lastPhaseA[i] || ti.PhaseNameB != _lastPhaseB[i])
+                {
+                    _lastPhaseA[i] = ti.PhaseNameA;
+                    _lastPhaseB[i] = ti.PhaseNameB;
+                    _lightChanges.Add(new LightChange { t = _elapsed, idx = i, pA = ti.PhaseNameA, pB = ti.PhaseNameB });
+                }
+            }
         }
 
         // Replay launch must be on the main thread
-        if (_launchReplay && _pendingFrames != null)
+        if (_launchReplay && _pendingReplay != null)
         {
             _launchReplay = false;
-            replaySystem?.StartReplayFromCRMData(_pendingFrames, _pendingFps);
-            _pendingFrames = null;
+            StartFullReplay(_pendingReplay);
+            _pendingReplay = null;
         }
     }
 
@@ -116,8 +157,15 @@ public class ReplayCRMSync : MonoBehaviour
     void OnExamStart()
     {
         _frames.Clear();
+        _lightChanges.Clear();
+        _elapsed = 0f;
+        _timer   = 0f;
         _recording = true;
-        _timer     = 0f;
+        for (int i = 0; i < _intersections.Length; i++)
+        {
+            _lastPhaseA[i] = "";
+            _lastPhaseB[i] = "";
+        }
         replaySystem?.StartRecording("Exam");
         Debug.Log("[ReplayCRMSync] Recording started");
     }
@@ -126,7 +174,7 @@ public class ReplayCRMSync : MonoBehaviour
     {
         _recording = false;
         replaySystem?.StopRecording();
-        Debug.Log($"[ReplayCRMSync]  : {_frames.Count}");
+        Debug.Log($"[ReplayCRMSync] Frames recorded: {_frames.Count}, light changes: {_lightChanges.Count}");
     }
 
     void RecordFrame()
@@ -134,19 +182,29 @@ public class ReplayCRMSync : MonoBehaviour
         if (_car == null) return;
         var t = _car.transform;
         var q = t.rotation;
-        _frames.Add(new CRMFrame
+        var f = new CRMFrame
         {
             x = t.position.x, y = t.position.y, z = t.position.z,
             qx = q.x, qy = q.y, qz = q.z, qw = q.w,
             speed = _car.rb != null ? _car.rb.linearVelocity.magnitude * 3.6f : 0f,
-            rpm   = _car.e?.getRPM()          ?? 0f,
-            gear  = _car.e?.getCurrentGear()  ?? 0,
+            rpm   = _car.e?.getRPM()         ?? 0f,
+            gear  = _car.e?.getCurrentGear() ?? 0,
             bl    = _car.BrakeLightsOn,
             rl    = _car.ReverseLightsOn,
             lb    = _indicators != null && (_indicators.LeftIndicatorOn  || _indicators.HazardLightsOn),
             rb    = _indicators != null && (_indicators.RightIndicatorOn || _indicators.HazardLightsOn),
             bp    = _indicators != null && _indicators.BlinkVisible,
-        });
+        };
+
+        // Train
+        if (_railway != null && _railway.trainActive)
+        {
+            var tp = _railway.TrainPosition;
+            f.tx = tp.x; f.ty = tp.y; f.tz = tp.z;
+            f.trainActive = true;
+        }
+
+        _frames.Add(f);
     }
 
     // вв Upload to CRM вввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
@@ -159,10 +217,9 @@ public class ReplayCRMSync : MonoBehaviour
 
     IEnumerator UploadReplay(string attemptId)
     {
-        Debug.Log($"[ReplayCRMSync]     {attemptId} ({_frames.Count} )...");
-
-        var replay = new CRMReplay { fps = recordFPS, frames = _frames };
+        var replay = new CRMReplay { fps = recordFPS, frames = _frames, lightChanges = _lightChanges };
         string json = JsonUtility.ToJson(replay);
+        Debug.Log($"[ReplayCRMSync] Uploading replay ({_frames.Count} frames, {json.Length / 1024} KB)...");
 
         var req = new UnityWebRequest($"{crmUrl}/api/attempts/{attemptId}/replay", "POST");
         req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
@@ -171,12 +228,69 @@ public class ReplayCRMSync : MonoBehaviour
         yield return req.SendWebRequest();
 
         if (req.result == UnityWebRequest.Result.Success)
-            Debug.Log($"[ReplayCRMSync]    CRM. : {json.Length / 1024} KB");
+            Debug.Log("[ReplayCRMSync] Replay uploaded to CRM");
         else
-            Debug.LogError($"[ReplayCRMSync]   : {req.error}");
+            Debug.LogError($"[ReplayCRMSync] Upload error: {req.error}");
     }
 
-    // вв HTTP- (  ) ввввввввввввввввввввввввввввввввв
+    // вв Scene playback ввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+
+    void StartFullReplay(CRMReplay replay)
+    {
+        if (_sceneReplayCoroutine != null) StopCoroutine(_sceneReplayCoroutine);
+
+        // Car вЂ”  ReplaySystem
+        replaySystem?.StartReplayFromCRMData(replay.frames, replay.fps);
+
+        // Scene - separate coroutine
+        _replayRunning = true;
+        _sceneReplayCoroutine = StartCoroutine(SceneReplayRoutine(replay));
+    }
+
+    IEnumerator SceneReplayRoutine(CRMReplay replay)
+    {
+        // Stop the scene automation
+        foreach (var ti in _intersections) ti?.StopCycle();
+        _railway?.PauseTrain();
+
+        float startTime = Time.time;
+        float duration  = replay.frames.Count / replay.fps;
+
+        while (_replayRunning)
+        {
+            float elapsed = Time.time - startTime;
+            if (elapsed >= duration) break;
+
+            int frameIdx = Mathf.Clamp(Mathf.FloorToInt(elapsed * replay.fps), 0, replay.frames.Count - 1);
+            var frame = replay.frames[frameIdx];
+
+            // Traffic lights вЂ”       
+            for (int i = 0; i < _intersections.Length; i++)
+            {
+                if (_intersections[i] == null) continue;
+                string pA = null, pB = null;
+                foreach (var lc in replay.lightChanges)
+                {
+                    if (lc.idx == i && lc.t <= elapsed) { pA = lc.pA; pB = lc.pB; }
+                }
+                if (pA != null) _intersections[i].ForcePhase(pA, pB);
+            }
+
+            // Train
+            _railway?.SetTrainState(frame.tx, frame.ty, frame.tz, frame.trainActive);
+
+            yield return null;
+        }
+
+        // Resume the automation
+        foreach (var ti in _intersections) ti?.ResumeCycle();
+        _railway?.ResumeTrain();
+        _replayRunning = false;
+
+        Debug.Log("[ReplayCRMSync]   ");
+    }
+
+    // вв HTTP listener вввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
     void StartHTTPListener()
     {
@@ -201,11 +315,9 @@ public class ReplayCRMSync : MonoBehaviour
             try
             {
                 var ctx = _listener.GetContext();
-                var query = ctx.Request.QueryString;
-                string id = query["id"];
+                string id = ctx.Request.QueryString["id"];
 
-                //  
-                string html = "<html><body><p style='font-family:sans-serif;text-align:center;margin-top:40px'>в    ...</p></body></html>";
+                string html = "<html><body style='font-family:sans-serif;text-align:center;padding:40px'><h2>в Replay starting...</h2><p>You can close this window</p></body></html>";
                 var buf = Encoding.UTF8.GetBytes(html);
                 ctx.Response.ContentType     = "text/html; charset=utf-8";
                 ctx.Response.ContentLength64 = buf.Length;
@@ -227,23 +339,17 @@ public class ReplayCRMSync : MonoBehaviour
             var client = new System.Net.Http.HttpClient();
             var task   = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}/replay");
             task.Wait();
-            string json = task.Result;
+            var replay = JsonUtility.FromJson<CRMReplay>(task.Result);
+            if (replay?.frames == null || replay.frames.Count == 0)
+            { Debug.LogWarning("[ReplayCRMSync]  "); return; }
 
-            var data = JsonUtility.FromJson<CRMReplay>(json);
-            if (data?.frames == null || data.frames.Count == 0)
-            {
-                Debug.LogWarning("[ReplayCRMSync]     ");
-                return;
-            }
-
-            _pendingFrames = data.frames;
-            _pendingFps    = data.fps > 0 ? data.fps : 15f;
+            _pendingReplay = replay;
             _launchReplay  = true;
-            Debug.Log($"[ReplayCRMSync]  : {data.frames.Count}  @ {data.fps}fps");
+            Debug.Log($"[ReplayCRMSync]  : {replay.frames.Count} , {replay.lightChanges?.Count ?? 0}  ");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[ReplayCRMSync]   : {e.Message}");
+            Debug.LogError($"[ReplayCRMSync]  : {e.Message}");
         }
     }
 }
