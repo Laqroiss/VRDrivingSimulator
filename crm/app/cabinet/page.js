@@ -10,23 +10,24 @@ function dur(s) {
   const m = Math.floor(s / 60), sec = Math.round(s % 60)
   return `${m}:${String(sec).padStart(2, '0')}`
 }
+function initials(name) {
+  return name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+}
 
 export default function CabinetPage() {
-  const [step, setStep]       = useState('login') // login | data
-  const [phone, setPhone]     = useState('')
-  const [password, setPass]   = useState('')
-  const [error, setError]     = useState('')
-  const [busy, setBusy]       = useState(false)
-  const [user, setUser]       = useState(null)
+  const [step, setStep]         = useState('login')
+  const [phone, setPhone]       = useState('')
+  const [password, setPass]     = useState('')
+  const [error, setError]       = useState('')
+  const [busy, setBusy]         = useState(false)
+  const [user, setUser]         = useState(null)
   const [attempts, setAttempts] = useState([])
 
   useEffect(() => {
     const saved = localStorage.getItem('cabinet_user')
     if (saved) {
       const u = JSON.parse(saved)
-      setUser(u)
-      loadAttempts(u.id)
-      setStep('data')
+      setUser(u); loadAttempts(u.id); setStep('data')
     }
   }, [])
 
@@ -35,17 +36,14 @@ export default function CabinetPage() {
     if (!phone || !password) { setError('  '); return }
     setBusy(true)
     const res  = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, password }),
     })
     const data = await res.json()
     setBusy(false)
     if (!res.ok) { setError(data.error || ''); return }
     localStorage.setItem('cabinet_user', JSON.stringify({ id: data.id, fullName: data.fullName, phone: data.phone }))
-    setUser(data)
-    loadAttempts(data.id)
-    setStep('data')
+    setUser(data); loadAttempts(data.id); setStep('data')
   }
 
   const loadAttempts = async (id) => {
@@ -63,85 +61,96 @@ export default function CabinetPage() {
   const passed = attempts.filter(a => a.passed).length
 
   if (step === 'login') return (
-    <div style={{ maxWidth: 400, margin: '60px auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}> </h1>
-      <div className="card">
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', color: 'var(--muted)', fontSize: 12, marginBottom: 6 }}></label>
-          <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+7 (___) ___-__-__" style={{ width: '100%' }} />
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="icon">ð“</div>
+          <h1> </h1>
+          <p>  </p>
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', color: 'var(--muted)', fontSize: 12, marginBottom: 6 }}></label>
-          <input type="password" value={password} onChange={e => setPass(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && login()} style={{ width: '100%' }} />
+        <div className="road-stripe" style={{ marginBottom: 24 }} />
+        <div className="form-field">
+          <label> </label>
+          <input type="tel" value={phone} placeholder="+7 (___) ___-__-__"
+            onChange={e => setPhone(e.target.value)} />
         </div>
-        {error && <p style={{ color: 'var(--red)', marginBottom: 12, fontSize: 13 }}>{error}</p>}
-        <button onClick={login} disabled={busy} style={{ width: '100%' }}>
+        <div className="form-field">
+          <label></label>
+          <input type="password" value={password} placeholder=" "
+            onChange={e => setPass(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && login()} />
+        </div>
+        {error && <div className="error-msg">{error}</div>}
+        <button className="btn-primary btn-block" onClick={login} disabled={busy}>
           {busy ? '...' : ''}
         </button>
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a href="/game-login" style={{ fontSize: 13, color: 'var(--muted2)' }}> ?  â†’</a>
+        </div>
       </div>
     </div>
   )
 
   return (
     <div>
-      {/*   */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{user?.fullName}</h1>
-            <p style={{ color: 'var(--muted)' }}>ðž {user?.phone}</p>
+      <div className="road-stripe" />
+
+      {/*  */}
+      <div className="student-hero" style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div className="student-avatar">{initials(user?.fullName)}</div>
+          <div className="student-info">
+            <div className="student-name">{user?.fullName}</div>
+            <div className="student-meta">
+              <span>ðž {user?.phone}</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 32, textAlign: 'center', marginRight: 32 }}>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{attempts.length}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}></div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{passed}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}></div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: (attempts.length - passed) > 0 ? 'var(--red)' : 'var(--muted)' }}>
-                {attempts.length - passed}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
+          <div className="student-stats">
+            {[
+              { val: attempts.length, lbl: '',  color: 'var(--text)'  },
+              { val: passed,          lbl: '',     color: 'var(--green)' },
+              { val: attempts.length - passed, lbl: ' ', color: (attempts.length - passed) > 0 ? 'var(--red)' : 'var(--muted)' },
+            ].map(s => (
+              <div key={s.lbl} className="student-stat">
+                <div className="val" style={{ color: s.color }}>{s.val}</div>
+                <div className="lbl">{s.lbl}</div>
               </div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}> </div>
-            </div>
+            ))}
           </div>
-          <button className="ghost" onClick={logout}></button>
+          <button className="ghost" onClick={logout}> â†’</button>
         </div>
       </div>
 
-      {/*  */}
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}> </h2>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}> </div>
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th></th>
-              <th></th>
-              <th> </th>
-              <th></th>
-              <th></th>
-              <th></th>
+              <th></th><th></th><th> </th>
+              <th></th><th></th><th></th>
             </tr>
           </thead>
           <tbody>
             {attempts.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                    
+              <tr><td colSpan={6}>
+                <div className="empty-state">
+                  <div className="icon">ð—</div>
+                  <p>      </p>
+                </div>
               </td></tr>
             )}
             {attempts.map(a => (
               <tr key={a._id}>
-                <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
                 <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
-                <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? 'â€”'}</td>
-                <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
+                <td><span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? 'â€”'}</span></td>
+                <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
                 <td>
                   <Link href={`/attempts/${a._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}> â†’</button>
+                    <button className="ghost"> â†’</button>
                   </Link>
                 </td>
               </tr>

@@ -14,11 +14,14 @@ function dur(s) {
   const m = Math.floor(s / 60), sec = Math.round(s % 60)
   return `${m}:${String(sec).padStart(2, '0')}`
 }
+function initials(name) {
+  return name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
+}
 
 export default async function StudentPage({ params }) {
   await connectDB()
   const user = await User.findById(params.id, '-password').lean()
-  if (!user) return <div style={{ padding: 40, color: 'var(--muted)' }}>  </div>
+  if (!user) return <div className="empty-state"><div className="icon">‚</div><p>  </p></div>
 
   const attempts = await Attempt.find({ studentId: params.id }, '-track').sort({ timestamp: -1 }).lean()
   const passed   = attempts.filter(a => a.passed).length
@@ -26,43 +29,47 @@ export default async function StudentPage({ params }) {
   const avgScore = attempts.length
     ? Math.round(attempts.reduce((s, a) => s + (a.totalPenaltyPoints ?? 0), 0) / attempts.length)
     : 0
+  const bestScore = attempts.length
+    ? Math.min(...attempts.map(a => a.totalPenaltyPoints ?? 999))
+    : null
 
   return (
     <div>
-      <Link href="/" style={{ color: 'var(--muted)', fontSize: 13 }}>‚Üê </Link>
+      <div className="road-stripe" />
+      <Link href="/admin" style={{ color: 'var(--muted2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
+        ‚Üê   
+      </Link>
 
       {/*   */}
-      <div className="card" style={{ marginTop: 16, marginBottom: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 6 }}>{user.fullName}</h1>
-            <p style={{ color: 'var(--muted)', marginBottom: 4 }}>û {user.phone}</p>
-            <p style={{ color: 'var(--muted)', fontSize: 13 }}>: {fmt(user.createdAt)}</p>
-          </div>
-          <div style={{ display: 'flex', gap: 32, textAlign: 'center' }}>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{attempts.length}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}></div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{passed}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}></div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: failed > 0 ? 'var(--red)' : 'var(--muted)' }}>{failed}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}> </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{avgScore}</div>
-              <div style={{ color: 'var(--muted)', fontSize: 12 }}>. </div>
+      <div className="student-hero">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div className="student-avatar">{initials(user.fullName)}</div>
+          <div className="student-info">
+            <div className="student-name">{user.fullName}</div>
+            <div className="student-meta">
+              <span>û {user.phone}</span>
+              <span>Ö  {new Date(user.createdAt).toLocaleDateString('ru-RU')}</span>
             </div>
           </div>
+        </div>
+        <div className="student-stats">
+          {[
+            { val: attempts.length, lbl: '',     color: 'var(--text)'  },
+            { val: passed,          lbl: '',        color: 'var(--green)' },
+            { val: failed,          lbl: ' ',     color: failed > 0 ? 'var(--red)' : 'var(--muted)' },
+            { val: avgScore,        lbl: '. ',  color: avgScore >= 100 ? 'var(--red)' : 'var(--accent)' },
+          ].map(s => (
+            <div key={s.lbl} className="student-stat">
+              <div className="val" style={{ color: s.color }}>{s.val}</div>
+              <div className="lbl">{s.lbl}</div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/*  */}
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}> </h2>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}> </div>
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -76,22 +83,31 @@ export default async function StudentPage({ params }) {
           </thead>
           <tbody>
             {attempts.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                 
+              <tr><td colSpan={6}>
+                <div className="empty-state">
+                  <div className="icon">¶</div>
+                  <p>   </p>
+                </div>
               </td></tr>
             )}
             {attempts.map(a => (
               <tr key={a._id.toString()}>
-                <td style={{ color: 'var(--muted)' }}>{fmt(a.timestamp)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
                 <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
-                <td style={{ color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '‚Äî'}</td>
-                <td style={{ color: 'var(--muted)' }}>{dur(a.examDuration)}</td>
-                <td style={{ color: 'var(--muted)' }}>{a.penalties?.length ?? 0}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Link href={`/attempts/${a._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}> ‚Üí</button>
-                  </Link>
-                  <DeleteButton id={a._id.toString()} />
+                <td>
+                  <span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : a.totalPenaltyPoints <= 20 ? 'var(--green)' : 'var(--text)' }}>
+                    {a.totalPenaltyPoints ?? '‚Äî'}
+                  </span>
+                </td>
+                <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
+                <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
+                <td>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Link href={`/attempts/${a._id}`}>
+                      <button className="ghost"> ‚Üí</button>
+                    </Link>
+                    <DeleteButton id={a._id.toString()} />
+                  </div>
                 </td>
               </tr>
             ))}
