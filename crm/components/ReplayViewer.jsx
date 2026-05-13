@@ -2,7 +2,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 
 const W = 640, H = 640
-const CAR_LEN = 10, CAR_WID = 6
+const CAR_LEN = 20, CAR_WID = 12
 
 // ── Конфиг трассы ──────────────────────────────────────────────────────────
 // Замени на реальные Unity world-координаты краёв карты.
@@ -118,22 +118,92 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
     const cur = track[frameIdx]
     const { px: cx, py: cy } = worldToCanvas(cur.x, cur.z, TRACK_BOUNDS)
     const ang = (cur.rot ?? 0) * Math.PI / 180
+    const L = CAR_LEN, Wc = CAR_WID
 
     ctx.save()
     ctx.translate(cx, cy)
     ctx.rotate(-ang)
-    ctx.fillStyle = '#4f8ef7'
+
+    // Тень
+    ctx.save()
+    ctx.shadowColor = 'rgba(59,130,246,0.55)'
+    ctx.shadowBlur  = 12
+    ctx.fillStyle   = '#1d4ed8'
     ctx.beginPath()
-    ctx.roundRect(-CAR_LEN / 2, -CAR_WID / 2, CAR_LEN, CAR_WID, 2)
+    ctx.roundRect(-L/2, -Wc/2, L, Wc, Wc * 0.28)
     ctx.fill()
-    // нос
-    ctx.fillStyle = '#fff'
+    ctx.restore()
+
+    // Колёса (4 шт) — рисуем под кузовом
+    ctx.fillStyle = '#0f172a'
+    const wW = Wc * 0.26, wL = L * 0.22
+    const wx_front = L/2  - wL * 1.45
+    const wx_rear  = -L/2 + wL * 0.45
+    const wy_left  = -Wc/2 - wW * 0.35
+    const wy_right =  Wc/2 - wW * 0.65
+    for (const wx of [wx_front, wx_rear]) {
+      for (const wy of [wy_left, wy_right]) {
+        ctx.beginPath()
+        ctx.roundRect(wx, wy, wL, wW, 2)
+        ctx.fill()
+      }
+    }
+
+    // Кузов
+    ctx.fillStyle = '#2563eb'
     ctx.beginPath()
-    ctx.moveTo(CAR_LEN / 2, 0)
-    ctx.lineTo(CAR_LEN / 2 - 4, -2.5)
-    ctx.lineTo(CAR_LEN / 2 - 4, 2.5)
-    ctx.closePath()
+    ctx.roundRect(-L/2, -Wc/2, L, Wc, Wc * 0.28)
     ctx.fill()
+
+    // Капот / крышка багажника — чуть темнее
+    ctx.fillStyle = '#1d4ed8'
+    ctx.beginPath()
+    ctx.roundRect(L*0.22, -Wc/2 + 1, L*0.27, Wc - 2, 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.roundRect(-L/2 + 1, -Wc/2 + 1, L*0.2, Wc - 2, 2)
+    ctx.fill()
+
+    // Крыша (светлее)
+    ctx.fillStyle = '#3b82f6'
+    ctx.beginPath()
+    ctx.roundRect(-L*0.13, -Wc/2 + Wc*0.18, L*0.34, Wc*0.64, 3)
+    ctx.fill()
+
+    // Лобовое стекло (спереди = правая сторона после rotate)
+    ctx.fillStyle = 'rgba(186,230,253,0.85)'
+    ctx.beginPath()
+    ctx.roundRect(L*0.1, -Wc/2 + Wc*0.18, L*0.13, Wc*0.64, 2)
+    ctx.fill()
+
+    // Заднее стекло
+    ctx.fillStyle = 'rgba(186,230,253,0.6)'
+    ctx.beginPath()
+    ctx.roundRect(-L*0.24, -Wc/2 + Wc*0.2, L*0.11, Wc*0.6, 2)
+    ctx.fill()
+
+    // Фары (передние — жёлтые)
+    ctx.shadowColor = '#fde68a'
+    ctx.shadowBlur  = 8
+    ctx.fillStyle   = '#fef9c3'
+    for (const wy of [-Wc/2 + Wc*0.1, Wc/2 - Wc*0.38]) {
+      ctx.beginPath()
+      ctx.roundRect(L/2 - 3.5, wy, 3.5, Wc*0.28, 1)
+      ctx.fill()
+    }
+    ctx.shadowBlur = 0
+
+    // Задние фонари (красные)
+    ctx.shadowColor = '#ef4444'
+    ctx.shadowBlur  = 6
+    ctx.fillStyle   = '#fca5a5'
+    for (const wy of [-Wc/2 + Wc*0.1, Wc/2 - Wc*0.38]) {
+      ctx.beginPath()
+      ctx.roundRect(-L/2, wy, 3, Wc*0.28, 1)
+      ctx.fill()
+    }
+    ctx.shadowBlur = 0
+
     ctx.restore()
 
     // HUD
