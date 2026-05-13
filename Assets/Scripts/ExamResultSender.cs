@@ -64,10 +64,10 @@ public class ExamResultSender : MonoBehaviour
         _exam = GetComponent<ExamManager>();
         _car  = FindAnyObjectByType<Car>();
 
-        // Загружаем имя из PlayerPrefs если не задано
+        // Берём данные авторизованного курсанта
+        studentName = PlayerPrefs.GetString(AuthManager.KEY_FULL_NAME, "");
         if (string.IsNullOrEmpty(studentName))
             studentName = PlayerPrefs.GetString("StudentName", "Курсант");
-
     }
 
     void Start()
@@ -217,7 +217,12 @@ public class ExamResultSender : MonoBehaviour
         foreach (var p in _lightPositions)
             lightPosJson.Add($"{{\"id\":{p.id},\"x\":{F(p.x)},\"z\":{F(p.z)}}}");
 
+        string userId   = PlayerPrefs.GetString(AuthManager.KEY_ID,    "");
+        string phone    = PlayerPrefs.GetString(AuthManager.KEY_PHONE, "");
+
         string json = "{" +
+            $"\"studentId\":\"{Escape(userId)}\"," +
+            $"\"studentPhone\":\"{Escape(phone)}\"," +
             $"\"studentName\":\"{Escape(studentName)}\"," +
             $"\"timestamp\":\"{System.DateTime.UtcNow:O}\"," +
             $"\"passed\":{(_exam.TotalPenaltyPoints < 100 ? "true" : "false")}," +

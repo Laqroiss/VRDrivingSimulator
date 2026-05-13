@@ -40,6 +40,10 @@ public class MenuManager : MonoBehaviour
     [Tooltip("Масштаб меню в VR")]
     public float vrMenuScale    = 0.001f;
 
+    [Header("Авторизация")]
+    [Tooltip("Перетащи сюда объект с компонентом AuthManager")]
+    public AuthManager authManager;
+
     [Header("Анимация")]
     public float fadeInDuration   = 1.5f;
     public float fadeOutDuration  = 0.8f;
@@ -105,7 +109,7 @@ public class MenuManager : MonoBehaviour
         }
 
         // Кнопки
-        btnStart?.onClick.AddListener(StartGame);
+        btnStart?.onClick.AddListener(OnStartClicked);
         btnSettings?.onClick.AddListener(ToggleSettings);
         btnQuit?.onClick.AddListener(QuitGame);
 
@@ -158,7 +162,7 @@ public class MenuManager : MonoBehaviour
 
         if (!_menuActive) return;
         if (LegacyInput.GetKeyDown(KeyCode.Return) || LegacyInput.GetKeyDown(KeyCode.KeypadEnter))
-            StartGame();
+            OnStartClicked();
         else if (LegacyInput.GetKeyDown(KeyCode.Tab))
             ToggleSettings();
         else if (LegacyInput.GetKeyDown(KeyCode.Escape))
@@ -223,6 +227,16 @@ public class MenuManager : MonoBehaviour
     }
 
     // ── Запуск игры ───────────────────────────────────────────────────────
+
+    void OnStartClicked()
+    {
+        if (authManager != null && !AuthManager.IsLoggedIn)
+        {
+            authManager.RequestAuthThenStart(StartGame);
+            return;
+        }
+        StartGame();
+    }
 
     void StartGame()
     {

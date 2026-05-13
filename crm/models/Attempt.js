@@ -19,6 +19,8 @@ const TrackPointSchema = new mongoose.Schema({
 }, { _id: false })
 
 const AttemptSchema = new mongoose.Schema({
+  studentId:         { type: String, default: null },
+  studentPhone:      { type: String, default: '' },
   studentName:       { type: String, default: 'Неизвестный' },
   timestamp:         { type: Date,   default: Date.now },
   passed:            Boolean,

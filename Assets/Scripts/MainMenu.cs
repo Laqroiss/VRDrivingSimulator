@@ -6,7 +6,8 @@ using System.Collections;
 
 /// <summary>
 /// Главное меню симулятора вождения.
-/// Поверх кинематики показывает название и кнопки.
+/// Работает совместно с AuthManager: кнопки меню скрыты до авторизации.
+/// AuthManager вызывает ShowMenu() после успешного входа.
 /// </summary>
 public class MainMenu : MonoBehaviour
 {
@@ -14,7 +15,7 @@ public class MainMenu : MonoBehaviour
     public string gameSceneName = "SampleScene";
 
     [Header("UI элементы")]
-    public CanvasGroup menuGroup;       // весь блок меню для fade-in
+    public CanvasGroup menuGroup;
     public Button      btnStart;
     public Button      btnSettings;
     public Button      btnQuit;
@@ -24,17 +25,18 @@ public class MainMenu : MonoBehaviour
     public Slider      sliderVolume;
     public TMP_Dropdown dropdownQuality;
 
+    [Header("Приветствие")]
+    public TMP_Text    greetingText;   // "Добро пожаловать, <ФИО>"
+
     [Header("Анимация появления")]
     public float fadeInDuration = 1.2f;
 
     void Start()
     {
-        // Кнопки
         btnStart?.onClick.AddListener(OnStart);
         btnSettings?.onClick.AddListener(OnSettings);
         btnQuit?.onClick.AddListener(OnQuit);
 
-        // Настройки
         if (sliderVolume != null)
         {
             sliderVolume.value = PlayerPrefs.GetFloat("Volume", 1f);
@@ -54,16 +56,46 @@ public class MainMenu : MonoBehaviour
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
 
-        // Плавное появление меню
+        // Меню изначально скрыто — AuthManager решает когда показать
+        HideMenu();
+    }
+
+    // Вызывается AuthManager после успешного входа / регистрации
+    public void ShowMenu()
+    {
         if (menuGroup != null)
         {
-            menuGroup.alpha = 0f;
+            menuGroup.gameObject.SetActive(true);
+            menuGroup.alpha          = 0f;
+            menuGroup.interactable   = true;
+            menuGroup.blocksRaycasts = true;
             StartCoroutine(FadeIn());
         }
+
+        // Приветствие
+        if (greetingText != null)
+        {
+            string name = PlayerPrefs.GetString(AuthManager.KEY_FULL_NAME, "");
+            greetingText.text = string.IsNullOrEmpty(name) ? "" : $"Добро пожаловать, {name}";
+        }
+    }
+
+    // Вызывается AuthManager при выходе из аккаунта
+    public void HideMenu()
+    {
+        if (menuGroup != null)
+        {
+            menuGroup.alpha          = 0f;
+            menuGroup.interactable   = false;
+            menuGroup.blocksRaycasts = false;
+        }
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
     }
 
     void OnStart()
     {
+        if (!AuthManager.IsLoggedIn) return;
         StartCoroutine(LoadGame());
     }
 
@@ -95,7 +127,6 @@ public class MainMenu : MonoBehaviour
 
     IEnumerator LoadGame()
     {
-        // Плавное исчезновение меню перед загрузкой
         if (menuGroup != null)
         {
             float t = 0f;
