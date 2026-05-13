@@ -255,13 +255,79 @@ public class ReplaySystem : MonoBehaviour
     public void StartReplayFromCRMData(List<ReplayCRMSync.CRMFrame> crmFrames, float fps)
     {
         if (crmFrames == null || crmFrames.Count == 0) return;
-        var session = new ReplaySession { name = "CRM Повтор" };
-        foreach (var cf in crmFrames)
+
+        // Приблизительный радиус колеса — для расчёта вращения
+        float wheelRadius = 0.33f;
+        if (car != null && car.wheels != null && car.wheels.Length > 0 && car.wheels[0].wheelObject != null)
         {
+            // Пытаемся взять реальный размер из первого колеса (collider)
+            var col = car.wheels[0].wheelObject.GetComponentInChildren<SphereCollider>();
+            if (col != null) wheelRadius = col.radius;
+        }
+
+        // Локальные позиции колёс относительно машины
+        Vector3[] wheelLocalPos = null;
+        if (car != null && car.wheels != null)
+        {
+            wheelLocalPos = new Vector3[car.wheels.Length];
+            for (int i = 0; i < car.wheels.Length; i++)
+                if (car.wheels[i].wheelObject != null)
+                    wheelLocalPos[i] = car.transform.InverseTransformPoint(car.wheels[i].wheelObject.transform.position);
+        }
+
+        var session   = new ReplaySession { name = "CRM Повтор" };
+        float spinAng = 0f;
+
+        for (int fi = 0; fi < crmFrames.Count; fi++)
+        {
+            var cf  = crmFrames[fi];
+            var carRot = new Quaternion(cf.qx, cf.qy, cf.qz, cf.qw);
+            var carPos = new Vector3(cf.x, cf.y, cf.z);
+
+            // Вращение колёс: спин из скорости, поворот из yaw-дельты
+            float dt          = 1f / fps;
+            float speedMs     = cf.speed / 3.6f;
+            float circumf     = 2f * Mathf.PI * wheelRadius;
+            float rps         = circumf > 0f ? speedMs / circumf : 0f;
+            spinAng          += rps * 360f * dt;
+
+            // Дельта поворота машины для руления (только для передних колёс)
+            float steerAngle = 0f;
+            if (fi > 0)
+            {
+                var prev  = crmFrames[fi - 1];
+                var prevY = new Quaternion(prev.qx, prev.qy, prev.qz, prev.qw).eulerAngles.y;
+                var curY  = carRot.eulerAngles.y;
+                float dy  = Mathf.DeltaAngle(prevY, curY);
+                steerAngle = Mathf.Clamp(dy / dt * 0.04f, -40f, 40f);
+            }
+
+            Vector3[]    wp = null;
+            Quaternion[] wr = null;
+            Quaternion[] wv = null;
+
+            if (wheelLocalPos != null)
+            {
+                int wn = wheelLocalPos.Length;
+                wp = new Vector3[wn];
+                wr = new Quaternion[wn];
+                wv = new Quaternion[wn];
+                for (int wi = 0; wi < wn; wi++)
+                {
+                    wp[wi] = carPos + carRot * wheelLocalPos[wi];
+                    bool isFront = wi < 2;
+                    wr[wi] = carRot * Quaternion.Euler(0f, isFront ? steerAngle : 0f, 0f);
+                    wv[wi] = Quaternion.Euler(spinAng, 0f, 0f);
+                }
+            }
+
             session.frames.Add(new ReplayFrame
             {
-                carPos        = new Vector3(cf.x, cf.y, cf.z),
-                carRot        = new Quaternion(cf.qx, cf.qy, cf.qz, cf.qw),
+                carPos        = carPos,
+                carRot        = carRot,
+                wheelPos      = wp,
+                wheelRot      = wr,
+                wheelVisualRot = wv,
                 speed         = cf.speed,
                 gear          = cf.gear,
                 rpm           = cf.rpm,
@@ -272,8 +338,9 @@ public class ReplaySystem : MonoBehaviour
                 blinkPhase    = cf.bp,
             });
         }
-        session.duration   = session.frames.Count / fps;
-        recordFPS          = fps;
+
+        session.duration = session.frames.Count / fps;
+        recordFPS        = fps;
         StartReplay(session);
     }
 
@@ -435,26 +502,28 @@ public class ReplaySystem : MonoBehaviour
         {
             int idx;
 
+            float frac = 0f;
             if (_scrubbing && replaySlider != null)
             {
-                // Юзер тащит слайдер — индекс берём прямо из него
                 idx = Mathf.Clamp(Mathf.RoundToInt(replaySlider.value), 0, session.frames.Count - 1);
             }
             else
             {
                 float elapsed = (Time.time - _replayStart) + _replayOffset;
                 if (elapsed >= duration) { StopReplay(); yield break; }
-                float t = elapsed / duration;
-                idx = Mathf.Clamp(Mathf.FloorToInt(t * session.frames.Count), 0, session.frames.Count - 1);
+                float tNorm = elapsed / duration * session.frames.Count;
+                idx  = Mathf.Clamp(Mathf.FloorToInt(tNorm), 0, session.frames.Count - 1);
+                frac = tNorm - idx;
 
-                if (replaySlider != null)
-                {
-                    // Меняем без триггера listener — иначе зациклимся
-                    replaySlider.SetValueWithoutNotify(idx);
-                }
+                replaySlider?.SetValueWithoutNotify(idx);
             }
 
-            ApplyFrame(session.frames[idx]);
+            // Интерполяция между кадрами — убирает рывки при низком fps записи
+            int nextIdx = Mathf.Min(idx + 1, session.frames.Count - 1);
+            if (frac > 0f && nextIdx != idx)
+                ApplyFrameInterpolated(session.frames[idx], session.frames[nextIdx], frac);
+            else
+                ApplyFrame(session.frames[idx]);
 
             if (replayTimeLabel != null)
             {
@@ -578,6 +647,33 @@ public class ReplaySystem : MonoBehaviour
         _replayOffset = idx / recordFPS;
         _replayStart  = Time.time;
         _scrubbing    = false;
+    }
+
+    void ApplyFrameInterpolated(ReplayFrame a, ReplayFrame b, float t)
+    {
+        if (_ghost == null) return;
+        var pos = Vector3.Lerp(a.carPos, b.carPos, t);
+        var rot = Quaternion.Slerp(a.carRot, b.carRot, t);
+        _ghost.transform.SetPositionAndRotation(pos, rot);
+
+        if (_ghostWheels != null && a.wheelPos != null && b.wheelPos != null)
+            for (int i = 0; i < _ghostWheels.Length && i < a.wheelPos.Length; i++)
+            {
+                var gw = _ghostWheels[i];
+                if (gw == null) continue;
+                var wp = Vector3.Lerp(a.wheelPos[i], b.wheelPos[i], t);
+                var wr = Quaternion.Slerp(a.wheelRot[i], b.wheelRot[i], t);
+                gw.localPosition = _ghost.transform.InverseTransformPoint(wp);
+                gw.localRotation = Quaternion.Inverse(rot) * wr;
+                if (a.wheelVisualRot != null && b.wheelVisualRot != null && gw.childCount > 0)
+                    gw.GetChild(0).localRotation = Quaternion.Inverse(gw.rotation) *
+                        Quaternion.Slerp(a.wheelVisualRot[i], b.wheelVisualRot[i], t);
+            }
+
+        SetGhostLights(_ghostBrakeLights,   a.brakeLights);
+        SetGhostLights(_ghostReverseLights, a.reverseLights);
+        SetGhostLights(_ghostLeftLights,    a.leftBlink  && a.blinkPhase);
+        SetGhostLights(_ghostRightLights,   a.rightBlink && a.blinkPhase);
     }
 
     void ApplyFrame(ReplayFrame f)

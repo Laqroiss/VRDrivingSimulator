@@ -61,7 +61,7 @@ public class ReplayCRMSync : MonoBehaviour
     [Header("CRM")]
     public string crmUrl     = "http://localhost:3000";
     public int    replayPort = 7779;
-    public float  recordFPS  = 15f;
+    public float  recordFPS  = 30f;
 
     // ── Runtime ──────────────────────────────────────────────────────────────
 
