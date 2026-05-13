@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
 
-// Маршруты требующие авторизации админа
-const PROTECTED = ['/', '/attempts', '/students', '/admin']
-// Исключения внутри /admin (публичные)
 const ADMIN_PUBLIC = ['/admin/login']
+const PROTECTED    = ['/attempts', '/students', '/admin']
 
 export function middleware(request) {
   const { pathname } = request.nextUrl
+
+  // / → /admin
+  if (pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/admin'
+    return NextResponse.redirect(url)
+  }
 
   const isPublic    = ADMIN_PUBLIC.some(p => pathname.startsWith(p))
   const isProtected = !isPublic && PROTECTED.some(p => pathname === p || pathname.startsWith(p + '/'))
