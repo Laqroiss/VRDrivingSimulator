@@ -20,9 +20,14 @@ public class TrafficIntersection : MonoBehaviour
     public float yellowTime    = 2f;
     public float redYellowTime = 2f;
 
+    // Public state for ExamResultSender
+    public string PhaseNameA    { get; private set; } = "Red";
+    public string PhaseNameB    { get; private set; } = "Green";
+    public float  PhaseRemaining { get; private set; }
+    public float  PhaseDuration  { get; private set; }
+
     void Start()
     {
-        // ïïïïïïïïï ïïïïïïïïïïï ïïïï ïïï ïïïïïï ïïïïï
         StartCoroutine(TrafficCycle());
     }
 
@@ -30,43 +35,52 @@ public class TrafficIntersection : MonoBehaviour
     {
         while (true)
         {
-            // ïïïï 1: ïïïïïïï ï ïïïï, ïïïïïïï ï ïïïïï
-            yield return StartCoroutine(RunPhase(sideA, sideB));
-
-            // ïïïï 2: ïïïïïïï ï ïïïï, ïïïïïïï ï ïïïïï
-            yield return StartCoroutine(RunPhase(sideB, sideA));
+            yield return StartCoroutine(RunPhase(sideA, sideB, true));
+            yield return StartCoroutine(RunPhase(sideB, sideA, false));
         }
     }
 
-    IEnumerator RunPhase(List<TrafficLight> goSide, List<TrafficLight> stopSide)
+    IEnumerator RunPhase(List<TrafficLight> goSide, List<TrafficLight> stopSide, bool aGoes)
     {
-        // 1. ïïïïïïïï ïïïïïïï ïïï ïïïïïï, ïïïïïïï ïïï ïïïïïïï
+        // Green
         SetLights(goSide, TrafficLight.LightState.Green);
         SetLights(stopSide, TrafficLight.LightState.Red);
-        yield return new WaitForSeconds(greenTime);
+        yield return StartCoroutine(TimedPhase(aGoes ? "Green" : "Red", aGoes ? "Red" : "Green", greenTime));
 
-        // 2. ïïïïïïïï ïïïïïïï (ïïïïïï ïïïïïï 0.5 ïïïïïï)
+        // Blinking green
         float blinkInterval = 0.5f;
         int blinks = Mathf.RoundToInt(blinkTime / blinkInterval);
         for (int i = 0; i < blinks; i++)
         {
-            // ïïïïïïïï: ïïïïïïïï / ïïïïïïï
-            if (i % 2 == 0)
-                SetLights(goSide, TrafficLight.LightState.Off);
-            else
-                SetLights(goSide, TrafficLight.LightState.Green);
-
-            yield return new WaitForSeconds(blinkInterval);
+            SetLights(goSide, i % 2 == 0 ? TrafficLight.LightState.Off : TrafficLight.LightState.Green);
+            yield return StartCoroutine(TimedPhase(
+                aGoes ? "BlinkGreen" : "Red",
+                aGoes ? "Red" : "BlinkGreen", blinkInterval));
         }
 
-        // 3. ïïïïïï ïïïï (ïïïïïïïï, ïïïïï ïïïïïïï)
+        // Yellow
         SetLights(goSide, TrafficLight.LightState.Yellow);
-        yield return new WaitForSeconds(yellowTime);
+        yield return StartCoroutine(TimedPhase(aGoes ? "Yellow" : "Red", aGoes ? "Red" : "Yellow", yellowTime));
 
-        // 4. ïïïïïïï ïïï ïïï ïïï ïïïï, ï ïïïïïïï+ïïïïïï ïïï ïïï, ïïï ïïïïïïïïï
+        // Red + red-yellow
         SetLights(goSide, TrafficLight.LightState.Red);
         SetLights(stopSide, TrafficLight.LightState.RedYellow);
-        yield return new WaitForSeconds(redYellowTime);
+        yield return StartCoroutine(TimedPhase(aGoes ? "Red" : "RedYellow", aGoes ? "RedYellow" : "Red", redYellowTime));
+    }
+
+    IEnumerator TimedPhase(string nameA, string nameB, float duration)
+    {
+        PhaseNameA    = nameA;
+        PhaseNameB    = nameB;
+        PhaseDuration = duration;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            PhaseRemaining = duration - elapsed;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        PhaseRemaining = 0f;
     }
 
     // ïïïïïïïïïïïïïïï ïïïïïïï ïïï ïïïïïïïïïïïï ïïïïïï ïïïïïï ïïïïïïïïïï
