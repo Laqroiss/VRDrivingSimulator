@@ -14,11 +14,9 @@ export default function AdminPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) { router.push('/admin/login'); return }
     fetch('/api/students')
-      .then(r => r.json())
-      .then(data => { setStudents(data); setLoading(false) })
+      .then(r => { if (r.status === 401) { router.push('/admin/login'); return null } return r.json() })
+      .then(data => { if (data) { setStudents(data); setLoading(false) } })
   }, [])
 
   const deleteStudent = async (id) => {
@@ -27,7 +25,10 @@ export default function AdminPage() {
     setStudents(s => s.filter(u => u._id !== id))
   }
 
-  const logout = () => { localStorage.removeItem('admin_token'); router.push('/admin/login') }
+  const logout = async () => {
+    await fetch('/api/admin/login', { method: 'DELETE' })
+    router.push('/admin/login')
+  }
 
   const filtered = students.filter(u =>
     u.fullName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -41,7 +42,6 @@ export default function AdminPage() {
 
   return (
     <div>
-      {/* Шапка */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Панель администратора</h1>
@@ -55,11 +55,10 @@ export default function AdminPage() {
         <button className="ghost" onClick={logout}>Выйти</button>
       </div>
 
-      {/* Статистика */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { label: 'Всего курсантов', value: students.length, color: 'var(--accent)' },
-          { label: 'Всего попыток',   value: totalAttempts,   color: 'var(--text)' },
+          { label: 'Всего курсантов', value: students.length,      color: 'var(--accent)' },
+          { label: 'Всего попыток',   value: totalAttempts,        color: 'var(--text)'   },
           { label: 'Процент сдачи',   value: totalAttempts ? Math.round(totalPassed / totalAttempts * 100) + '%' : '—', color: 'var(--green)' },
         ].map(s => (
           <div key={s.label} className="card" style={{ textAlign: 'center' }}>
@@ -69,24 +68,17 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Поиск */}
       <div style={{ marginBottom: 16 }}>
         <input type="search" placeholder="Поиск по имени или телефону…"
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {/* Таблица */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table>
           <thead>
             <tr>
-              <th>Курсант</th>
-              <th>Телефон</th>
-              <th>Регистрация</th>
-              <th>Попыток</th>
-              <th>Сдал</th>
-              <th>Не сдал</th>
-              <th></th>
+              <th>Курсант</th><th>Телефон</th><th>Регистрация</th>
+              <th>Попыток</th><th>Сдал</th><th>Не сдал</th><th></th>
             </tr>
           </thead>
           <tbody>
