@@ -5,22 +5,22 @@ public class TrafficLight : MonoBehaviour
     // Все возможные состояния нашего светофора
     public enum LightState { Red, RedYellow, Green, BlinkingGreen, Yellow, Off }
     public LightState currentState = LightState.Off;
-
+    //Лампочки
     [Header("Лампочки (Point Lights)")]
     public GameObject redLight;
     public GameObject yellowLight;
     public GameObject greenLight;
-
+    //Стекляшки
     [Header("Сами стекляшки (Mesh Renderers)")]
     public MeshRenderer redLens;
     public MeshRenderer yellowLens;
     public MeshRenderer greenLens;
-
+    //свечения
     [Header("Цвета свечения (HDR)")]
     [ColorUsage(true, true)] public Color redEmission = Color.red * 3f;
     [ColorUsage(true, true)] public Color yellowEmission = Color.yellow * 3f;
     [ColorUsage(true, true)] public Color greenEmission = Color.green * 3f;
-
+    //Установка состоянии
     public void SetState(LightState state)
     {
         currentState = state;
