@@ -54,7 +54,29 @@ public class RailwayCrossing : MonoBehaviour
         if (trainObject != null)
             trainObject.SetActive(false);
 
-        StartCoroutine(TrainLoop());
+        _trainLoopCoroutine = StartCoroutine(TrainLoop());
+    }
+
+    private Coroutine _trainLoopCoroutine;
+
+    public void PauseTrain()
+    {
+        if (_trainLoopCoroutine != null) { StopCoroutine(_trainLoopCoroutine); _trainLoopCoroutine = null; }
+    }
+
+    public void ResumeTrain()
+    {
+        if (_trainLoopCoroutine == null) _trainLoopCoroutine = StartCoroutine(TrainLoop());
+    }
+
+    public bool  TrainActive   => trainObject != null && trainObject.activeSelf;
+    public Vector3 TrainPosition => trainObject != null ? trainObject.transform.position : Vector3.zero;
+
+    public void SetTrainState(float tx, float ty, float tz, bool active)
+    {
+        if (trainObject == null) return;
+        trainObject.SetActive(active);
+        if (active) trainObject.transform.position = new Vector3(tx, ty, tz);
     }
 
     // Зона подъезда (сам объект)
