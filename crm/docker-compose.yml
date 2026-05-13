@@ -1,0 +1,29 @@
+services:
+  crm:
+    build:
+      context: .
+      target: deps        # собираем только до стадии установки пакетов
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/vr-driving-crm
+      - WATCHPACK_POLLING=true   # hot reload внутри Docker на Windows
+    volumes:
+      - .:/app                   # исходники пробрасываем с хоста
+      - /app/node_modules        # node_modules берём из контейнера, не с хоста
+      - /app/.next               # .next тоже внутри контейнера
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:

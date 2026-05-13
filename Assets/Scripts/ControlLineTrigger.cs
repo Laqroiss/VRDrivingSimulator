@@ -21,11 +21,19 @@ public class ControlLineTrigger : MonoBehaviour
     private float _lastPenaltyTime = -100f;
     private bool  _oneShotDone     = false;
     private BoxCollider _col;
+    private Transform   _colTransform;
+    private float       _maxCheckDist;
 
     void Start()
     {
         _car = FindAnyObjectByType<Car>();
         _col = GetComponent<BoxCollider>();
+        if (_col != null)
+        {
+            _colTransform = _col.transform;
+            Vector3 half = _col.size * 0.5f;
+            _maxCheckDist = Mathf.Max(half.x, half.z) + wheelTolerance + 3f;
+        }
     }
 
     void FixedUpdate()
@@ -34,22 +42,24 @@ public class ControlLineTrigger : MonoBehaviour
         if (cooldown <= 0f && _oneShotDone) return;
         if (Time.time - _lastPenaltyTime < cooldown) return;
 
-        // Проверяем все 4 колеса
+        // Дешёвая проверка дистанции — пропускаем если машина далеко
+        if (Vector3.SqrMagnitude(_car.transform.position - _colTransform.position) > _maxCheckDist * _maxCheckDist)
+            return;
+
         for (int i = 0; i < 4; i++)
         {
             Vector3 wheelPos = _car.GetWheelPosition(i);
             if (IsWheelOnLine(wheelPos))
             {
                 TriggerPenalty();
-                break; // достаточно одного колеса
+                break;
             }
         }
     }
 
     bool IsWheelOnLine(Vector3 worldPos)
     {
-        // Переводим в локальное пространство коллайдера
-        Vector3 local = _col.transform.InverseTransformPoint(worldPos) - _col.center;
+        Vector3 local = _colTransform.InverseTransformPoint(worldPos) - _col.center;
         Vector3 half  = _col.size * 0.5f;
 
         return Mathf.Abs(local.x) <= half.x + wheelTolerance &&

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 
@@ -15,7 +16,6 @@ public class MapTileBuilder : MonoBehaviour
         float      totalW    = tileSize * cols;
         float      totalH    = tileSize * rows;
 
-        // Удаляем старые тайлы если были
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
             {
@@ -23,7 +23,6 @@ public class MapTileBuilder : MonoBehaviour
                 if (old != null) DestroyImmediate(old);
             }
 
-        // Создаём родительский объект
         GameObject parent = GameObject.Find("MapTileGrid") ?? new GameObject("MapTileGrid");
         parent.transform.position = basePos;
 
@@ -51,8 +50,6 @@ public class MapTileBuilder : MonoBehaviour
                 plane.transform.localPosition = new Vector3(x, 0f, z);
                 plane.transform.localScale    = new Vector3(tileSize / 10f, 1f, tileSize / 10f);
 
-                // Коллайдер нужен чтобы машина не проваливалась
-
                 Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 mat.SetTexture("_BaseMap", tex);
                 mat.SetFloat("_Smoothness", 0.05f);
@@ -69,3 +66,4 @@ public class MapTileBuilder : MonoBehaviour
         Debug.Log($"MapTileBuilder: создано {created} тайлов. Скройте AutoDrome если нужно.");
     }
 }
+#endif
