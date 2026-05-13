@@ -224,23 +224,22 @@ public class ReplaySystem : MonoBehaviour
         else            StartRecording();
     }
 
-    void StartRecording()
+    public void StartRecording(string sessionName = null)
     {
         _sessionNum++;
         string timestamp = System.DateTime.Now.ToString("HH:mm:ss");
-        _current = new ReplaySession { name = $" {_sessionNum}  ({timestamp})" };
+        _current = new ReplaySession { name = sessionName ?? $"Attempt {_sessionNum}  ({timestamp})" };
         _recording   = true;
         _recordTimer = 0f;
         Debug.Log($"[Replay] Recording started: {_current.name}");
         UpdateRecordButton();
     }
 
-    void StopRecording()
+    public void StopRecording()
     {
         _recording = false;
         if (_current != null && _current.frames.Count > 0)
         {
-            //  -  
             if (_sessions.Count >= maxSavedReplays)
                 _sessions.RemoveAt(0);
 
@@ -250,6 +249,32 @@ public class ReplaySystem : MonoBehaviour
         }
         _current = null;
         UpdateRecordButton();
+    }
+
+    /// <summary>Start a replay from CRM data (a list of frames in ReplayCRMSync format).</summary>
+    public void StartReplayFromCRMData(List<ReplayCRMSync.CRMFrame> crmFrames, float fps)
+    {
+        if (crmFrames == null || crmFrames.Count == 0) return;
+        var session = new ReplaySession { name = "CRM " };
+        foreach (var cf in crmFrames)
+        {
+            session.frames.Add(new ReplayFrame
+            {
+                carPos        = new Vector3(cf.x, cf.y, cf.z),
+                carRot        = new Quaternion(cf.qx, cf.qy, cf.qz, cf.qw),
+                speed         = cf.speed,
+                gear          = cf.gear,
+                rpm           = cf.rpm,
+                brakeLights   = cf.bl,
+                reverseLights = cf.rl,
+                leftBlink     = cf.lb,
+                rightBlink    = cf.rb,
+                blinkPhase    = cf.bp,
+            });
+        }
+        session.duration   = session.frames.Count / fps;
+        recordFPS          = fps;
+        StartReplay(session);
     }
 
     void UpdateRecordButton()

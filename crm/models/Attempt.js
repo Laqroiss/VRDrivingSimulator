@@ -41,6 +41,7 @@ const AttemptSchema = new mongoose.Schema({
     id: Number, x: Number, z: Number,
     _id: false,
   }],
+  replayData: { type: Buffer, default: null },  //  JSON 
 }, { timestamps: true })
 
 //  dev-      hot-reload
