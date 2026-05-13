@@ -1319,6 +1319,9 @@ MonoBehaviour:
   rightBlinkerIcon: {fileID: 4408804960286890390}
   blinkerActiveColor: {r: 0, g: 1, b: 0, a: 1}
   blinkerOffColor: {r: 0, g: 0.2, b: 0, a: 0.3}
+  steeringWheel: {fileID: 0}
+  steeringMaxAngle: 450
+  steeringAnimSpeed: 15
   signalStalk: {fileID: 5517709943468713338}
   stalkRotationAngle: 12
   stalkRotationAxis: {x: 0, y: 0, z: 1}
@@ -4298,8 +4301,8 @@ MonoBehaviour:
   leftIndicatorKey: 122
   rightIndicatorKey: 99
   hazardLightKey: 120
-  leftIndicatorLight: {fileID: 0}
-  rightIndicatorLight: {fileID: 0}
+  leftIndicatorLights: []
+  rightIndicatorLights: []
   leftUIIcon: {fileID: 0}
   rightUIIcon: {fileID: 0}
   iconOnColor: {r: 1, g: 1, b: 1, a: 1}
@@ -4484,6 +4487,8 @@ MonoBehaviour:
   creepThrottle: 0.18
   engineBrakeFactor: 0.22
   airDragCoeff: 0.4
+  brakeLights: []
+  reverseLights: []
   debugLog: 0
   debugLogInterval: 0.5
   steeringAssist: 1
@@ -4491,6 +4496,11 @@ MonoBehaviour:
   throttleAssist: 1
   brakeAssist: 1
   userInput: {x: 0, y: 0}
+  inputMode: 0
+  externalInput: 0
+  externalThrottle: 0
+  externalBrake: 0
+  externalSteer: 0
   downforce: 0.16
   isBraking: 0
   COMOffset: {x: 0, y: -1, z: 0}
@@ -9947,7 +9957,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6905477051819643221}
   m_LocalRotation: {x: 0, y: 0.09462953, z: 0, w: 0.99551255}
-  m_LocalPosition: {x: 0, y: 0, z: 320}
+  m_LocalPosition: {x: 0, y: 0, z: 323}
   m_LocalScale: {x: 3, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -9959,7 +9969,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 10.86, z: 0}
   m_AnchorMin: {x: 0.8, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -433, y: 0}
+  m_AnchoredPosition: {x: -446, y: 0}
   m_SizeDelta: {x: 300, y: 500}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &904875448745517904
@@ -9983,7 +9993,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0.54901963, b: 1, a: 1}
+  m_Color: {r: 0, g: 0.19833922, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
