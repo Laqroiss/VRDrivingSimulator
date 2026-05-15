@@ -107,27 +107,37 @@ public class WaypointArrow : MonoBehaviour
     //      Z
     void BuildDirectionalArrow()
     {
-        //    Z: 0=(↑), -90=(→), +90=(←), 180=(↓)
-        float rotZ = direction == DirectionType.TurnRight ?  -90f :
-                     direction == DirectionType.TurnLeft  ?   90f :
-                     direction == DirectionType.UTurn     ?  180f : 0f;
+        float rotZ = direction == DirectionType.TurnRight ? -90f :
+                     direction == DirectionType.TurnLeft  ?  90f :
+                     direction == DirectionType.UTurn     ? 180f : 0f;
 
         var root = new GameObject("Root").transform;
         root.SetParent(_visual, false);
         root.localEulerAngles = new Vector3(0f, 0f, rotZ);
 
-        //   Y ()
-        MakeCube(root, new Vector3(0.22f, 0.7f, 0.22f), new Vector3(0f, -0.18f, 0f), arrowColor);
+        //   Y
+        MakeCube(root, new Vector3(0.22f, 0.72f, 0.22f), new Vector3(0f, -0.18f, 0f), arrowColor);
 
-        //   
-        var hl = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
-                          new Vector3(-0.2f, 0.2f, 0f), arrowColor);
-        hl.localEulerAngles = new Vector3(0f, 0f, 40f);
+        //   —       ()
+        // : (0, 0.46).  : 38.
+        //          = 
+        const float wingAngle = 38f;
+        const float wingLen   = 0.55f;
+        float  sinA = Mathf.Sin(wingAngle * Mathf.Deg2Rad);
+        float  cosA = Mathf.Cos(wingAngle * Mathf.Deg2Rad);
+        float  tipY = 0.46f;
+        //   (rotZ=+wingAngle):   Y = (-sinA, cosA)
+        //   = center + 0.5*len*(-sinA, cosA) = tip → center = tip - 0.5*len*(-sinA,cosA)
+        float lx = -(-sinA * wingLen * 0.5f);
+        float ly = tipY - cosA * wingLen * 0.5f;
 
-        //   
-        var hr = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
-                          new Vector3( 0.2f, 0.2f, 0f), arrowColor);
-        hr.localEulerAngles = new Vector3(0f, 0f, -40f);
+        var wL = MakeCube(root, new Vector3(0.2f, wingLen, 0.22f),
+                          new Vector3(lx, ly, 0f), arrowColor);
+        wL.localEulerAngles = new Vector3(0f, 0f, wingAngle);
+
+        var wR = MakeCube(root, new Vector3(0.2f, wingLen, 0.22f),
+                          new Vector3(-lx, ly, 0f), arrowColor);
+        wR.localEulerAngles = new Vector3(0f, 0f, -wingAngle);
     }
 
     void BuildPole()
