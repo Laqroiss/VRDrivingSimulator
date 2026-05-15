@@ -716,7 +716,21 @@ public class ReplaySystem : MonoBehaviour
         foreach (var al  in _ghost.GetComponentsInChildren<AudioListener>()) Destroy(al);
         foreach (var au  in _ghost.GetComponentsInChildren<AudioSource>())   Destroy(au);
 
-        // Колёса — всегда клонируем отдельно и прикрепляем к ghost
+        // Скрываем оригинальные колёса в клоне машины — они дублируются нашими клонами ниже
+        if (car.wheels != null)
+        {
+            var hiddenWheels = new System.Collections.Generic.HashSet<GameObject>();
+            foreach (var w in car.wheels)
+            {
+                if (w.wheelObject == null || !hiddenWheels.Add(w.wheelObject)) continue;
+                string path = GetRelativePath(car.transform, w.wheelObject.transform);
+                if (path == null) continue;
+                var orig = _ghost.transform.Find(path);
+                if (orig != null) orig.gameObject.SetActive(false);
+            }
+        }
+
+        // Колёса — клонируем отдельно и прикрепляем к ghost (они будут анимироваться)
         var ghostWheelList = new List<Transform>();
         if (car.wheels != null)
         {
