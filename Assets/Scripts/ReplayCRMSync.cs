@@ -329,27 +329,20 @@ public class ReplayCRMSync : MonoBehaviour
         hudTimeText   = MakeText(panel.transform, "0:00",        13, FontStyles.Normal,
                                  new Color(0.6f,0.7f,0.9f,1f),  new Vector2(0,y));
 
-        // вв   (  ) вввввввввввввввввввввввввввв
-        var errGO = new GameObject("ErrorSection");
-        errGO.transform.SetParent(panel.transform, false);
-        hudErrorGroup = errGO.AddComponent<CanvasGroup>();
+        // вв   вЂ”   MakeImage  RectTransform  
+        var errRT = MakeImage(panel.transform, new Vector2(310, 52),
+            new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, -86),
+            new Color(0.6f, 0.1f, 0.1f, 0.7f));
+        hudErrorGroup       = errRT.gameObject.AddComponent<CanvasGroup>();
         hudErrorGroup.alpha = 0f;
 
-        var errRect = errGO.AddComponent<RectTransform>();
-        errRect.anchorMin = errRect.anchorMax = new Vector2(0.5f, 0f);
-        errRect.sizeDelta = new Vector2(310, 52);
-        errRect.anchoredPosition = new Vector2(0, -86);
-
-        //  
-        var errBg = errGO.AddComponent<UnityEngine.UI.Image>();
-        errBg.color = new Color(0.6f, 0.1f, 0.1f, 0.7f);
-
-        hudErrorText   = MakeText(errGO.transform, "",  12, FontStyles.Normal,
-                                  Color.white,           new Vector2(-20, 8));
+        hudErrorText = MakeText(errRT, "", 12, FontStyles.Normal,
+                                Color.white, new Vector2(-20, 8));
         hudErrorText.GetComponent<RectTransform>().sizeDelta = new Vector2(220, 40);
-        hudErrorText.alignment = TextAlignmentOptions.Left;
+        hudErrorText.alignment   = TextAlignmentOptions.Left;
+        hudErrorText.enableWordWrapping = true;
 
-        hudErrorPoints = MakeText(errGO.transform, "",  14, FontStyles.Bold,
+        hudErrorPoints = MakeText(errRT, "", 14, FontStyles.Bold,
                                   new Color(1f, 0.4f, 0.4f, 1f), new Vector2(118, 0));
         hudErrorPoints.alignment = TextAlignmentOptions.Right;
     }
@@ -424,24 +417,19 @@ public class ReplayCRMSync : MonoBehaviour
 
     IEnumerator ShowError(PenaltyData p, int accumulatedScore)
     {
-        if (hudErrorGroup == null) yield break;
+        if (hudErrorGroup == null) { Debug.LogWarning("[ReplayCRMSync] hudErrorGroup == null"); yield break; }
 
-        //   
+        Debug.Log($"[ReplayCRMSync]  : {p.description} ({p.points}, t={p.t:F1}s)");
+
         if (hudErrorText != null)
         {
-            string exStr = p.exerciseNum > 0 ? $". {p.exerciseNum}  вЂў  " : "";
+            string exStr = p.exerciseNum > 0 ? $"Ex.{p.exerciseNum} вЂў " : "";
             hudErrorText.text = $"{exStr}{p.description}";
         }
-        if (hudErrorPoints != null)
-            hudErrorPoints.text = $"в€’{p.points} .";
+        if (hudErrorPoints  != null) hudErrorPoints.text  = $"в€’{p.points} .";
+        if (hudScoreText    != null) hudScoreText.text    = $"{accumulatedScore} .";
 
-        //   
-        if (hudScoreText != null)
-            hudScoreText.text = $"{accumulatedScore} .";
-
-        //  
-        hudErrorGroup.gameObject.SetActive(true);
-        hudErrorGroup.alpha = 0f;
+        //   ( SetActive вЂ”  alpha)
         float t = 0f;
         while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.2f; yield return null; }
         hudErrorGroup.alpha = 1f;
@@ -451,7 +439,7 @@ public class ReplayCRMSync : MonoBehaviour
         //  
         t = 0f;
         while (t < 0.35f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.35f; yield return null; }
-        hudErrorGroup.gameObject.SetActive(false);
+        hudErrorGroup.alpha = 0f;
         _errorCoroutine = null;
     }
 
@@ -506,6 +494,7 @@ public class ReplayCRMSync : MonoBehaviour
                 {
                     var pen = penalties[nextPenalty];
                     accumulatedPts += pen.points;
+                    Debug.Log($"[ReplayCRMSync]  #{nextPenalty}: t={pen.t:F1}s elapsed={elapsed:F1}s");
                     if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
                     _errorCoroutine = StartCoroutine(ShowError(pen, accumulatedPts));
                     nextPenalty++;
