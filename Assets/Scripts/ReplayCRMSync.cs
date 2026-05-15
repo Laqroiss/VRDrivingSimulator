@@ -85,13 +85,15 @@ public class ReplayCRMSync : MonoBehaviour
     public float  recordFPS  = 30f;
 
     [Header("HUD (повтор)")]
-    public Canvas     hudCanvas;      // Screen Space Overlay, выключен по умолчанию
-    public TMP_Text   hudNameText;    // "Sartayev Miras"
-    public TMP_Text   hudResultText;  // "СДАЛ / НЕ СДАЛ  •  10 б."
-    public TMP_Text   hudTimeText;    // таймер повтора
-    public GameObject hudErrorPanel;  // панель всплывающей ошибки
-    public TMP_Text   hudErrorText;   // текст ошибки
-    public TMP_Text   hudErrorPoints; // "−5 б."
+    public Canvas     hudCanvas;       // Screen Space Overlay — весь HUD
+    public TMP_Text   hudNameText;     // ФИО курсанта
+    public TMP_Text   hudResultText;   // "СДАЛ" / "НЕ СДАЛ"
+    public TMP_Text   hudScoreText;    // накапливаемые штрафные баллы "0 б."
+    public TMP_Text   hudTimeText;     // таймер "0:00"
+    // Секция ошибки — находится ВНУТРИ основной панели, появляется/исчезает
+    public CanvasGroup hudErrorGroup;  // CanvasGroup на секции ошибки
+    public TMP_Text    hudErrorText;   // описание ошибки
+    public TMP_Text    hudErrorPoints; // "−5 б."
 
     // ── Runtime ──────────────────────────────────────────────────────────────
 
@@ -286,37 +288,36 @@ public class ReplayCRMSync : MonoBehaviour
     void InitHUD(AttemptMeta meta)
     {
         if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
-        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
 
-        if (meta == null)
-        {
-            if (hudNameText   != null) hudNameText.text   = "";
-            if (hudResultText != null) hudResultText.text = "";
-            return;
-        }
+        // Секция ошибки — скрыта в начале
+        if (hudErrorGroup != null) { hudErrorGroup.alpha = 0f; hudErrorGroup.gameObject.SetActive(false); }
 
-        if (hudNameText != null)
-            hudNameText.text = meta.studentName ?? "";
+        if (hudNameText   != null) hudNameText.text   = meta?.studentName ?? "";
+        if (hudScoreText  != null) hudScoreText.text  = "0 б.";
+        if (hudTimeText   != null) hudTimeText.text   = "0:00";
 
         if (hudResultText != null)
         {
-            string res = meta.passed ? "<color=#22c55e>СДАЛ</color>" : "<color=#ef4444>НЕ СДАЛ</color>";
-            hudResultText.text = $"{res}  •  {meta.totalPenaltyPoints} б.";
+            if (meta == null) { hudResultText.text = ""; return; }
+            hudResultText.text = meta.passed
+                ? "<color=#22c55e>СДАЛ</color>"
+                : "<color=#ef4444>НЕ СДАЛ</color>";
         }
     }
 
     void HideHUD()
     {
-        if (hudCanvas   != null) hudCanvas.gameObject.SetActive(false);
+        if (hudCanvas != null) hudCanvas.gameObject.SetActive(false);
         if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
-        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
+        if (hudErrorGroup != null) hudErrorGroup.gameObject.SetActive(false);
     }
 
-    IEnumerator ShowError(PenaltyData p)
+    IEnumerator ShowError(PenaltyData p, int accumulatedScore)
     {
-        if (hudErrorPanel == null) yield break;
+        if (hudErrorGroup == null) yield break;
 
-        if (hudErrorText   != null)
+        // Обновляем текст ошибки
+        if (hudErrorText != null)
         {
             string exStr = p.exerciseNum > 0 ? $"Упр. {p.exerciseNum}  •  " : "";
             hudErrorText.text = $"{exStr}{p.description}";
@@ -324,28 +325,23 @@ public class ReplayCRMSync : MonoBehaviour
         if (hudErrorPoints != null)
             hudErrorPoints.text = $"−{p.points} б.";
 
-        hudErrorPanel.SetActive(true);
+        // Обновляем накопленный счёт
+        if (hudScoreText != null)
+            hudScoreText.text = $"{accumulatedScore} б.";
 
-        // Плавное появление через CanvasGroup если есть
-        var cg = hudErrorPanel.GetComponent<CanvasGroup>();
-        if (cg != null)
-        {
-            cg.alpha = 0f;
-            float t = 0f;
-            while (t < 0.25f) { t += Time.deltaTime; cg.alpha = t / 0.25f; yield return null; }
-            cg.alpha = 1f;
-        }
+        // Плавное появление
+        hudErrorGroup.gameObject.SetActive(true);
+        hudErrorGroup.alpha = 0f;
+        float t = 0f;
+        while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.2f; yield return null; }
+        hudErrorGroup.alpha = 1f;
 
         yield return new WaitForSeconds(3f);
 
         // Плавное исчезновение
-        if (cg != null)
-        {
-            float t = 0f;
-            while (t < 0.4f) { t += Time.deltaTime; cg.alpha = 1f - t / 0.4f; yield return null; }
-        }
-
-        hudErrorPanel.SetActive(false);
+        t = 0f;
+        while (t < 0.35f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.35f; yield return null; }
+        hudErrorGroup.gameObject.SetActive(false);
         _errorCoroutine = null;
     }
 
@@ -359,8 +355,9 @@ public class ReplayCRMSync : MonoBehaviour
         float duration  = replay.frames.Count / replay.fps;
 
         // Индекс следующей ошибки для показа
-        var penalties = meta?.penalties;
-        int nextPenalty = 0;
+        var penalties     = meta?.penalties;
+        int nextPenalty   = 0;
+        int accumulatedPts = 0;
 
         while (_replayRunning)
         {
@@ -397,8 +394,10 @@ public class ReplayCRMSync : MonoBehaviour
                 while (nextPenalty < penalties.Count && penalties[nextPenalty].t > 0f
                        && elapsed >= penalties[nextPenalty].t)
                 {
+                    var pen = penalties[nextPenalty];
+                    accumulatedPts += pen.points;
                     if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
-                    _errorCoroutine = StartCoroutine(ShowError(penalties[nextPenalty]));
+                    _errorCoroutine = StartCoroutine(ShowError(pen, accumulatedPts));
                     nextPenalty++;
                 }
             }
