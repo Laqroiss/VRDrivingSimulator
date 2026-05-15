@@ -501,7 +501,7 @@ public class ReplayCRMSync : MonoBehaviour
             //  —       
             if (penalties != null)
             {
-                while (nextPenalty < penalties.Count && penalties[nextPenalty].t > 0f
+                while (nextPenalty < penalties.Count
                        && elapsed >= penalties[nextPenalty].t)
                 {
                     var pen = penalties[nextPenalty];
@@ -586,10 +586,11 @@ public class ReplayCRMSync : MonoBehaviour
                 var metaTask = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}");
                 metaTask.Wait();
                 meta = JsonUtility.FromJson<AttemptMeta>(metaTask.Result);
+                Debug.Log($"[ReplayCRMSync] : ={meta?.studentName}, ={meta?.penalties?.Count ?? 0}");
             }
             catch (System.Exception me)
             {
-                Debug.LogWarning($"[ReplayCRMSync]    : {me.Message}");
+                Debug.LogError($"[ReplayCRMSync] Failed to load metadata: {me.Message}");
             }
 
             _pendingReplay = replay;
