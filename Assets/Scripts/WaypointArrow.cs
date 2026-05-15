@@ -107,27 +107,37 @@ public class WaypointArrow : MonoBehaviour
     // Для поворотов поворачиваем по оси Z
     void BuildDirectionalArrow()
     {
-        // Угол поворота по Z: 0=вверх(↑), -90=вправо(→), +90=влево(←), 180=вниз(↓)
-        float rotZ = direction == DirectionType.TurnRight ?  -90f :
-                     direction == DirectionType.TurnLeft  ?   90f :
-                     direction == DirectionType.UTurn     ?  180f : 0f;
+        float rotZ = direction == DirectionType.TurnRight ? -90f :
+                     direction == DirectionType.TurnLeft  ?  90f :
+                     direction == DirectionType.UTurn     ? 180f : 0f;
 
         var root = new GameObject("Root").transform;
         root.SetParent(_visual, false);
         root.localEulerAngles = new Vector3(0f, 0f, rotZ);
 
-        // Стержень вдоль Y (вертикально)
-        MakeCube(root, new Vector3(0.22f, 0.7f, 0.22f), new Vector3(0f, -0.18f, 0f), arrowColor);
+        // Стержень вдоль Y
+        MakeCube(root, new Vector3(0.22f, 0.72f, 0.22f), new Vector3(0f, -0.18f, 0f), arrowColor);
 
-        // Левая половина наконечника
-        var hl = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
-                          new Vector3(-0.2f, 0.2f, 0f), arrowColor);
-        hl.localEulerAngles = new Vector3(0f, 0f, 40f);
+        // Крылья наконечника — концы должны сойтись в одной точке (острие)
+        // Острие: (0, 0.46). Угол крыла: 38°.
+        // Позиция центра крыла рассчитана так чтобы верхний конец куба = острию
+        const float wingAngle = 38f;
+        const float wingLen   = 0.55f;
+        float  sinA = Mathf.Sin(wingAngle * Mathf.Deg2Rad);
+        float  cosA = Mathf.Cos(wingAngle * Mathf.Deg2Rad);
+        float  tipY = 0.46f;
+        // Левое крыло (rotZ=+wingAngle): местная ось Y = (-sinA, cosA)
+        // Верхний конец = center + 0.5*len*(-sinA, cosA) = tip → center = tip - 0.5*len*(-sinA,cosA)
+        float lx = -(-sinA * wingLen * 0.5f);
+        float ly = tipY - cosA * wingLen * 0.5f;
 
-        // Правая половина наконечника
-        var hr = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
-                          new Vector3( 0.2f, 0.2f, 0f), arrowColor);
-        hr.localEulerAngles = new Vector3(0f, 0f, -40f);
+        var wL = MakeCube(root, new Vector3(0.2f, wingLen, 0.22f),
+                          new Vector3(lx, ly, 0f), arrowColor);
+        wL.localEulerAngles = new Vector3(0f, 0f, wingAngle);
+
+        var wR = MakeCube(root, new Vector3(0.2f, wingLen, 0.22f),
+                          new Vector3(-lx, ly, 0f), arrowColor);
+        wR.localEulerAngles = new Vector3(0f, 0f, -wingAngle);
     }
 
     void BuildPole()
