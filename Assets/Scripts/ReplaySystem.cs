@@ -89,6 +89,10 @@ public class ReplaySystem : MonoBehaviour
     private float               _recordTimer = 0f;
     private int                 _sessionNum  = 0;
 
+    // Публичное время воспроизведения — читается из ReplayCRMSync для синхронизации HUD
+    public float CurrentReplayTime { get; private set; } = 0f;
+    public bool  IsReplaying       => _replaying;
+
     private AudioSource         _replayEngineSource;
     private bool                _autoCreatedCamera = false;
     private bool                _replaying   = false;
@@ -494,8 +498,9 @@ public class ReplaySystem : MonoBehaviour
 
     IEnumerator ReplayRoutine(ReplaySession session)
     {
-        _replayStart  = Time.time;
-        _replayOffset = 0f;
+        _replayStart      = Time.time;
+        _replayOffset     = 0f;
+        CurrentReplayTime = 0f;
         float duration = session.duration;
 
         while (_replaying)
@@ -506,6 +511,7 @@ public class ReplaySystem : MonoBehaviour
             if (_scrubbing && replaySlider != null)
             {
                 idx = Mathf.Clamp(Mathf.RoundToInt(replaySlider.value), 0, session.frames.Count - 1);
+                CurrentReplayTime = idx / recordFPS;
             }
             else
             {
@@ -514,6 +520,7 @@ public class ReplaySystem : MonoBehaviour
                 float tNorm = elapsed / duration * session.frames.Count;
                 idx  = Mathf.Clamp(Mathf.FloorToInt(tNorm), 0, session.frames.Count - 1);
                 frac = tNorm - idx;
+                CurrentReplayTime = elapsed;
 
                 replaySlider?.SetValueWithoutNotify(idx);
             }

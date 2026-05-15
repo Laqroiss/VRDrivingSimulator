@@ -449,17 +449,26 @@ public class ReplayCRMSync : MonoBehaviour
         foreach (var ti in _intersections) ti?.StopCycle();
         _railway?.PauseTrain();
 
-        float startTime = Time.time;
         float duration  = replay.frames.Count / replay.fps;
+        var penalties   = meta?.penalties;
+        float prevElapsed = -1f;
 
-        // Индекс следующей ошибки для показа
-        var penalties     = meta?.penalties;
-        int nextPenalty   = 0;
+        // Вычисляет правильный nextPenalty и накопленный счёт для заданного времени
+        (int idx, int pts) PenaltyStateAt(float t)
+        {
+            int idx = 0, pts = 0;
+            if (penalties == null) return (0, 0);
+            while (idx < penalties.Count && penalties[idx].t <= t)
+            { pts += penalties[idx].points; idx++; }
+            return (idx, pts);
+        }
+
+        int nextPenalty    = 0;
         int accumulatedPts = 0;
 
         while (_replayRunning)
         {
-            float elapsed = Time.time - startTime;
+            float elapsed = replaySystem != null ? replaySystem.CurrentReplayTime : 0f;
             if (elapsed >= duration) break;
 
             int frameIdx = Mathf.Clamp(Mathf.FloorToInt(elapsed * replay.fps), 0, replay.frames.Count - 1);
@@ -486,21 +495,30 @@ public class ReplayCRMSync : MonoBehaviour
             // Поезд
             _railway?.SetTrainState(frame.tx, frame.ty, frame.tz, frame.trainActive);
 
-            // Ошибки — показываем когда время повтора достигает момента ошибки
+            // Ошибки — синхронизируем с текущим временем повтора
             if (penalties != null)
             {
-                while (nextPenalty < penalties.Count
-                       && elapsed >= penalties[nextPenalty].t)
+                // Перемотка назад — пересчитываем позицию с нуля
+                if (elapsed < prevElapsed - 0.1f)
+                {
+                    if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
+                    if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
+                    (nextPenalty, accumulatedPts) = PenaltyStateAt(elapsed);
+                    if (hudScoreText != null) hudScoreText.text = $"{accumulatedPts} б.";
+                }
+
+                // Продвигаемся вперёд по штрафам
+                while (nextPenalty < penalties.Count && elapsed >= penalties[nextPenalty].t)
                 {
                     var pen = penalties[nextPenalty];
                     accumulatedPts += pen.points;
-                    Debug.Log($"[ReplayCRMSync] Штраф #{nextPenalty}: t={pen.t:F1}s elapsed={elapsed:F1}s");
                     if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
                     _errorCoroutine = StartCoroutine(ShowError(pen, accumulatedPts));
                     nextPenalty++;
                 }
             }
 
+            prevElapsed = elapsed;
             yield return null;
         }
 
