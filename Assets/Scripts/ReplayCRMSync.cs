@@ -304,6 +304,7 @@ public class ReplayCRMSync : MonoBehaviour
         var panel = MakePanel(_hudRoot.transform, new Vector2(340, 220),
             new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
             new Vector2(-20, 0), new Color(0.05f, 0.07f, 0.12f, 0.88f));
+        panel.pivot = new Vector2(1f, 0.5f);
 
         // Тонкая синяя полоска слева
         var accent = MakeImage(panel.transform, new Vector2(4, 220),
