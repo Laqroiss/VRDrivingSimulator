@@ -94,6 +94,9 @@ public class ReplayCRMSync : MonoBehaviour
     private TMP_Text    hudErrorText;
     private TMP_Text    hudErrorPoints;
 
+    private struct ErrorItem { public PenaltyData penalty; public int score; }
+    private Queue<ErrorItem> _errorQueue = new Queue<ErrorItem>();
+
     // вв Runtime вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
     private ExamManager          _exam;
@@ -411,35 +414,60 @@ public class ReplayCRMSync : MonoBehaviour
 
     void HideHUD()
     {
-        if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
+        ClearErrorQueue();
         if (_hudRoot != null) { Destroy(_hudRoot); _hudRoot = null; }
     }
 
-    IEnumerator ShowError(PenaltyData p, int accumulatedScore)
+    void EnqueueError(PenaltyData p, int accumulatedScore)
     {
-        if (hudErrorGroup == null) { Debug.LogWarning("[ReplayCRMSync] hudErrorGroup == null"); yield break; }
+        _errorQueue.Enqueue(new ErrorItem { penalty = p, score = accumulatedScore });
+        if (_errorCoroutine == null)
+            _errorCoroutine = StartCoroutine(ErrorQueuePump());
+    }
 
-        Debug.Log($"[ReplayCRMSync]  : {p.description} ({p.points}, t={p.t:F1}s)");
+    void ClearErrorQueue()
+    {
+        _errorQueue.Clear();
+        if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
+        if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
+    }
 
-        if (hudErrorText != null)
+    IEnumerator ErrorQueuePump()
+    {
+        if (hudErrorGroup == null) yield break;
+
+        while (_errorQueue.Count > 0)
         {
-            string exStr = p.exerciseNum > 0 ? $"Ex.{p.exerciseNum} вЂў " : "";
-            hudErrorText.text = $"{exStr}{p.description}";
+            var item = _errorQueue.Dequeue();
+            var p    = item.penalty;
+
+            if (hudErrorText != null)
+            {
+                string exStr = p.exerciseNum > 0 ? $"Ex.{p.exerciseNum} вЂў " : "";
+                hudErrorText.text = $"{exStr}{p.description}";
+            }
+            if (hudErrorPoints != null) hudErrorPoints.text = $"в€’{p.points} .";
+            if (hudScoreText   != null) hudScoreText.text   = $"{item.score} .";
+
+            // Fade in
+            float t = 0f;
+            while (t < 0.15f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.15f; yield return null; }
+            hudErrorGroup.alpha = 1f;
+
+            //  вЂ”      ,  
+            float hold = _errorQueue.Count > 0 ? 1.5f : 2.5f;
+            yield return new WaitForSeconds(hold);
+
+            // Fade out
+            t = 0f;
+            while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.2f; yield return null; }
+            hudErrorGroup.alpha = 0f;
+
+            //   
+            if (_errorQueue.Count > 0)
+                yield return new WaitForSeconds(0.15f);
         }
-        if (hudErrorPoints  != null) hudErrorPoints.text  = $"в€’{p.points} .";
-        if (hudScoreText    != null) hudScoreText.text    = $"{accumulatedScore} .";
 
-        //   ( SetActive вЂ”  alpha)
-        float t = 0f;
-        while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.2f; yield return null; }
-        hudErrorGroup.alpha = 1f;
-
-        yield return new WaitForSeconds(3f);
-
-        //  
-        t = 0f;
-        while (t < 0.35f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.35f; yield return null; }
-        hudErrorGroup.alpha = 0f;
         _errorCoroutine = null;
     }
 
@@ -501,19 +529,17 @@ public class ReplayCRMSync : MonoBehaviour
                 // Scrubbed back - recompute position from scratch
                 if (elapsed < prevElapsed - 0.1f)
                 {
-                    if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
-                    if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
+                    ClearErrorQueue();
                     (nextPenalty, accumulatedPts) = PenaltyStateAt(elapsed);
                     if (hudScoreText != null) hudScoreText.text = $"{accumulatedPts} pts";
                 }
 
-                //    
+                // Advance through penalties - all new ones go into the queue
                 while (nextPenalty < penalties.Count && elapsed >= penalties[nextPenalty].t)
                 {
                     var pen = penalties[nextPenalty];
                     accumulatedPts += pen.points;
-                    if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
-                    _errorCoroutine = StartCoroutine(ShowError(pen, accumulatedPts));
+                    EnqueueError(pen, accumulatedPts);
                     nextPenalty++;
                 }
             }
