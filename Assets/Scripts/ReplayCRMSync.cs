@@ -85,17 +85,12 @@ public class ReplayCRMSync : MonoBehaviour
     public float  recordFPS  = 30f;
 
     // HUD создаётся программно — ничего тащить в Inspector не нужно
-    private GameObject  _hudRoot;
-    private TMP_Text    hudNameText;
-    private TMP_Text    hudResultText;
-    private TMP_Text    hudScoreText;
-    private TMP_Text    hudTimeText;
-    private CanvasGroup hudErrorGroup;
-    private TMP_Text    hudErrorText;
-    private TMP_Text    hudErrorPoints;
-
-    private struct ErrorItem { public PenaltyData penalty; public int score; }
-    private Queue<ErrorItem> _errorQueue = new Queue<ErrorItem>();
+    private GameObject    _hudRoot;
+    private TMP_Text      hudNameText;
+    private TMP_Text      hudResultText;
+    private TMP_Text      hudScoreText;
+    private TMP_Text      hudTimeText;
+    private RectTransform _errorContainer;
 
     // ── Runtime ──────────────────────────────────────────────────────────────
 
@@ -121,7 +116,6 @@ public class ReplayCRMSync : MonoBehaviour
     private AttemptMeta       _pendingMeta;
     private bool              _replayRunning;
     private Coroutine         _sceneReplayCoroutine;
-    private Coroutine         _errorCoroutine;
 
     // ── Unity ────────────────────────────────────────────────────────────────
 
@@ -332,22 +326,28 @@ public class ReplayCRMSync : MonoBehaviour
         hudTimeText   = MakeText(panel.transform, "0:00",        13, FontStyles.Normal,
                                  new Color(0.6f,0.7f,0.9f,1f),  new Vector2(0,y));
 
-        // ── Секция ошибки — строится через MakeImage чтобы RectTransform создался корректно
-        var errRT = MakeImage(panel.transform, new Vector2(310, 52),
-            new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, -86),
-            new Color(0.6f, 0.1f, 0.1f, 0.7f));
-        hudErrorGroup       = errRT.gameObject.AddComponent<CanvasGroup>();
-        hudErrorGroup.alpha = 0f;
+        // ── Контейнер для ошибок (под основной панелью, растёт вниз) ───────
+        var cntGO = new GameObject("ErrorContainer");
+        cntGO.transform.SetParent(_hudRoot.transform, false);
+        // Image даёт RectTransform; делаем прозрачным
+        cntGO.AddComponent<UnityEngine.UI.Image>().color = Color.clear;
+        _errorContainer = cntGO.GetComponent<RectTransform>();
+        _errorContainer.anchorMin        = _errorContainer.anchorMax = new Vector2(1f, 0.5f);
+        _errorContainer.pivot            = new Vector2(1f, 1f);   // растёт вниз
+        _errorContainer.anchoredPosition = new Vector2(-20f, -120f); // 10px под панелью
+        _errorContainer.sizeDelta        = new Vector2(340f, 0f);
 
-        hudErrorText = MakeText(errRT, "", 12, FontStyles.Normal,
-                                Color.white, new Vector2(-20, 8));
-        hudErrorText.GetComponent<RectTransform>().sizeDelta = new Vector2(220, 40);
-        hudErrorText.alignment   = TextAlignmentOptions.Left;
-        hudErrorText.enableWordWrapping = true;
+        var vlg = cntGO.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        vlg.spacing              = 4f;
+        vlg.childAlignment       = TextAnchor.UpperCenter;
+        vlg.childForceExpandWidth  = true;
+        vlg.childForceExpandHeight = false;
+        vlg.childControlWidth    = false;
+        vlg.childControlHeight   = false;
 
-        hudErrorPoints = MakeText(errRT, "", 14, FontStyles.Bold,
-                                  new Color(1f, 0.4f, 0.4f, 1f), new Vector2(118, 0));
-        hudErrorPoints.alignment = TextAlignmentOptions.Right;
+        var csf = cntGO.AddComponent<UnityEngine.UI.ContentSizeFitter>();
+        csf.horizontalFit = UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained;
+        csf.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
     }
 
     // ── Хелперы для создания UI ────────────────────────────────────────────
@@ -400,12 +400,9 @@ public class ReplayCRMSync : MonoBehaviour
     void InitHUD(AttemptMeta meta)
     {
         BuildHUD();
-
-        if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
-        if (hudNameText   != null) hudNameText.text    = meta?.studentName ?? "—";
-        if (hudScoreText  != null) hudScoreText.text   = "0 б.";
-        if (hudTimeText   != null) hudTimeText.text    = "0:00";
-
+        if (hudNameText  != null) hudNameText.text  = meta?.studentName ?? "—";
+        if (hudScoreText != null) hudScoreText.text = "0 б.";
+        if (hudTimeText  != null) hudTimeText.text  = "0:00";
         if (hudResultText != null)
             hudResultText.text = meta == null ? "" : meta.passed
                 ? "<color=#22c55e>СДАЛ</color>"
@@ -414,61 +411,73 @@ public class ReplayCRMSync : MonoBehaviour
 
     void HideHUD()
     {
-        ClearErrorQueue();
+        ClearErrors();
         if (_hudRoot != null) { Destroy(_hudRoot); _hudRoot = null; }
     }
 
-    void EnqueueError(PenaltyData p, int accumulatedScore)
+    // Уничтожает все текущие карточки ошибок (при перемотке назад)
+    void ClearErrors()
     {
-        _errorQueue.Enqueue(new ErrorItem { penalty = p, score = accumulatedScore });
-        if (_errorCoroutine == null)
-            _errorCoroutine = StartCoroutine(ErrorQueuePump());
+        if (_errorContainer == null) return;
+        for (int i = _errorContainer.childCount - 1; i >= 0; i--)
+            Destroy(_errorContainer.GetChild(i).gameObject);
     }
 
-    void ClearErrorQueue()
+    // Создаёт новую карточку ошибки; она живёт сама по себе и сама исчезает
+    void SpawnError(PenaltyData p, int accumulatedScore)
     {
-        _errorQueue.Clear();
-        if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
-        if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
+        if (_errorContainer == null) return;
+        if (hudScoreText != null) hudScoreText.text = $"{accumulatedScore} б.";
+
+        // Фон карточки
+        var itemRT = MakeImage(_errorContainer, new Vector2(340, 54),
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
+            new Color(0.55f, 0.08f, 0.08f, 0.88f));
+
+        // Левая полоска
+        MakeImage(itemRT, new Vector2(4, 54),
+            new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(2f, 0f),
+            new Color(1f, 0.3f, 0.3f, 1f));
+
+        // Описание ошибки
+        string exStr = p.exerciseNum > 0 ? $"Упр.{p.exerciseNum} • " : "";
+        var desc = MakeText(itemRT, $"{exStr}{p.description}", 11, FontStyles.Normal,
+                            Color.white, new Vector2(-30f, 2f));
+        var descRT = desc.GetComponent<RectTransform>();
+        descRT.sizeDelta         = new Vector2(230f, 46f);
+        desc.alignment           = TextAlignmentOptions.Left;
+        desc.enableWordWrapping  = true;
+
+        // Штрафные баллы справа
+        var pts = MakeText(itemRT, $"−{p.points}б", 15, FontStyles.Bold,
+                           new Color(1f, 0.45f, 0.45f, 1f), new Vector2(130f, 0f));
+        pts.alignment = TextAlignmentOptions.Right;
+
+        // LayoutElement чтобы ContentSizeFitter контейнера учитывал высоту
+        var le = itemRT.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+        le.preferredHeight = 54f;
+        le.preferredWidth  = 340f;
+
+        var cg = itemRT.gameObject.AddComponent<CanvasGroup>();
+        cg.alpha = 0f;
+
+        StartCoroutine(ErrorItemLifetime(itemRT.gameObject, cg));
     }
 
-    IEnumerator ErrorQueuePump()
+    IEnumerator ErrorItemLifetime(GameObject item, CanvasGroup cg)
     {
-        if (hudErrorGroup == null) yield break;
+        // Появление
+        float t = 0f;
+        while (t < 0.15f && item != null) { t += Time.deltaTime; cg.alpha = t / 0.15f; yield return null; }
+        if (item == null) yield break;
+        cg.alpha = 1f;
 
-        while (_errorQueue.Count > 0)
-        {
-            var item = _errorQueue.Dequeue();
-            var p    = item.penalty;
+        yield return new WaitForSeconds(3f);
 
-            if (hudErrorText != null)
-            {
-                string exStr = p.exerciseNum > 0 ? $"Упр.{p.exerciseNum} • " : "";
-                hudErrorText.text = $"{exStr}{p.description}";
-            }
-            if (hudErrorPoints != null) hudErrorPoints.text = $"−{p.points} б.";
-            if (hudScoreText   != null) hudScoreText.text   = $"{item.score} б.";
-
-            // Fade in
-            float t = 0f;
-            while (t < 0.15f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.15f; yield return null; }
-            hudErrorGroup.alpha = 1f;
-
-            // Держим — если в очереди уже есть следующая, показываем меньше
-            float hold = _errorQueue.Count > 0 ? 1.5f : 2.5f;
-            yield return new WaitForSeconds(hold);
-
-            // Fade out
-            t = 0f;
-            while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.2f; yield return null; }
-            hudErrorGroup.alpha = 0f;
-
-            // Пауза между ошибками
-            if (_errorQueue.Count > 0)
-                yield return new WaitForSeconds(0.15f);
-        }
-
-        _errorCoroutine = null;
+        // Исчезновение
+        t = 0f;
+        while (t < 0.3f && item != null) { t += Time.deltaTime; cg.alpha = 1f - t / 0.3f; yield return null; }
+        if (item != null) Destroy(item);
     }
 
     IEnumerator SceneReplayRoutine(CRMReplay replay, AttemptMeta meta)
@@ -529,7 +538,7 @@ public class ReplayCRMSync : MonoBehaviour
                 // Перемотка назад — пересчитываем позицию с нуля
                 if (elapsed < prevElapsed - 0.1f)
                 {
-                    ClearErrorQueue();
+                    ClearErrors();
                     (nextPenalty, accumulatedPts) = PenaltyStateAt(elapsed);
                     if (hudScoreText != null) hudScoreText.text = $"{accumulatedPts} б.";
                 }
@@ -539,7 +548,7 @@ public class ReplayCRMSync : MonoBehaviour
                 {
                     var pen = penalties[nextPenalty];
                     accumulatedPts += pen.points;
-                    EnqueueError(pen, accumulatedPts);
+                    SpawnError(pen, accumulatedPts);
                     nextPenalty++;
                 }
             }
