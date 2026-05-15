@@ -427,6 +427,7 @@ public class ReplayCRMSync : MonoBehaviour
     void SpawnError(PenaltyData p, int accumulatedScore)
     {
         if (_errorContainer == null) return;
+        Debug.Log($"[ReplayCRMSync] SpawnError: penalty.t={p.t:F1}s  replayTime={replaySystem?.CurrentReplayTime:F1}s  '{p.description}'");
         if (hudScoreText != null) hudScoreText.text = $"{accumulatedScore} б.";
 
         // Фон карточки
@@ -628,7 +629,12 @@ public class ReplayCRMSync : MonoBehaviour
                 var metaTask = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}");
                 metaTask.Wait();
                 meta = JsonUtility.FromJson<AttemptMeta>(metaTask.Result);
-                Debug.Log($"[ReplayCRMSync] Метаданные: курсант={meta?.studentName}, ошибок={meta?.penalties?.Count ?? 0}");
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"[ReplayCRMSync] Метаданные: курсант={meta?.studentName}, ошибок={meta?.penalties?.Count ?? 0}\n");
+                if (meta?.penalties != null)
+                    foreach (var pen in meta.penalties)
+                        sb.Append($"  t={pen.t:F1}s  {pen.points}б  {pen.description}\n");
+                Debug.Log(sb.ToString());
             }
             catch (System.Exception me)
             {
