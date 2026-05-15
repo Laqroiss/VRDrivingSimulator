@@ -87,70 +87,47 @@ public class WaypointArrow : MonoBehaviour
     {
         _visual = new GameObject("Visual").transform;
         _visual.SetParent(transform, false);
-        _visual.localPosition = Vector3.zero;
+        _visual.localPosition = new Vector3(0f, 0.1f, 0f);
 
-        switch (direction)
-        {
-            case DirectionType.Checkpoint: BuildCheckpoint(); break;
-            case DirectionType.Straight:   BuildStraightArrow(0f);    break;
-            case DirectionType.TurnLeft:   BuildTurnArrow(-90f);      break;
-            case DirectionType.TurnRight:  BuildTurnArrow(90f);       break;
-            case DirectionType.UTurn:      BuildStraightArrow(180f);  break;
-        }
+        if (direction == DirectionType.Checkpoint)
+            BuildCheckpoint();
+        else
+            BuildDirectionalArrow();
 
         BuildPole();
     }
 
-    //  - ( )
+    //   ( )
     void BuildCheckpoint()
     {
-        var ring = MakeCube(_visual, new Vector3(0.8f, 0.1f, 0.8f), Vector3.zero, arrowColor);
-
-        //   —   
-        MakeCube(_visual, new Vector3(0.15f, 0.15f, 0.6f), Vector3.zero, arrowColor * 1.3f);
-        MakeCube(_visual, new Vector3(0.6f,  0.15f, 0.15f), Vector3.zero, arrowColor * 1.3f);
+        MakeCube(_visual, new Vector3(0.9f, 0.15f, 0.9f), Vector3.zero, arrowColor);
+        MakeCube(_visual, new Vector3(0.12f, 0.25f, 0.65f), Vector3.zero, Color.white);
+        MakeCube(_visual, new Vector3(0.65f, 0.25f, 0.12f), Vector3.zero, Color.white);
     }
 
-    //   (  )
-    void BuildStraightArrow(float yawOffset)
+    // :  + V- ,    
+    void BuildDirectionalArrow()
     {
-        var root = new GameObject("ArrowRoot").transform;
+        float yaw = direction == DirectionType.TurnLeft  ? -90f :
+                    direction == DirectionType.TurnRight ?  90f :
+                    direction == DirectionType.UTurn     ? 180f : 0f;
+
+        var root = new GameObject("Root").transform;
         root.SetParent(_visual, false);
-        root.localEulerAngles = new Vector3(0f, yawOffset, 0f);
+        root.localEulerAngles = new Vector3(0f, yaw, 0f);
 
-        // 
-        MakeCube(root, new Vector3(0.2f, 0.2f, 0.7f), new Vector3(0f, 0f, -0.15f), arrowColor);
+        //  —    Z
+        MakeCube(root, new Vector3(0.22f, 0.22f, 0.75f), new Vector3(0f, 0f, -0.2f), arrowColor);
 
-        //  (    >)
-        MakeCube(root, new Vector3(0.55f, 0.2f, 0.2f),
-                 new Vector3(0.2f, 0f, 0.25f), arrowColor)
-            .localEulerAngles = new Vector3(0f, 45f, 0f);
-        MakeCube(root, new Vector3(0.55f, 0.2f, 0.2f),
-                 new Vector3(-0.2f, 0f, 0.25f), arrowColor)
-            .localEulerAngles = new Vector3(0f, -45f, 0f);
-    }
+        //    ( -40)
+        var hl = MakeCube(root, new Vector3(0.5f, 0.22f, 0.18f),
+                          new Vector3(-0.22f, 0f, 0.22f), arrowColor);
+        hl.localEulerAngles = new Vector3(0f, -40f, 0f);
 
-    // -  
-    void BuildTurnArrow(float yawDeg)
-    {
-        var root = new GameObject("TurnRoot").transform;
-        root.SetParent(_visual, false);
-        root.localEulerAngles = new Vector3(0f, yawDeg, 0f);
-
-        //   ( )
-        MakeCube(root, new Vector3(0.6f, 0.2f, 0.2f), new Vector3(0.3f, 0f, 0.2f), arrowColor);
-
-        //   ()
-        MakeCube(root, new Vector3(0.2f, 0.2f, 0.55f), new Vector3(0f, 0f, -0.075f), arrowColor);
-
-        //  —     >
-        var tip1 = MakeCube(root, new Vector3(0.4f, 0.2f, 0.18f),
-                            new Vector3(0.45f, 0f, -0.1f), arrowColor);
-        tip1.localEulerAngles = new Vector3(0f, 45f, 0f);
-
-        var tip2 = MakeCube(root, new Vector3(0.4f, 0.2f, 0.18f),
-                            new Vector3(0.45f, 0f, 0.5f), arrowColor);
-        tip2.localEulerAngles = new Vector3(0f, -45f, 0f);
+        //    ( +40)
+        var hr = MakeCube(root, new Vector3(0.5f, 0.22f, 0.18f),
+                          new Vector3( 0.22f, 0f, 0.22f), arrowColor);
+        hr.localEulerAngles = new Vector3(0f, 40f, 0f);
     }
 
     void BuildPole()
