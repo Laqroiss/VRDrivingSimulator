@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
+using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
@@ -53,6 +55,25 @@ public class ReplayCRMSync : MonoBehaviour
     [System.Serializable]
     class AttemptIdResponse { public string id; }
 
+    // Метаданные попытки (загружаются вместе с повтором)
+    [System.Serializable]
+    public class PenaltyData
+    {
+        public string description;
+        public int    points;
+        public int    exerciseNum;
+        public float  t;   // время от начала экзамена
+    }
+
+    [System.Serializable]
+    class AttemptMeta
+    {
+        public string            studentName;
+        public bool              passed;
+        public int               totalPenaltyPoints;
+        public List<PenaltyData> penalties;
+    }
+
     // ── Inspector ────────────────────────────────────────────────────────────
 
     [Header("Ссылки")]
@@ -62,6 +83,15 @@ public class ReplayCRMSync : MonoBehaviour
     public string crmUrl     = "http://localhost:3000";
     public int    replayPort = 7779;
     public float  recordFPS  = 30f;
+
+    [Header("HUD (повтор)")]
+    public Canvas     hudCanvas;      // Screen Space Overlay, выключен по умолчанию
+    public TMP_Text   hudNameText;    // "Sartayev Miras"
+    public TMP_Text   hudResultText;  // "СДАЛ / НЕ СДАЛ  •  10 б."
+    public TMP_Text   hudTimeText;    // таймер повтора
+    public GameObject hudErrorPanel;  // панель всплывающей ошибки
+    public TMP_Text   hudErrorText;   // текст ошибки
+    public TMP_Text   hudErrorPoints; // "−5 б."
 
     // ── Runtime ──────────────────────────────────────────────────────────────
 
@@ -84,8 +114,10 @@ public class ReplayCRMSync : MonoBehaviour
     private HttpListener      _listener;
     private bool              _launchReplay;
     private CRMReplay         _pendingReplay;
+    private AttemptMeta       _pendingMeta;
     private bool              _replayRunning;
     private Coroutine         _sceneReplayCoroutine;
+    private Coroutine         _errorCoroutine;
 
     // ── Unity ────────────────────────────────────────────────────────────────
 
@@ -147,8 +179,9 @@ public class ReplayCRMSync : MonoBehaviour
         if (_launchReplay && _pendingReplay != null)
         {
             _launchReplay = false;
-            StartFullReplay(_pendingReplay);
+            StartFullReplay(_pendingReplay, _pendingMeta);
             _pendingReplay = null;
+            _pendingMeta   = null;
         }
     }
 
@@ -235,19 +268,88 @@ public class ReplayCRMSync : MonoBehaviour
 
     // ── Воспроизведение сцены ─────────────────────────────────────────────────
 
-    void StartFullReplay(CRMReplay replay)
+    void StartFullReplay(CRMReplay replay, AttemptMeta meta)
     {
         if (_sceneReplayCoroutine != null) StopCoroutine(_sceneReplayCoroutine);
+
+        // HUD
+        InitHUD(meta);
 
         // Машина — через ReplaySystem
         replaySystem?.StartReplayFromCRMData(replay.frames, replay.fps);
 
         // Сцена — отдельная корутина
         _replayRunning = true;
-        _sceneReplayCoroutine = StartCoroutine(SceneReplayRoutine(replay));
+        _sceneReplayCoroutine = StartCoroutine(SceneReplayRoutine(replay, meta));
     }
 
-    IEnumerator SceneReplayRoutine(CRMReplay replay)
+    void InitHUD(AttemptMeta meta)
+    {
+        if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
+        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
+
+        if (meta == null)
+        {
+            if (hudNameText   != null) hudNameText.text   = "";
+            if (hudResultText != null) hudResultText.text = "";
+            return;
+        }
+
+        if (hudNameText != null)
+            hudNameText.text = meta.studentName ?? "";
+
+        if (hudResultText != null)
+        {
+            string res = meta.passed ? "<color=#22c55e>СДАЛ</color>" : "<color=#ef4444>НЕ СДАЛ</color>";
+            hudResultText.text = $"{res}  •  {meta.totalPenaltyPoints} б.";
+        }
+    }
+
+    void HideHUD()
+    {
+        if (hudCanvas   != null) hudCanvas.gameObject.SetActive(false);
+        if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
+        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
+    }
+
+    IEnumerator ShowError(PenaltyData p)
+    {
+        if (hudErrorPanel == null) yield break;
+
+        if (hudErrorText   != null)
+        {
+            string exStr = p.exerciseNum > 0 ? $"Упр. {p.exerciseNum}  •  " : "";
+            hudErrorText.text = $"{exStr}{p.description}";
+        }
+        if (hudErrorPoints != null)
+            hudErrorPoints.text = $"−{p.points} б.";
+
+        hudErrorPanel.SetActive(true);
+
+        // Плавное появление через CanvasGroup если есть
+        var cg = hudErrorPanel.GetComponent<CanvasGroup>();
+        if (cg != null)
+        {
+            cg.alpha = 0f;
+            float t = 0f;
+            while (t < 0.25f) { t += Time.deltaTime; cg.alpha = t / 0.25f; yield return null; }
+            cg.alpha = 1f;
+        }
+
+        yield return new WaitForSeconds(3f);
+
+        // Плавное исчезновение
+        if (cg != null)
+        {
+            float t = 0f;
+            while (t < 0.4f) { t += Time.deltaTime; cg.alpha = 1f - t / 0.4f; yield return null; }
+        }
+
+        hudErrorPanel.SetActive(false);
+        _errorCoroutine = null;
+    }
+
+    IEnumerator SceneReplayRoutine(CRMReplay replay, AttemptMeta meta)
     {
         // Останавливаем автоматику сцены
         foreach (var ti in _intersections) ti?.StopCycle();
@@ -255,6 +357,10 @@ public class ReplayCRMSync : MonoBehaviour
 
         float startTime = Time.time;
         float duration  = replay.frames.Count / replay.fps;
+
+        // Индекс следующей ошибки для показа
+        var penalties = meta?.penalties;
+        int nextPenalty = 0;
 
         while (_replayRunning)
         {
@@ -264,20 +370,38 @@ public class ReplayCRMSync : MonoBehaviour
             int frameIdx = Mathf.Clamp(Mathf.FloorToInt(elapsed * replay.fps), 0, replay.frames.Count - 1);
             var frame = replay.frames[frameIdx];
 
-            // Светофоры — восстанавливаем по последнему событию до текущего времени
+            // Таймер на HUD
+            if (hudTimeText != null)
+            {
+                int m = Mathf.FloorToInt(elapsed / 60f);
+                int s = Mathf.FloorToInt(elapsed % 60f);
+                hudTimeText.text = $"{m}:{s:00}";
+            }
+
+            // Светофоры
             for (int i = 0; i < _intersections.Length; i++)
             {
                 if (_intersections[i] == null) continue;
                 string pA = null, pB = null;
                 foreach (var lc in replay.lightChanges)
-                {
                     if (lc.idx == i && lc.t <= elapsed) { pA = lc.pA; pB = lc.pB; }
-                }
                 if (pA != null) _intersections[i].ForcePhase(pA, pB);
             }
 
             // Поезд
             _railway?.SetTrainState(frame.tx, frame.ty, frame.tz, frame.trainActive);
+
+            // Ошибки — показываем когда время повтора достигает момента ошибки
+            if (penalties != null)
+            {
+                while (nextPenalty < penalties.Count && penalties[nextPenalty].t > 0f
+                       && elapsed >= penalties[nextPenalty].t)
+                {
+                    if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
+                    _errorCoroutine = StartCoroutine(ShowError(penalties[nextPenalty]));
+                    nextPenalty++;
+                }
+            }
 
             yield return null;
         }
@@ -286,8 +410,9 @@ public class ReplayCRMSync : MonoBehaviour
         foreach (var ti in _intersections) ti?.ResumeCycle();
         _railway?.ResumeTrain();
         _replayRunning = false;
+        HideHUD();
 
-        Debug.Log("[ReplayCRMSync] Воспроизведение сцены завершено");
+        Debug.Log("[ReplayCRMSync] Воспроизведение завершено");
     }
 
     // ── HTTP-слушатель ────────────────────────────────────────────────────────
@@ -337,19 +462,35 @@ public class ReplayCRMSync : MonoBehaviour
         try
         {
             var client = new System.Net.Http.HttpClient();
-            var task   = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}/replay");
-            task.Wait();
-            var replay = JsonUtility.FromJson<CRMReplay>(task.Result);
+
+            // 1. Кадры повтора
+            var replayTask = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}/replay");
+            replayTask.Wait();
+            var replay = JsonUtility.FromJson<CRMReplay>(replayTask.Result);
             if (replay?.frames == null || replay.frames.Count == 0)
             { Debug.LogWarning("[ReplayCRMSync] Повтор пуст"); return; }
 
+            // 2. Метаданные попытки (имя курсанта, ошибки)
+            AttemptMeta meta = null;
+            try
+            {
+                var metaTask = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}");
+                metaTask.Wait();
+                meta = JsonUtility.FromJson<AttemptMeta>(metaTask.Result);
+            }
+            catch (System.Exception me)
+            {
+                Debug.LogWarning($"[ReplayCRMSync] Не удалось загрузить метаданные: {me.Message}");
+            }
+
             _pendingReplay = replay;
+            _pendingMeta   = meta;
             _launchReplay  = true;
-            Debug.Log($"[ReplayCRMSync] Получен повтор: {replay.frames.Count} кадров, {replay.lightChanges?.Count ?? 0} событий светофоров");
+            Debug.Log($"[ReplayCRMSync] Повтор готов: {replay.frames.Count} кадров | курсант: {meta?.studentName ?? "?"} | ошибок: {meta?.penalties?.Count ?? 0}");
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[ReplayCRMSync] Ошибка получения: {e.Message}");
+            Debug.LogError($"[ReplayCRMSync] Ошибка получения повтора: {e.Message}");
         }
     }
 }
