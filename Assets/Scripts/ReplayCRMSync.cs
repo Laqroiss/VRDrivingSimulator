@@ -501,7 +501,7 @@ public class ReplayCRMSync : MonoBehaviour
             // Ошибки — показываем когда время повтора достигает момента ошибки
             if (penalties != null)
             {
-                while (nextPenalty < penalties.Count && penalties[nextPenalty].t > 0f
+                while (nextPenalty < penalties.Count
                        && elapsed >= penalties[nextPenalty].t)
                 {
                     var pen = penalties[nextPenalty];
@@ -586,10 +586,11 @@ public class ReplayCRMSync : MonoBehaviour
                 var metaTask = client.GetStringAsync($"{crmUrl}/api/attempts/{attemptId}");
                 metaTask.Wait();
                 meta = JsonUtility.FromJson<AttemptMeta>(metaTask.Result);
+                Debug.Log($"[ReplayCRMSync] Метаданные: курсант={meta?.studentName}, ошибок={meta?.penalties?.Count ?? 0}");
             }
             catch (System.Exception me)
             {
-                Debug.LogWarning($"[ReplayCRMSync] Не удалось загрузить метаданные: {me.Message}");
+                Debug.LogError($"[ReplayCRMSync] Не удалось загрузить метаданные: {me.Message}");
             }
 
             _pendingReplay = replay;

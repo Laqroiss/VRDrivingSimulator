@@ -4,7 +4,9 @@ import Attempt from '@/models/Attempt'
 
 export async function GET(_, { params }) {
   await connectDB()
-  const attempt = await Attempt.findById(params.id).lean()
+  const attempt = await Attempt.findById(params.id)
+    .select('-replayData -track -lightEvents -lightPositions')
+    .lean()
   if (!attempt) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(attempt)
 }
