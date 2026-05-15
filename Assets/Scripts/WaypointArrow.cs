@@ -57,13 +57,9 @@ public class WaypointArrow : MonoBehaviour
         }
         else
         {
-            // Покачивание в направлении стрелки
+            // Покачивание вперёд-назад (наклон по X) — стрелка "кивает" в направлении
             float angle = Mathf.Sin(Time.time * bobSpeed) * bobAmplitude;
-            Vector3 axis = direction == DirectionType.TurnLeft  ? Vector3.up :
-                           direction == DirectionType.TurnRight ? Vector3.up :
-                           Vector3.right;
-            float sign   = direction == DirectionType.TurnLeft ? -1f : 1f;
-            _visual.localRotation = Quaternion.AngleAxis(angle * sign, axis);
+            _visual.localRotation = Quaternion.Euler(angle, 0f, 0f);
         }
 
         // Плавное покачивание вверх-вниз
@@ -87,7 +83,8 @@ public class WaypointArrow : MonoBehaviour
     {
         _visual = new GameObject("Visual").transform;
         _visual.SetParent(transform, false);
-        _visual.localPosition = new Vector3(0f, 0.1f, 0f);
+        // Визуал размещается над столбиком
+        _visual.localPosition = new Vector3(0f, 0.5f, 0f);
 
         if (direction == DirectionType.Checkpoint)
             BuildCheckpoint();
@@ -97,37 +94,40 @@ public class WaypointArrow : MonoBehaviour
         BuildPole();
     }
 
-    // Вращающийся диск (контрольная точка)
+    // Checkpoint: вертикальная монета-крест, которая вращается вокруг Y
     void BuildCheckpoint()
     {
-        MakeCube(_visual, new Vector3(0.9f, 0.15f, 0.9f), Vector3.zero, arrowColor);
-        MakeCube(_visual, new Vector3(0.12f, 0.25f, 0.65f), Vector3.zero, Color.white);
-        MakeCube(_visual, new Vector3(0.65f, 0.25f, 0.12f), Vector3.zero, Color.white);
+        // Горизонтальная планка
+        MakeCube(_visual, new Vector3(0.85f, 0.18f, 0.18f), Vector3.zero, arrowColor);
+        // Вертикальная планка
+        MakeCube(_visual, new Vector3(0.18f, 0.85f, 0.18f), Vector3.zero, arrowColor);
     }
 
-    // Стрелка: стержень + V-образный наконечник, повёрнутая на нужный угол
+    // Направляющая стрелка: вертикальная (в плоскости XY), наконечник вверх
+    // Для поворотов поворачиваем по оси Z
     void BuildDirectionalArrow()
     {
-        float yaw = direction == DirectionType.TurnLeft  ? -90f :
-                    direction == DirectionType.TurnRight ?  90f :
-                    direction == DirectionType.UTurn     ? 180f : 0f;
+        // Угол поворота по Z: 0=вверх(↑), -90=вправо(→), +90=влево(←), 180=вниз(↓)
+        float rotZ = direction == DirectionType.TurnRight ?  -90f :
+                     direction == DirectionType.TurnLeft  ?   90f :
+                     direction == DirectionType.UTurn     ?  180f : 0f;
 
         var root = new GameObject("Root").transform;
         root.SetParent(_visual, false);
-        root.localEulerAngles = new Vector3(0f, yaw, 0f);
+        root.localEulerAngles = new Vector3(0f, 0f, rotZ);
 
-        // Стержень — тонкий прямоугольник вдоль Z
-        MakeCube(root, new Vector3(0.22f, 0.22f, 0.75f), new Vector3(0f, 0f, -0.2f), arrowColor);
+        // Стержень вдоль Y (вертикально)
+        MakeCube(root, new Vector3(0.22f, 0.7f, 0.22f), new Vector3(0f, -0.18f, 0f), arrowColor);
 
-        // Левая половина наконечника (повёрнута -40°)
-        var hl = MakeCube(root, new Vector3(0.5f, 0.22f, 0.18f),
-                          new Vector3(-0.22f, 0f, 0.22f), arrowColor);
-        hl.localEulerAngles = new Vector3(0f, -40f, 0f);
+        // Левая половина наконечника
+        var hl = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
+                          new Vector3(-0.2f, 0.2f, 0f), arrowColor);
+        hl.localEulerAngles = new Vector3(0f, 0f, 40f);
 
-        // Правая половина наконечника (повёрнута +40°)
-        var hr = MakeCube(root, new Vector3(0.5f, 0.22f, 0.18f),
-                          new Vector3( 0.22f, 0f, 0.22f), arrowColor);
-        hr.localEulerAngles = new Vector3(0f, 40f, 0f);
+        // Правая половина наконечника
+        var hr = MakeCube(root, new Vector3(0.18f, 0.45f, 0.22f),
+                          new Vector3( 0.2f, 0.2f, 0f), arrowColor);
+        hr.localEulerAngles = new Vector3(0f, 0f, -40f);
     }
 
     void BuildPole()
@@ -135,8 +135,8 @@ public class WaypointArrow : MonoBehaviour
         var pole = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         pole.name = "Pole";
         pole.transform.SetParent(transform, false);
-        pole.transform.localPosition = new Vector3(0f, -1.0f, 0f);
-        pole.transform.localScale    = new Vector3(0.07f, 0.9f, 0.07f);
+        pole.transform.localPosition = new Vector3(0f, -0.65f, 0f);
+        pole.transform.localScale    = new Vector3(0.07f, 0.6f, 0.07f);
         SetMat(pole, new Color(0.55f, 0.55f, 0.55f));
         Destroy(pole.GetComponent<Collider>());
     }
