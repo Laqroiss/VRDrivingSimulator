@@ -84,16 +84,15 @@ public class ReplayCRMSync : MonoBehaviour
     public int    replayPort = 7779;
     public float  recordFPS  = 30f;
 
-    [Header("HUD (повтор)")]
-    public Canvas     hudCanvas;       // Screen Space Overlay — весь HUD
-    public TMP_Text   hudNameText;     // ФИО курсанта
-    public TMP_Text   hudResultText;   // "СДАЛ" / "НЕ СДАЛ"
-    public TMP_Text   hudScoreText;    // накапливаемые штрафные баллы "0 б."
-    public TMP_Text   hudTimeText;     // таймер "0:00"
-    // Секция ошибки — находится ВНУТРИ основной панели, появляется/исчезает
-    public CanvasGroup hudErrorGroup;  // CanvasGroup на секции ошибки
-    public TMP_Text    hudErrorText;   // описание ошибки
-    public TMP_Text    hudErrorPoints; // "−5 б."
+    // HUD создаётся программно — ничего тащить в Inspector не нужно
+    private GameObject  _hudRoot;
+    private TMP_Text    hudNameText;
+    private TMP_Text    hudResultText;
+    private TMP_Text    hudScoreText;
+    private TMP_Text    hudTimeText;
+    private CanvasGroup hudErrorGroup;
+    private TMP_Text    hudErrorText;
+    private TMP_Text    hudErrorPoints;
 
     // ── Runtime ──────────────────────────────────────────────────────────────
 
@@ -285,31 +284,141 @@ public class ReplayCRMSync : MonoBehaviour
         _sceneReplayCoroutine = StartCoroutine(SceneReplayRoutine(replay, meta));
     }
 
+    void BuildHUD()
+    {
+        if (_hudRoot != null) Destroy(_hudRoot);
+
+        // Canvas
+        var canvasGO = new GameObject("ReplayCRMHUD");
+        DontDestroyOnLoad(canvasGO);
+        var canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode  = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 50;
+        canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode =
+            UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        canvasGO.GetComponent<UnityEngine.UI.CanvasScaler>().referenceResolution = new Vector2(1920, 1080);
+        canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+        _hudRoot = canvasGO;
+
+        // ── Основная панель (middle-right) ──────────────────────────────────
+        var panel = MakePanel(_hudRoot.transform, new Vector2(340, 220),
+            new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
+            new Vector2(-20, 0), new Color(0.05f, 0.07f, 0.12f, 0.88f));
+
+        // Тонкая синяя полоска слева
+        var accent = MakeImage(panel.transform, new Vector2(4, 220),
+            new Vector2(0,0.5f), new Vector2(0,0.5f), new Vector2(2,0),
+            new Color(0.25f, 0.55f, 1f, 1f));
+
+        float y = 82f;
+
+        hudNameText   = MakeText(panel.transform, "—",           16, FontStyles.Bold,
+                                 Color.white,           new Vector2(0,y));  y -= 26f;
+        hudResultText = MakeText(panel.transform, "",            14, FontStyles.Bold,
+                                 new Color(0.55f,0.85f,0.55f,1f), new Vector2(0,y)); y -= 26f;
+
+        // Разделитель
+        MakeImage(panel.transform, new Vector2(290, 1),
+            new Vector2(0.5f,0.5f), new Vector2(0.5f,0.5f), new Vector2(0, y),
+            new Color(0.3f, 0.4f, 0.6f, 0.5f));
+        y -= 18f;
+
+        hudScoreText  = MakeText(panel.transform, "0 б.",        13, FontStyles.Normal,
+                                 new Color(0.9f,0.9f,0.9f,1f),  new Vector2(0,y));  y -= 22f;
+        hudTimeText   = MakeText(panel.transform, "0:00",        13, FontStyles.Normal,
+                                 new Color(0.6f,0.7f,0.9f,1f),  new Vector2(0,y));
+
+        // ── Секция ошибки (скрыта по умолчанию) ────────────────────────────
+        var errGO = new GameObject("ErrorSection");
+        errGO.transform.SetParent(panel.transform, false);
+        hudErrorGroup = errGO.AddComponent<CanvasGroup>();
+        hudErrorGroup.alpha = 0f;
+
+        var errRect = errGO.AddComponent<RectTransform>();
+        errRect.anchorMin = errRect.anchorMax = new Vector2(0.5f, 0f);
+        errRect.sizeDelta = new Vector2(310, 52);
+        errRect.anchoredPosition = new Vector2(0, -86);
+
+        // Фон ошибки
+        var errBg = errGO.AddComponent<UnityEngine.UI.Image>();
+        errBg.color = new Color(0.6f, 0.1f, 0.1f, 0.7f);
+
+        hudErrorText   = MakeText(errGO.transform, "",  12, FontStyles.Normal,
+                                  Color.white,           new Vector2(-20, 8));
+        hudErrorText.GetComponent<RectTransform>().sizeDelta = new Vector2(220, 40);
+        hudErrorText.alignment = TextAlignmentOptions.Left;
+
+        hudErrorPoints = MakeText(errGO.transform, "",  14, FontStyles.Bold,
+                                  new Color(1f, 0.4f, 0.4f, 1f), new Vector2(118, 0));
+        hudErrorPoints.alignment = TextAlignmentOptions.Right;
+    }
+
+    // ── Хелперы для создания UI ────────────────────────────────────────────
+
+    static RectTransform MakePanel(Transform parent, Vector2 size,
+        Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Color color)
+    {
+        var go  = new GameObject("Panel");
+        go.transform.SetParent(parent, false);
+        var img = go.AddComponent<UnityEngine.UI.Image>();
+        img.color = color;
+        var rt  = go.GetComponent<RectTransform>();
+        rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
+        rt.sizeDelta = size; rt.anchoredPosition = pos;
+        // Скруглённые углы через sprite если доступен
+        return rt;
+    }
+
+    static RectTransform MakeImage(Transform parent, Vector2 size,
+        Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Color color)
+    {
+        var go  = new GameObject("Img");
+        go.transform.SetParent(parent, false);
+        var img = go.AddComponent<UnityEngine.UI.Image>();
+        img.color = color;
+        var rt  = go.GetComponent<RectTransform>();
+        rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
+        rt.sizeDelta = size; rt.anchoredPosition = pos;
+        return rt;
+    }
+
+    static TMP_Text MakeText(Transform parent, string text, float size,
+        FontStyles style, Color color, Vector2 pos)
+    {
+        var go  = new GameObject("Txt");
+        go.transform.SetParent(parent, false);
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text      = text;
+        tmp.fontSize  = size;
+        tmp.fontStyle = style;
+        tmp.color     = color;
+        tmp.alignment = TextAlignmentOptions.Center;
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(300, 24);
+        rt.anchoredPosition = pos;
+        return tmp;
+    }
+
     void InitHUD(AttemptMeta meta)
     {
-        if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
+        BuildHUD();
 
-        // Секция ошибки — скрыта в начале
-        if (hudErrorGroup != null) { hudErrorGroup.alpha = 0f; hudErrorGroup.gameObject.SetActive(false); }
-
-        if (hudNameText   != null) hudNameText.text   = meta?.studentName ?? "";
-        if (hudScoreText  != null) hudScoreText.text  = "0 б.";
-        if (hudTimeText   != null) hudTimeText.text   = "0:00";
+        if (hudErrorGroup != null) hudErrorGroup.alpha = 0f;
+        if (hudNameText   != null) hudNameText.text    = meta?.studentName ?? "—";
+        if (hudScoreText  != null) hudScoreText.text   = "0 б.";
+        if (hudTimeText   != null) hudTimeText.text    = "0:00";
 
         if (hudResultText != null)
-        {
-            if (meta == null) { hudResultText.text = ""; return; }
-            hudResultText.text = meta.passed
+            hudResultText.text = meta == null ? "" : meta.passed
                 ? "<color=#22c55e>СДАЛ</color>"
                 : "<color=#ef4444>НЕ СДАЛ</color>";
-        }
     }
 
     void HideHUD()
     {
-        if (hudCanvas != null) hudCanvas.gameObject.SetActive(false);
         if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
-        if (hudErrorGroup != null) hudErrorGroup.gameObject.SetActive(false);
+        if (_hudRoot != null) { Destroy(_hudRoot); _hudRoot = null; }
     }
 
     IEnumerator ShowError(PenaltyData p, int accumulatedScore)
