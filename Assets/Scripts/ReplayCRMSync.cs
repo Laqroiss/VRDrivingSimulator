@@ -33,6 +33,8 @@ public class ReplayCRMSync : MonoBehaviour
         // Поезд
         public float tx, ty, tz;
         public bool  trainActive;
+        // Реальное время экзамена в момент записи кадра (секунды от старта)
+        public float t;
     }
 
     // Событие смены фазы светофора
@@ -225,6 +227,7 @@ public class ReplayCRMSync : MonoBehaviour
             lb    = _indicators != null && (_indicators.LeftIndicatorOn  || _indicators.HazardLightsOn),
             rb    = _indicators != null && (_indicators.RightIndicatorOn || _indicators.HazardLightsOn),
             bp    = _indicators != null && _indicators.BlinkVisible,
+            t     = _elapsed,   // реальное время экзамена — ключ синхронизации штрафов
         };
 
         // Поезд
@@ -427,7 +430,7 @@ public class ReplayCRMSync : MonoBehaviour
     void SpawnError(PenaltyData p, int accumulatedScore)
     {
         if (_errorContainer == null) return;
-        Debug.Log($"[ReplayCRMSync] SpawnError: penalty.t={p.t:F1}s  replayTime={replaySystem?.CurrentReplayTime:F1}s  '{p.description}'");
+        Debug.Log($"[ReplayCRMSync] SpawnError: penalty.t={p.t:F1}s  frameT={replaySystem?.CurrentReplayTime:F1}s  '{p.description}'");
         if (hudScoreText != null) hudScoreText.text = $"{accumulatedScore} б.";
 
         // Фон карточки
@@ -506,11 +509,13 @@ public class ReplayCRMSync : MonoBehaviour
 
         while (_replayRunning)
         {
-            float elapsed = replaySystem != null ? replaySystem.CurrentReplayTime : 0f;
-            if (elapsed >= duration) break;
+            float replayTime = replaySystem != null ? replaySystem.CurrentReplayTime : 0f;
+            if (replayTime >= duration) break;
 
-            int frameIdx = Mathf.Clamp(Mathf.FloorToInt(elapsed * replay.fps), 0, replay.frames.Count - 1);
-            var frame = replay.frames[frameIdx];
+            int frameIdx = Mathf.Clamp(Mathf.FloorToInt(replayTime * replay.fps), 0, replay.frames.Count - 1);
+            var frame    = replay.frames[frameIdx];
+            // Используем реальное время записи кадра — точно совпадает с penalty.t
+            float elapsed = frame.t > 0f ? frame.t : replayTime;
 
             // Таймер на HUD
             if (hudTimeText != null)
