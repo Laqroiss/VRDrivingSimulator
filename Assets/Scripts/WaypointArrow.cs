@@ -172,19 +172,17 @@ public class WaypointArrow : MonoBehaviour
         go.transform.SetParent(parent, false);
         go.transform.localScale    = scale;
         go.transform.localPosition = localPos;
-        SetMat(go, color);
         Destroy(go.GetComponent<Collider>());
+        // Красим существующий материал — не создаём новый, чтобы не сломать URP/HDRP
+        var r = go.GetComponent<Renderer>();
+        if (r != null) r.material.color = color;
         return go.transform;
     }
 
     static void SetMat(GameObject go, Color c)
     {
-        var r   = go.GetComponent<Renderer>();
-        if (r == null) return;
-        var mat = new Material(Shader.Find("Standard")) { color = c };
-        mat.EnableKeyword("_EMISSION");
-        mat.SetColor("_EmissionColor", c * 0.25f);
-        r.material = mat;
+        var r = go.GetComponent<Renderer>();
+        if (r != null) r.material.color = c;
     }
 
     public void Reset()
