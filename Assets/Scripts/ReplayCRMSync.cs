@@ -85,13 +85,15 @@ public class ReplayCRMSync : MonoBehaviour
     public float  recordFPS  = 30f;
 
     [Header("HUD ()")]
-    public Canvas     hudCanvas;      // Screen Space Overlay,   
-    public TMP_Text   hudNameText;    // "Sartayev Miras"
-    public TMP_Text   hudResultText;  // " /    вЂў  10 ."
-    public TMP_Text   hudTimeText;    //  
-    public GameObject hudErrorPanel;  //   
-    public TMP_Text   hudErrorText;   //  
-    public TMP_Text   hudErrorPoints; // "в€’5 ."
+    public Canvas     hudCanvas;       // Screen Space Overlay вЂ”  HUD
+    public TMP_Text   hudNameText;     //  
+    public TMP_Text   hudResultText;   // "" / " "
+    public TMP_Text   hudScoreText;    //    "0 ."
+    public TMP_Text   hudTimeText;     //  "0:00"
+    //   вЂ”    , /
+    public CanvasGroup hudErrorGroup;  // CanvasGroup   
+    public TMP_Text    hudErrorText;   //  
+    public TMP_Text    hudErrorPoints; // "в€’5 ."
 
     // вв Runtime вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
@@ -286,37 +288,36 @@ public class ReplayCRMSync : MonoBehaviour
     void InitHUD(AttemptMeta meta)
     {
         if (hudCanvas != null) hudCanvas.gameObject.SetActive(true);
-        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
 
-        if (meta == null)
-        {
-            if (hudNameText   != null) hudNameText.text   = "";
-            if (hudResultText != null) hudResultText.text = "";
-            return;
-        }
+        //   вЂ”   
+        if (hudErrorGroup != null) { hudErrorGroup.alpha = 0f; hudErrorGroup.gameObject.SetActive(false); }
 
-        if (hudNameText != null)
-            hudNameText.text = meta.studentName ?? "";
+        if (hudNameText   != null) hudNameText.text   = meta?.studentName ?? "";
+        if (hudScoreText  != null) hudScoreText.text  = "0 .";
+        if (hudTimeText   != null) hudTimeText.text   = "0:00";
 
         if (hudResultText != null)
         {
-            string res = meta.passed ? "<color=#22c55e></color>" : "<color=#ef4444> </color>";
-            hudResultText.text = $"{res}  вЂў  {meta.totalPenaltyPoints} .";
+            if (meta == null) { hudResultText.text = ""; return; }
+            hudResultText.text = meta.passed
+                ? "<color=#22c55e>PASSED</color>"
+                : "<color=#ef4444>FAILED</color>";
         }
     }
 
     void HideHUD()
     {
-        if (hudCanvas   != null) hudCanvas.gameObject.SetActive(false);
+        if (hudCanvas != null) hudCanvas.gameObject.SetActive(false);
         if (_errorCoroutine != null) { StopCoroutine(_errorCoroutine); _errorCoroutine = null; }
-        if (hudErrorPanel != null) hudErrorPanel.SetActive(false);
+        if (hudErrorGroup != null) hudErrorGroup.gameObject.SetActive(false);
     }
 
-    IEnumerator ShowError(PenaltyData p)
+    IEnumerator ShowError(PenaltyData p, int accumulatedScore)
     {
-        if (hudErrorPanel == null) yield break;
+        if (hudErrorGroup == null) yield break;
 
-        if (hudErrorText   != null)
+        //   
+        if (hudErrorText != null)
         {
             string exStr = p.exerciseNum > 0 ? $". {p.exerciseNum}  вЂў  " : "";
             hudErrorText.text = $"{exStr}{p.description}";
@@ -324,28 +325,23 @@ public class ReplayCRMSync : MonoBehaviour
         if (hudErrorPoints != null)
             hudErrorPoints.text = $"в€’{p.points} .";
 
-        hudErrorPanel.SetActive(true);
+        //   
+        if (hudScoreText != null)
+            hudScoreText.text = $"{accumulatedScore} .";
 
-        //    CanvasGroup  
-        var cg = hudErrorPanel.GetComponent<CanvasGroup>();
-        if (cg != null)
-        {
-            cg.alpha = 0f;
-            float t = 0f;
-            while (t < 0.25f) { t += Time.deltaTime; cg.alpha = t / 0.25f; yield return null; }
-            cg.alpha = 1f;
-        }
+        //  
+        hudErrorGroup.gameObject.SetActive(true);
+        hudErrorGroup.alpha = 0f;
+        float t = 0f;
+        while (t < 0.2f) { t += Time.deltaTime; hudErrorGroup.alpha = t / 0.2f; yield return null; }
+        hudErrorGroup.alpha = 1f;
 
         yield return new WaitForSeconds(3f);
 
         //  
-        if (cg != null)
-        {
-            float t = 0f;
-            while (t < 0.4f) { t += Time.deltaTime; cg.alpha = 1f - t / 0.4f; yield return null; }
-        }
-
-        hudErrorPanel.SetActive(false);
+        t = 0f;
+        while (t < 0.35f) { t += Time.deltaTime; hudErrorGroup.alpha = 1f - t / 0.35f; yield return null; }
+        hudErrorGroup.gameObject.SetActive(false);
         _errorCoroutine = null;
     }
 
@@ -359,8 +355,9 @@ public class ReplayCRMSync : MonoBehaviour
         float duration  = replay.frames.Count / replay.fps;
 
         //     
-        var penalties = meta?.penalties;
-        int nextPenalty = 0;
+        var penalties     = meta?.penalties;
+        int nextPenalty   = 0;
+        int accumulatedPts = 0;
 
         while (_replayRunning)
         {
@@ -397,8 +394,10 @@ public class ReplayCRMSync : MonoBehaviour
                 while (nextPenalty < penalties.Count && penalties[nextPenalty].t > 0f
                        && elapsed >= penalties[nextPenalty].t)
                 {
+                    var pen = penalties[nextPenalty];
+                    accumulatedPts += pen.points;
                     if (_errorCoroutine != null) StopCoroutine(_errorCoroutine);
-                    _errorCoroutine = StartCoroutine(ShowError(penalties[nextPenalty]));
+                    _errorCoroutine = StartCoroutine(ShowError(pen, accumulatedPts));
                     nextPenalty++;
                 }
             }
