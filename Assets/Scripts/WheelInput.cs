@@ -17,6 +17,8 @@ public class WheelInput : MonoBehaviour
     [Header("Настройки")]
     [Range(0f, 0.2f)] public float deadzone         = 0.05f;
     [Range(0.1f, 2f)] public float steerSensitivity = 1f;
+    [Tooltip("Кривая отклика руля: 1=линейный, 1.4-1.6=мягкий центр без «мёртвой» зоны, 2+=сильно спокойный (но первые градусы могут пропадать)")]
+    [Range(1f, 3f)] public float steerExponent = 1.4f;
 
     private InputDevice    _device;
     private AxisControl    _steerAxis;
@@ -73,7 +75,11 @@ public class WheelInput : MonoBehaviour
         float steer = _steerAxis != null ? _steerAxis.ReadValue() : 0f;
         float axisY = _gasAxis   != null ? _gasAxis.ReadValue()   : 0f;
 
-        steer = ApplyDeadzone(steer * steerSensitivity, deadzone);
+        // Сначала мёртвая зона, потом нелинейная кривая отклика и общая чувствительность.
+        // Кривая x^exponent делает центр мягким (легко держать прямо), а к краям ход остаётся полным.
+        steer = ApplyDeadzone(steer, deadzone);
+        steer = Mathf.Sign(steer) * Mathf.Pow(Mathf.Abs(steer), steerExponent) * steerSensitivity;
+        steer = Mathf.Clamp(steer, -1f, 1f);
 
         car.externalSteer    = steer;
         car.externalThrottle = Mathf.Clamp01(axisY);   // >0 = газ

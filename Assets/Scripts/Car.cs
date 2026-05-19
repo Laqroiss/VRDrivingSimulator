@@ -215,11 +215,20 @@ public class Car : MonoBehaviour
     public Engine e;
     public GameObject skidMarkPrefab;
     public float smoothTurn = 0.03f;
-    float coefStaticFriction = 1.95f;
-    float coefKineticFriction = 0.95f;
+    [Header("Сцепление с дорогой")]
+    [Tooltip("Коэффициент трения покоя (рубер по сухому асфальту ≈ 1.0..2.0)")]
+    public float coefStaticFriction = 1.95f;
+    [Tooltip("Коэффициент трения скольжения. Чем ближе к статическому — тем мягче срыв (НЕ ставьте сильно ниже 1.5)")]
+    public float coefKineticFriction = 1.55f;
+    [Tooltip("Ширина зоны плавного перехода static→kinetic (slip от 1.0 до 1.0+window)). Чем больше — тем мягче срыв")]
+    [Range(0.05f, 1f)] public float slipBlendWindow = 0.4f;
+    [Tooltip("Демпфер рысканья: гасит вращение вокруг вертикальной оси, предотвращая занос. 0 = выкл")]
+    [Range(0f, 50f)] public float yawDamping = 12f;
     public GameObject wheelPrefab;
     public WheelProperties[] wheels;
-    public float wheelGripX = 8f;
+    [Tooltip("Боковое сцепление. Слишком низкое = машину сносит, слишком высокое = неестественно цепкая")]
+    public float wheelGripX = 22f;
+    [Tooltip("Продольное сцепление (разгон/торможение)")]
     public float wheelGripZ = 42f;
     public float suspensionForce = 90f;
     public float dampAmount = 2.5f;
@@ -296,6 +305,7 @@ public class Car : MonoBehaviour
     [HideInInspector] public float externalThrottle = 0f;
     [HideInInspector] public float externalBrake    = 0f;
     [HideInInspector] public float externalSteer    = 0f;
+    [Tooltip("Квадратичный прижим: F = v² * downforce. Полезно ~0.1..0.3 для седана. Растёт сцепление на скорости")]
     public float downforce = 0.16f;
     [HideInInspector] public float isBraking = 0f;
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
@@ -384,18 +394,23 @@ public class Car : MonoBehaviour
         float rawThrottle = 0f;
         bool  brakePedal  = false;
 
+        // Замедление руля по скорости: чем быстрее, тем тяжелее руль.
+        // Делитель 18 (раньше 28) — заметно мягче «дёргается» на 30-60 км/ч.
+        float speedSteerScale = 1f / (1f + rb.linearVelocity.magnitude / 18f);
+
         if (externalInput)
         {
-            // WheelInput пишет только сырые значения, Car.cs сам применяет всю логику
-            float steerTarget = externalSteer / (1f + rb.linearVelocity.magnitude / 28f);
-            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 0.15f);
+            // Руль/педали — аналог, можно быстрее реагировать.
+            float steerTarget = externalSteer * speedSteerScale;
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.07f));
             rawThrottle = externalThrottle;
             brakePedal  = externalBrake > 0.02f;
         }
         else
         {
-            userInput.x = Mathf.Lerp(userInput.x,
-                LegacyInput.GetAxisRaw("Horizontal") / (1f + rb.linearVelocity.magnitude / 28f), 0.2f);
+            // Клавиатура даёт мгновенный ±1: сглаживаем сильнее, чтобы машину не дёргало.
+            float steerTarget = LegacyInput.GetAxisRaw("Horizontal") * speedSteerScale;
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.18f));
             rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical"));
             brakePedal  = LegacyInput.GetKey(KeyCode.Space);
         }
@@ -446,34 +461,31 @@ public class Car : MonoBehaviour
             if (float.IsNaN(w.slip) || float.IsInfinity(w.slip))
                 w.slip = 0f;
 
-            // High-performance F1 traction control
+            // Traction control: для учебной машины срабатывает раньше — режем тягу, когда колесо
+            // уже работает на 70%+ от предела сцепления, чтобы не допустить полного срыва.
             if (throttleAssist)
             {
-                float targetSlip = 0.85f; // Desired slip ratio for max traction
-                float slipTolerance = 0.05f; // Allowable deviation from target slip
+                float targetSlip = 0.70f;     // Учебный авто: бережём запас сцепления
+                float slipTolerance = 0.08f;  // Шире зона стабильности — меньше осцилляций
                 if (w.slip > targetSlip + slipTolerance)
                 {
-                    // If slip exceeds the upper bound, calculate how much it overshoots
                     float overshoot = w.slip - targetSlip;
-                    // Convert overshoot to a reduction factor (aggressive multiplier)
                     float reduction = Mathf.Clamp01(overshoot * 2.0f);
-                    // Aggressively increase TCS reduction to cut power fast
                     w.tcsReduction = Mathf.Lerp(w.tcsReduction, 1, reduction / 5f);
                 }
                 else if (w.slip < targetSlip - slipTolerance)
                 {
-                    // If slip is below the lower bound, quickly restore power
                     w.tcsReduction = Mathf.Lerp(w.tcsReduction, 0f, 0.6f * Time.deltaTime);
                 }
-                // Clamp TCS reduction to [0, 1] range
                 w.tcsReduction = Mathf.Clamp01(w.tcsReduction);
             }
             w.brake = (isBraking == true ? 1 : 0) * (1 - w.tcsReduction);
 
-            // Apply steering input smoothing (steering assist or slip-based reduction can be added here if desired)
+            // Steering assist: вмешивается только когда колесо реально близко к срыву (slip > 0.6),
+            // а не на каждом повороте при штатной езде.
             float s = Mathf.Clamp01(w.slip);
             w.input.x = Mathf.Lerp(w.input.x, userInput.x, Time.deltaTime * 60f);
-            if (s > 0.3f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
+            if (s > 0.6f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
 
             // Apply throttle with TCS - more responsive for F1
             float inputY = transmissionMode == TransmissionMode.Neutral ? 0f : userInput.y;
@@ -519,13 +531,24 @@ public class Car : MonoBehaviour
 
     void FixedUpdate()
     {
-        rb.AddForce(-transform.up * rb.linearVelocity.magnitude * downforce);
+        // Квадратичный downforce: прижим растёт по v², как у реальной аэродинамики.
+        // Это сильно увеличивает normalForce на высокой скорости — а через него и максимум сцепления.
+        float vSpeed = rb.linearVelocity.magnitude;
+        rb.AddForce(-transform.up * vSpeed * vSpeed * downforce);
 
         // Аэродинамическое сопротивление: F = -v * |v| * coeff (квадрат скорости)
         Vector3 horizVel = Vector3.ProjectOnPlane(rb.linearVelocity, transform.up);
         float speed = horizVel.magnitude;
         if (speed > 0.3f)
             rb.AddForce(-horizVel.normalized * speed * speed * airDragCoeff);
+
+        // Yaw damping: гасит вращение вокруг вертикальной оси.
+        // Подавляет занос/раскачку без блокировки нормального поворота — момент пропорционален yaw-скорости.
+        if (yawDamping > 0.0001f)
+        {
+            float yawVel = Vector3.Dot(rb.angularVelocity, transform.up);
+            rb.AddTorque(-transform.up * yawVel * yawDamping, ForceMode.Force);
+        }
         float averageWheelAngularVelocity = 0f;
         // Debug.Log(rb.velocity.magnitude);
         foreach (var w in wheels)
@@ -563,10 +586,19 @@ public class Car : MonoBehaviour
                 * w.normalForce * coefStaticFriction * Time.fixedDeltaTime;
             float currentMaxFrictionForce = w.normalForce * coefStaticFriction;
 
-            w.slidding = totalLocalForce.magnitude > currentMaxFrictionForce;
-            w.slip = totalLocalForce.magnitude / currentMaxFrictionForce;
+            w.slip = currentMaxFrictionForce > 0.0001f
+                ? totalLocalForce.magnitude / currentMaxFrictionForce
+                : 0f;
+            // Плавный переход static→kinetic: пока slip<=1.0 — полное сцепление,
+            // далее линейно деградируем до kinetic за окно slipBlendWindow.
+            // Это убирает «обрыв» сцепления, когда срыв превращался в неконтролируемый снос.
+            float slipExcess = Mathf.Max(0f, w.slip - 1f);
+            float kineticRatio = coefStaticFriction > 0.0001f ? coefKineticFriction / coefStaticFriction : 1f;
+            float gripFactor = Mathf.Lerp(1f, kineticRatio,
+                Mathf.Clamp01(slipExcess / Mathf.Max(0.01f, slipBlendWindow)));
+            w.slidding = w.slip > 1f + slipBlendWindow * 0.5f;
             totalLocalForce = Vector3.ClampMagnitude(totalLocalForce, currentMaxFrictionForce);
-            totalLocalForce *= w.slidding ? (coefKineticFriction / coefStaticFriction) : 1;
+            totalLocalForce *= gripFactor;
 
             Vector3 totalWorldForce = wheelObj.TransformDirection(totalLocalForce);
             w.worldSlipDirection = totalWorldForce;
