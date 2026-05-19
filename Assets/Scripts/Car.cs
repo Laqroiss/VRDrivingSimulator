@@ -215,11 +215,20 @@ public class Car : MonoBehaviour
     public Engine e;
     public GameObject skidMarkPrefab;
     public float smoothTurn = 0.03f;
-    float coefStaticFriction = 1.95f;
-    float coefKineticFriction = 0.95f;
+    [Header("Road grip")]
+    [Tooltip("Static friction coefficient (rubber on dry asphalt ~ 1.0..2.0)")]
+    public float coefStaticFriction = 1.95f;
+    [Tooltip("Kinetic friction coefficient. Closer to static = softer breakaway (don't go far below 1.5)")]
+    public float coefKineticFriction = 1.55f;
+    [Tooltip("Width of the static->kinetic blend zone (slip from 1.0 to 1.0+window). Larger = softer breakaway")]
+    [Range(0.05f, 1f)] public float slipBlendWindow = 0.4f;
+    [Tooltip("Yaw damping: damps rotation around the vertical axis to prevent spinning out. 0 = off")]
+    [Range(0f, 50f)] public float yawDamping = 12f;
     public GameObject wheelPrefab;
     public WheelProperties[] wheels;
-    public float wheelGripX = 8f;
+    [Tooltip("Lateral grip. Too low = car slides, too high = unnaturally sticky")]
+    public float wheelGripX = 22f;
+    [Tooltip("Longitudinal grip (accel/braking)")]
     public float wheelGripZ = 42f;
     public float suspensionForce = 90f;
     public float dampAmount = 2.5f;
@@ -296,6 +305,7 @@ public class Car : MonoBehaviour
     [HideInInspector] public float externalThrottle = 0f;
     [HideInInspector] public float externalBrake    = 0f;
     [HideInInspector] public float externalSteer    = 0f;
+    [Tooltip("Steering smoothing time constant (sec) for a physical wheel/pedals. A wheel is already analog - use a small value (0.01..0.03) for instant response. 0 = direct, no filter.")]
     public float downforce = 0.16f;
     [HideInInspector] public float isBraking = 0f;
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
@@ -384,18 +394,23 @@ public class Car : MonoBehaviour
         float rawThrottle = 0f;
         bool  brakePedal  = false;
 
+        // Steering slows down with speed: the faster you go, the heavier the wheel.
+        // Divisor 18 (was 28) - noticeably less twitchy at 30-60 km/h.
+        float speedSteerScale = 1f / (1f + rb.linearVelocity.magnitude / 18f);
+
         if (externalInput)
         {
-            // WheelInput    , Car.cs    
-            float steerTarget = externalSteer / (1f + rb.linearVelocity.magnitude / 28f);
-            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 0.15f);
+            // Wheel/pedals are analog - near-instant response (no keyboard filter needed).
+            float steerTarget = externalSteer * speedSteerScale;
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.07f));
             rawThrottle = externalThrottle;
             brakePedal  = externalBrake > 0.02f;
         }
         else
         {
-            userInput.x = Mathf.Lerp(userInput.x,
-                LegacyInput.GetAxisRaw("Horizontal") / (1f + rb.linearVelocity.magnitude / 28f), 0.2f);
+            // Keyboard gives an instant 1: smooth more so the car doesn't jerk.
+            float steerTarget = LegacyInput.GetAxisRaw("Horizontal") * speedSteerScale;
+            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.18f));
             rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical"));
             brakePedal  = LegacyInput.GetKey(KeyCode.Space);
         }
@@ -446,34 +461,31 @@ public class Car : MonoBehaviour
             if (float.IsNaN(w.slip) || float.IsInfinity(w.slip))
                 w.slip = 0f;
 
-            // High-performance F1 traction control
+            // Traction control: triggers earlier for a training car - cut power when a wheel
+            // is already at 70%+ of its grip limit, to prevent a full breakaway.
             if (throttleAssist)
             {
-                float targetSlip = 0.85f; // Desired slip ratio for max traction
-                float slipTolerance = 0.05f; // Allowable deviation from target slip
+                float targetSlip = 0.70f;     // Training car: keep grip in reserve
+                float slipTolerance = 0.08f;  // Wider stability band - fewer oscillations
                 if (w.slip > targetSlip + slipTolerance)
                 {
-                    // If slip exceeds the upper bound, calculate how much it overshoots
                     float overshoot = w.slip - targetSlip;
-                    // Convert overshoot to a reduction factor (aggressive multiplier)
                     float reduction = Mathf.Clamp01(overshoot * 2.0f);
-                    // Aggressively increase TCS reduction to cut power fast
                     w.tcsReduction = Mathf.Lerp(w.tcsReduction, 1, reduction / 5f);
                 }
                 else if (w.slip < targetSlip - slipTolerance)
                 {
-                    // If slip is below the lower bound, quickly restore power
                     w.tcsReduction = Mathf.Lerp(w.tcsReduction, 0f, 0.6f * Time.deltaTime);
                 }
-                // Clamp TCS reduction to [0, 1] range
                 w.tcsReduction = Mathf.Clamp01(w.tcsReduction);
             }
             w.brake = (isBraking == true ? 1 : 0) * (1 - w.tcsReduction);
 
-            // Apply steering input smoothing (steering assist or slip-based reduction can be added here if desired)
+            // Steering assist: only steps in when a wheel is really close to breaking away (slip > 0.6),
+            // not on every turn during normal driving.
             float s = Mathf.Clamp01(w.slip);
             w.input.x = Mathf.Lerp(w.input.x, userInput.x, Time.deltaTime * 60f);
-            if (s > 0.3f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
+            if (s > 0.6f && s < 1.5f && steeringAssist) w.input.x = Mathf.Lerp(w.input.x, 0, s * Time.deltaTime * steeringAssistStrength);
 
             // Apply throttle with TCS - more responsive for F1
             float inputY = transmissionMode == TransmissionMode.Neutral ? 0f : userInput.y;
@@ -519,13 +531,24 @@ public class Car : MonoBehaviour
 
     void FixedUpdate()
     {
-        rb.AddForce(-transform.up * rb.linearVelocity.magnitude * downforce);
+        // Quadratic downforce: grows with v, like real aerodynamics.
+        // Greatly increases normalForce at high speed - and through it, max grip.
+        float vSpeed = rb.linearVelocity.magnitude;
+        rb.AddForce(-transform.up * vSpeed * vSpeed * downforce);
 
         // Aerodynamic drag: F = -v * |v| * coeff (speed squared)
         Vector3 horizVel = Vector3.ProjectOnPlane(rb.linearVelocity, transform.up);
         float speed = horizVel.magnitude;
         if (speed > 0.3f)
             rb.AddForce(-horizVel.normalized * speed * speed * airDragCoeff);
+
+        // Yaw damping: damps rotation around the vertical axis.
+        // Suppresses spin/wobble without blocking normal turning - torque is proportional to yaw rate.
+        if (yawDamping > 0.0001f)
+        {
+            float yawVel = Vector3.Dot(rb.angularVelocity, transform.up);
+            rb.AddTorque(-transform.up * yawVel * yawDamping, ForceMode.Force);
+        }
         float averageWheelAngularVelocity = 0f;
         // Debug.Log(rb.velocity.magnitude);
         foreach (var w in wheels)
@@ -563,10 +586,19 @@ public class Car : MonoBehaviour
                 * w.normalForce * coefStaticFriction * Time.fixedDeltaTime;
             float currentMaxFrictionForce = w.normalForce * coefStaticFriction;
 
-            w.slidding = totalLocalForce.magnitude > currentMaxFrictionForce;
-            w.slip = totalLocalForce.magnitude / currentMaxFrictionForce;
+            w.slip = currentMaxFrictionForce > 0.0001f
+                ? totalLocalForce.magnitude / currentMaxFrictionForce
+                : 0f;
+            // Smooth static->kinetic transition: full grip while slip<=1.0, then
+            // degrade linearly to kinetic over slipBlendWindow.
+            // Removes the grip "cliff" that turned a breakaway into an uncontrollable slide.
+            float slipExcess = Mathf.Max(0f, w.slip - 1f);
+            float kineticRatio = coefStaticFriction > 0.0001f ? coefKineticFriction / coefStaticFriction : 1f;
+            float gripFactor = Mathf.Lerp(1f, kineticRatio,
+                Mathf.Clamp01(slipExcess / Mathf.Max(0.01f, slipBlendWindow)));
+            w.slidding = w.slip > 1f + slipBlendWindow * 0.5f;
             totalLocalForce = Vector3.ClampMagnitude(totalLocalForce, currentMaxFrictionForce);
-            totalLocalForce *= w.slidding ? (coefKineticFriction / coefStaticFriction) : 1;
+            totalLocalForce *= gripFactor;
 
             Vector3 totalWorldForce = wheelObj.TransformDirection(totalLocalForce);
             w.worldSlipDirection = totalWorldForce;

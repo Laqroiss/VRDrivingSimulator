@@ -17,6 +17,8 @@ public class WheelInput : MonoBehaviour
     [Header("Settings")]
     [Range(0f, 0.2f)] public float deadzone         = 0.05f;
     [Range(0.1f, 2f)] public float steerSensitivity = 1f;
+    [Tooltip("Steering response curve: 1=linear, 1.4-1.6=soft center without a dead zone, 2+=very calm (but the first few degrees may disappear)")]
+    [Range(1f, 3f)] public float steerExponent = 1.4f;
 
     private InputDevice    _device;
     private AxisControl    _steerAxis;
@@ -73,7 +75,11 @@ public class WheelInput : MonoBehaviour
         float steer = _steerAxis != null ? _steerAxis.ReadValue() : 0f;
         float axisY = _gasAxis   != null ? _gasAxis.ReadValue()   : 0f;
 
-        steer = ApplyDeadzone(steer * steerSensitivity, deadzone);
+        // Deadzone first, then the non-linear response curve and overall sensitivity.
+        // The x^exponent curve softens the center (easy to hold straight) while keeping full travel at the edges.
+        steer = ApplyDeadzone(steer, deadzone);
+        steer = Mathf.Sign(steer) * Mathf.Pow(Mathf.Abs(steer), steerExponent) * steerSensitivity;
+        steer = Mathf.Clamp(steer, -1f, 1f);
 
         car.externalSteer    = steer;
         car.externalThrottle = Mathf.Clamp01(axisY);   // >0 = throttle
