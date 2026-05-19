@@ -24,8 +24,8 @@ public class BordurePlacer : MonoBehaviour
 
     [Header("Параметры бордюра")]
     public float bordureLength = 2f;
-    public float bordureHeight = 0.15f;
-    public float bordureWidth = 0.3f;
+    public float bordureHeight = 0.16f;
+    public float bordureWidth = 0.31f;
     public float yOffset = 0f;
     public Material bordureMaterial;
 
