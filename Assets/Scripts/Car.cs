@@ -40,7 +40,7 @@ public class Engine
         float currentRatio = Mathf.Abs(gearRatios[currentGear] * finalDriveRatio);
         return baseRatio > 0.001f ? currentRatio / baseRatio : 1f;
     }
-
+    //получение текущей мощности
     public float GetCurrentPower(MonoBehaviour context) // 0-1 в зависимости от RPM, кривая момента
     {
         if (switchingGears) return 0.3f; // Less power during gear switch
@@ -71,7 +71,7 @@ public class Engine
             context.StartCoroutine(ResetSwitchingGearsCoroutine());
         }
     }
-
+    //понижение передачи
     public void DownGear(MonoBehaviour context)
     {
         if (currentGear > 0 && !switchingGears)
