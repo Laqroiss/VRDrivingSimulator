@@ -26,7 +26,7 @@ export default async function AttemptsPage({ searchParams }) {
   const userMap = Object.fromEntries(users.map(u => [u._id.toString(), u.fullName]))
 
   const total  = attempts.length
-  const passed = attempts.filter(a => a.passed).length
+  const passed = attempts.filter(a => a.completed !== false && a.passed).length
 
   return (
     <div>
@@ -77,7 +77,11 @@ export default async function AttemptsPage({ searchParams }) {
                       : realName}
                   </td>
                   <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
-                  <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
+                  <td>
+                    {a.completed === false
+                      ? <span className="badge" style={{ background: '#3a341a', color: '#e0c34d' }}> </span>
+                      : <span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span>}
+                  </td>
                   <td>
                     <span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>
                       {a.totalPenaltyPoints ?? '—'}

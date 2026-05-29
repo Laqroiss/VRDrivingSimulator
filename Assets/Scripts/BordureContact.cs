@@ -27,6 +27,7 @@ public class BordureContact : MonoBehaviour
         if (Time.time - _lastErrorTime < _errorCooldown) return;
         _lastErrorTime = Time.time;
 
+        SpeedCameraShake.Instance?.TriggerKerbShake();
         ExamManager.Instance?.AddError($"Curb touch ({gameObject.name})");
         Debug.Log($"BordureContact: touch {gameObject.name}, force: {impulse:F2}");
     }
@@ -96,6 +97,7 @@ public class WheelBordureDetector : MonoBehaviour
         if (impulse < 0.3f) return;
 
         _lastErrorTime = Time.time;
+        SpeedCameraShake.Instance?.TriggerKerbShake();
         ExamManager.Instance?.AddError($"Wheel touched a curb ({gameObject.name})");
         Debug.Log($"WheelBordureDetector: wheel {gameObject.name} touched {collision.gameObject.name}, force: {impulse:F2}");
     }

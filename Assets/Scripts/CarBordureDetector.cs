@@ -43,6 +43,7 @@ public class CarBordureDetector : MonoBehaviour
                 if (!hit.gameObject.name.StartsWith("Bordure_")) continue;
 
                 _lastPenaltyTime = Time.time;
+                SpeedCameraShake.Instance?.TriggerKerbShake();
                 ExamManager.Instance?.AddCollision();
                 return; //    
             }

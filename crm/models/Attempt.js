@@ -23,6 +23,7 @@ const AttemptSchema = new mongoose.Schema({
   studentPhone:      { type: String, default: '' },
   studentName:       { type: String, default: '' },
   timestamp:         { type: Date,   default: Date.now },
+  completed:         { type: Boolean, default: false }, //    ; false =   / 
   passed:            Boolean,
   totalPenaltyPoints: Number,
   examDuration:      Number,  // 

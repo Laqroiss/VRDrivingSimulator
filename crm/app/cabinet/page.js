@@ -58,7 +58,7 @@ export default function CabinetPage() {
     setPhone(''); setPass('')
   }
 
-  const passed = attempts.filter(a => a.passed).length
+  const passed = attempts.filter(a => a.completed !== false && a.passed).length
 
   if (step === 'login') return (
     <div className="login-wrap">
@@ -144,7 +144,11 @@ export default function CabinetPage() {
             {attempts.map(a => (
               <tr key={a._id}>
                 <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
-                <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
+                <td>
+                  {a.completed === false
+                    ? <span className="badge" style={{ background: '#3a341a', color: '#e0c34d' }}> </span>
+                    : <span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span>}
+                </td>
                 <td><span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</span></td>
                 <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
                 <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
