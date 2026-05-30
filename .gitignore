@@ -104,3 +104,6 @@ InitTestScene*.unity*
 # Environment secrets
 crm/.env
 crm/node_modules/
+
+# Thesis / reviews — not part of the project source
+/Documents/
