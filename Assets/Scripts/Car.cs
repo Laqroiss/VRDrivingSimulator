@@ -208,6 +208,7 @@ public class WheelProperties
     [HideInInspector] public float brake = 0;
     [HideInInspector] public float slipHistory = 0f;
     [HideInInspector] public float tcsReduction = 0f; // Traction control reduction factor
+    [HideInInspector] public float visualBottomOffset = 0f; // distance from wheel pivot to tire bottom (measured from mesh)
 }
 
 public class Car : MonoBehaviour
@@ -233,6 +234,8 @@ public class Car : MonoBehaviour
     public float suspensionForce = 90f;
     public float dampAmount = 2.5f;
     public float suspensionForceClamp = 200f;
+    [Tooltip("Max suspension travel change per frame for the damper (m). Smaller = curbs feel softer, larger = stiffer/sharper jolt. Caps the geometric jump when hitting a curb so the car doesn't rear up")]
+    public float maxSuspensionStep = 0.025f;
     [HideInInspector] public Rigidbody rb;
     [HideInInspector] public bool forwards = true;
 
@@ -323,6 +326,17 @@ public class Car : MonoBehaviour
             w.wheelObject.transform.eulerAngles = transform.eulerAngles;
             w.wheelObject.transform.localScale = 2f * new Vector3(w.size, w.size, w.size);
             w.wheelCircumference = 2f * Mathf.PI * w.size;
+
+            // Measure the actual tire bottom from the mesh so the wheel touches the road
+            // with no gap regardless of model geometry (size stays the physical radius).
+            w.visualBottomOffset = w.size;
+            var rends = w.wheelObject.GetComponentsInChildren<MeshRenderer>();
+            if (rends.Length > 0)
+            {
+                Bounds b = rends[0].bounds;
+                for (int k = 1; k < rends.Length; k++) b.Encapsulate(rends[k].bounds);
+                w.visualBottomOffset = w.wheelObject.transform.position.y - b.min.y;
+            }
 
             if (skidMarkPrefab != null)
             {
@@ -605,17 +619,31 @@ public class Car : MonoBehaviour
 
             if (grounded)
             {
-                float compression = rayLen - hit.distance;
-                float damping = (w.lastSuspensionLength - hit.distance) * dampAmount;
-                w.normalForce = (compression + damping) * suspensionForce;
-                w.normalForce = Mathf.Clamp(w.normalForce, 0f, suspensionForceClamp);
+                // Suspension compression from ray geometry. Clamped to rayLen so a tall
+                // curb can't inject an enormous force in a single frame.
+                float compression = Mathf.Clamp(rayLen - hit.distance, 0f, rayLen);
+
+                // Damper on suspension compression speed (travel change per frame). This is
+                // what gives the noticeable curb "jolt". The per-frame step is capped
+                // (maxSuspensionStep): flat road behaves as before, but a sharp geometric
+                // jump on a curb no longer produces a force of hundreds of kN -
+                // the jolt stays felt, but the car doesn't rear up.
+                float suspStep = Mathf.Clamp(w.lastSuspensionLength - hit.distance,
+                                             -maxSuspensionStep, maxSuspensionStep);
+                float damping = suspStep * dampAmount;
+                w.normalForce = Mathf.Clamp((compression + damping) * suspensionForce, 0f, suspensionForceClamp);
 
                 Vector3 springDir = hit.normal * w.normalForce;
                 w.suspensionForceDirection = springDir;
 
                 rb.AddForceAtPosition(springDir + totalWorldForce, hit.point);
                 w.lastSuspensionLength = hit.distance;
-                wheelObj.position = hit.point + transform.up * w.size;
+
+                // Visual wheel: seat the tire bottom right on the contact point (via the
+                // measured visualBottomOffset - closes the "floating" gap above the road).
+                // The lower clamp of 0 stops the wheel rising above its mount on a curb.
+                float wheelDrop = Mathf.Clamp(hit.distance - w.visualBottomOffset, 0f, rayLen);
+                wheelObj.position = w.wheelWorldPosition - transform.up * wheelDrop;
 
                 if (w.slidding)
                 {
@@ -666,7 +694,9 @@ public class Car : MonoBehaviour
             }
             else
             {
-                wheelObj.position = w.wheelWorldPosition + transform.up * (w.size - rayLen);
+                w.normalForce = 0f; // wheel in the air - no grip force
+                w.lastSuspensionLength = rayLen; // reset travel: no false damper spike on next touchdown
+                wheelObj.position = w.wheelWorldPosition - transform.up * (w.suspensionLength + w.size);
                 if (w.skidTrail != null && w.skidTrail.emitting)
                 {
                     w.skidTrail.emitting = false;

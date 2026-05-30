@@ -4753,7 +4753,7 @@ MonoBehaviour:
   wheelGripZ: 42
   suspensionForce: 45000
   dampAmount: 20
-  suspensionForceClamp: 150000
+  suspensionForceClamp: 32000
   rb: {fileID: 0}
   forwards: 1
   transmissionMode: 0
