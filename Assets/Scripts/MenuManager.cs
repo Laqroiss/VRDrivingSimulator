@@ -16,7 +16,11 @@ public class MenuManager : MonoBehaviour
     public float       holdTime    = 2f; // time held at each point
 
 
-    [Header("UI")]
+    [Header("UI Toolkit menu")]
+    [Tooltip("Object with UIDocument + MenuUIToolkit (new menu). The legacy uGUI fields below can stay empty")]
+    public MenuUIToolkit menuUI;
+
+    [Header("UI (legacy uGUI - optional)")]
     public Canvas      menuCanvas;   // root menu Canvas - for VR positioning
     public CanvasGroup menuPanel;
     public Button      btnStart;
@@ -27,7 +31,6 @@ public class MenuManager : MonoBehaviour
 
     [Header("Settings")]
     public Slider      volumeSlider;
-    public TMP_Dropdown qualityDropdown;
 
     [Header("Car")]
     public Car car;
@@ -108,10 +111,22 @@ public class MenuManager : MonoBehaviour
             _menuCanvas.worldCamera = _cam;
         }
 
-        // 
+        // Buttons (legacy uGUI)
         btnStart?.onClick.AddListener(OnStartClicked);
         btnSettings?.onClick.AddListener(ToggleSettings);
         btnQuit?.onClick.AddListener(QuitGame);
+
+        // New UI Toolkit menu
+        if (menuUI != null)
+        {
+            menuUI.OnStart += HandleStartButton;
+            menuUI.OnQuit  += QuitGame;
+            menuUI.OnLogin += HandleLogin;
+            menuUI.ShowMenu();
+            menuUI.SetKeyHint("[Enter] вЂ”      [Tab] вЂ”      [Esc] вЂ” ");
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible   = true;
+        }
 
         // Volume
         if (volumeSlider != null)
@@ -124,12 +139,7 @@ public class MenuManager : MonoBehaviour
             });
         }
 
-        // Quality
-        if (qualityDropdown != null)
-        {
-            qualityDropdown.value = QualitySettings.GetQualityLevel();
-            qualityDropdown.onValueChanged.AddListener(QualitySettings.SetQualityLevel);
-        }
+        // Quality/VSync/FPS    GraphicsSettings (  Settings)
 
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
@@ -228,6 +238,19 @@ public class MenuManager : MonoBehaviour
 
     // вв Start the game вввввввввввввввввввввввввввввввввввввввввввввввввввввв
 
+    // Start/Continue button from the UI Toolkit menu: in game = Resume, otherwise = Start
+    void HandleStartButton()
+    {
+        if (_inGame) { if (_paused) ResumeGame(); }
+        else OnStartClicked();
+    }
+
+    //  LOG IN / LOG OUT вЂ”   (  )
+    void HandleLogin()
+    {
+        if (authManager != null) authManager.RequestAuthThenStart(() => { });
+    }
+
     void OnStartClicked()
     {
         if (authManager != null && !AuthManager.IsLoggedIn)
@@ -248,6 +271,7 @@ public class MenuManager : MonoBehaviour
     IEnumerator TransitionToCockpit()
     {
         // Hide the menu
+        menuUI?.HideMenu();
         yield return StartCoroutine(FadeMenu(1f, 0f, fadeOutDuration));
         if (menuPanel != null)
             menuPanel.gameObject.SetActive(false);
@@ -285,7 +309,10 @@ public class MenuManager : MonoBehaviour
         // Switch to pause mode (ESC during the game)
         _inGame = true;
 
-        //   Start  Resume
+        //   Start   (UI Toolkit   uGUI)
+        menuUI?.SetStartText("");
+        menuUI?.SetKeyHint("[Esc] вЂ”      [Tab] вЂ”      [Q] вЂ” ");
+
         var startLabel = btnStart?.GetComponentInChildren<TextMeshProUGUI>();
         if (startLabel != null) startLabel.text = "Resume";
 
@@ -316,6 +343,8 @@ public class MenuManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
 
+        menuUI?.ShowMenu();
+
         if (menuPanel != null)
         {
             menuPanel.gameObject.SetActive(true);
@@ -333,6 +362,8 @@ public class MenuManager : MonoBehaviour
 
     IEnumerator ResumeRoutine()
     {
+        menuUI?.SetSettingsVisible(false);
+        menuUI?.HideMenu();
         yield return StartCoroutine(FadeMenuUnscaled(1f, 0f, fadeOutDuration));
         if (menuPanel != null)
             menuPanel.gameObject.SetActive(false);
@@ -373,6 +404,7 @@ public class MenuManager : MonoBehaviour
 
     void ToggleSettings()
     {
+        menuUI?.ToggleSettings();
         if (settingsPanel != null)
             settingsPanel.SetActive(!settingsPanel.activeSelf);
     }

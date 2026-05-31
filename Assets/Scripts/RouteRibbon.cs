@@ -6,27 +6,21 @@ using UnityEngine.Splines;
 #endif
 
 /// <summary>
-///     Forza Horizon:     
-///   ,        
-/// .     waypoint',   RouteManager;  
-///    (     /).
+/// Forza Horizon-style route ribbon: a glowing strip along the road with running
+/// dots that starts ahead of the car and shortens as you drive.
+/// Built from an assigned SplineContainer (Unity Splines package).
 ///
-/// :     (   ,  RouteManager),
-///  routeManager вЂ”  . /  .
+/// Setup: attach to an object, assign a Spline Container (or RouteSegmentController
+/// sets it). The mesh/material are created automatically.
 /// </summary>
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class RouteRibbon : MonoBehaviour
 {
     [Header("Route source")]
 #if USE_SPLINES
-    [Tooltip("Spline- ( ).   Spline- Unity")]
+    [Tooltip("Spline route. Drawn with Unity's native Spline tool. Assigned by RouteSegmentController or by hand")]
     public SplineContainer splineContainer;
 #endif
-    [Tooltip("  .  ,  waypoints  RouteManager")]
-    public RoutePlacer routePlacer;
-    public RouteManager routeManager;
-    [Tooltip("  - (  )")]
-    public bool hideArrows = true;
 
     [Header("Ribbon geometry")]
     [Tooltip("Ribbon width, m")]
@@ -94,36 +88,22 @@ public class RouteRibbon : MonoBehaviour
 
     void Start()
     {
-        if (routePlacer == null) routePlacer = FindAnyObjectByType<RoutePlacer>();
-        if (routeManager == null) routeManager = FindAnyObjectByType<RouteManager>();
         var car = FindAnyObjectByType<Car>();
         if (car != null) _car = car.transform;
 
         SetupMaterial();
         BuildSpline();
 
-        if (hideArrows && routeManager != null)
-            foreach (var w in routeManager.waypoints)
-                if (w != null) w.SetVisualVisible(false);
-
-        int wpCount = routeManager != null ? routeManager.waypoints.Count : -1;
-        Debug.Log($"[RouteRibbon] routeManager={(routeManager != null)}, waypoints={wpCount}, " +
-                  $" ={_pts.Count}, car={(_car != null)}, ={(_mat != null ? _mat.shader.name : "")}. " +
-                  $"  {(alwaysVisible ? " (alwaysVisible)" : "  ")}.");
-
         _mr.enabled = false;
     }
 
     void LateUpdate()
     {
-        // : alwaysVisible в†’ ;   RouteManager,   ;
-        //    ExamManager (    );
-        //       вЂ” .
+        // : alwaysVisible в†’ ;      (ExamManager).
         bool active;
-        if (alwaysVisible)                  active = true;
-        else if (routeManager != null)      active = routeManager.RouteActive;
+        if (alwaysVisible)                     active = true;
         else if (ExamManager.Instance != null) active = ExamManager.Instance.State == ExamManager.ExamState.InProgress;
-        else                                active = true;
+        else                                   active = true;
 
         //   в†’    
         if (active && !_prevActive) { _headIndex = 0; _carIndex = 0; }
@@ -166,55 +146,10 @@ public class RouteRibbon : MonoBehaviour
             _carIndex = 0;
             return;
         }
+        Debug.LogWarning("[RouteRibbon] No assigned spline with >=2 knots - ribbon not built.");
+#else
+        Debug.LogWarning("[RouteRibbon] Needs the Splines package and the USE_SPLINES define.");
 #endif
-
-        // :   RoutePlacer,  waypoints  RouteManager
-        var wp = new List<Vector3>();
-        if (routePlacer != null && routePlacer.points != null)
-            foreach (var t in routePlacer.points)
-                if (t != null) wp.Add(t.position);
-
-        if (wp.Count < 2 && routeManager != null)
-        {
-            wp.Clear();
-            foreach (var w in routeManager.waypoints)
-                if (w != null) wp.Add(w.transform.position);
-        }
-
-        if (wp.Count < 2)
-        {
-            Debug.LogWarning($"[RouteRibbon]    ({wp.Count}). " +
-                             "   RoutePlacer ( waypoints  RouteManager).");
-            return;
-        }
-
-        // Catmull-Rom  
-        var raw = new List<Vector3>();
-        for (int i = 0; i < wp.Count - 1; i++)
-        {
-            Vector3 p0 = wp[Mathf.Max(0, i - 1)];
-            Vector3 p1 = wp[i];
-            Vector3 p2 = wp[i + 1];
-            Vector3 p3 = wp[Mathf.Min(wp.Count - 1, i + 2)];
-
-            int steps = Mathf.Max(1, samplesPerSegment);
-            for (int s = 0; s < steps; s++)
-                raw.Add(CatmullRom(p0, p1, p2, p3, (float)s / steps));
-        }
-        raw.Add(wp[wp.Count - 1]);
-
-        //     
-        foreach (var p in raw)
-            _pts.Add(ProjectToGround(p));
-
-        //   ( UV/)
-        _cumDist.Add(0f);
-        for (int i = 1; i < _pts.Count; i++)
-            _cumDist.Add(_cumDist[i - 1] + Vector3.Distance(_pts[i], _pts[i - 1]));
-        ComputeTurnFactors();
-
-        _headIndex = 0;
-        _carIndex = 0;
     }
 
     /// <summary>
@@ -254,15 +189,6 @@ public class RouteRibbon : MonoBehaviour
         if (Physics.Raycast(origin, Vector3.down, out var hit, groundRayUp * 2f, groundMask, QueryTriggerInteraction.Ignore))
             return hit.point + Vector3.up * heightOffset;
         return new Vector3(p.x, p.y + heightOffset, p.z);
-    }
-
-    static Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
-    {
-        float t2 = t * t, t3 = t2 * t;
-        return 0.5f * ((2f * p1) +
-                       (-p0 + p2) * t +
-                       (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
-                       (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
     }
 
     // вв Ribbon head follows the car вввввввввввввввввввввввввввввввввввввввввв
@@ -383,7 +309,7 @@ public class RouteRibbon : MonoBehaviour
         {
             // Sprites/Default multiplies the texture by the VERTEX color and is transparent/double-sided -
             // needed to color the ribbon by curvature (blue->red) via mesh.colors.
-            bool urp = GraphicsSettings.currentRenderPipeline != null;
+            bool urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null;
             Shader sh = Shader.Find("Sprites/Default");
             if (sh == null) sh = urp ? Shader.Find("Universal Render Pipeline/Unlit") : Shader.Find("Unlit/Transparent");
 

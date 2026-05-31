@@ -450,7 +450,7 @@ public class ReplayCRMSync : MonoBehaviour
         var descRT = desc.GetComponent<RectTransform>();
         descRT.sizeDelta         = new Vector2(230f, 46f);
         desc.alignment           = TextAlignmentOptions.Left;
-        desc.enableWordWrapping  = true;
+        desc.textWrappingMode    = TextWrappingModes.Normal;
 
         // Penalty points on the right
         var pts = MakeText(itemRT, $"−{p.points}", 15, FontStyles.Bold,

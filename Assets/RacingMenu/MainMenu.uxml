@@ -1,0 +1,100 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/RacingMenu/MainMenu.uss" />
+
+    <!-- Root is TRANSPARENT — it overlays your in-game 3D scene. -->
+    <ui:VisualElement name="root" class="root">
+
+        <!-- =================== LOGO =================== -->
+        <ui:VisualElement name="logo" class="logo" picking-mode="Ignore">
+            <ui:VisualElement class="logo__top">
+                <ui:Label text="DRIVING" class="logo__word" />
+                <ui:Label text="VR" class="logo__vr" />
+            </ui:VisualElement>
+            <ui:Label text="SIMULATOR" class="logo__sub" />
+        </ui:VisualElement>
+
+        <!-- =================== MENU =================== -->
+        <ui:VisualElement name="menu" class="menu">
+
+            <!-- START (selected) — solid white + helmet badge -->
+            <ui:Button name="start-button" class="btn btn--start">
+                <ui:VisualElement class="btn__icon icon--flag" picking-mode="Ignore" />
+                <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                    <ui:Label text="START" class="btn__label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="badge" picking-mode="Ignore">
+                    <ui:VisualElement class="badge__icon icon--helmet" picking-mode="Ignore" />
+                </ui:VisualElement>
+            </ui:Button>
+
+            <!-- SETTINGS -->
+            <ui:Button name="settings-button" class="btn">
+                <ui:VisualElement class="btn__icon icon--gear" picking-mode="Ignore" />
+                <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                    <ui:Label text="SETTINGS" class="btn__label" />
+                </ui:VisualElement>
+            </ui:Button>
+
+            <!-- LOG IN / LOG OUT -->
+            <ui:Button name="login-button" class="btn">
+                <ui:VisualElement class="btn__icon icon--user" picking-mode="Ignore" />
+                <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                    <ui:Label text="LOG IN / LOG OUT" class="btn__label" />
+                    <ui:Label text="PROFILE &amp; SOCIAL" class="btn__sub" />
+                </ui:VisualElement>
+            </ui:Button>
+
+            <!-- QUIT — solid red -->
+            <ui:Button name="quit-button" class="btn btn--quit">
+                <ui:VisualElement class="btn__icon icon--power" picking-mode="Ignore" />
+                <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                    <ui:Label text="QUIT" class="btn__label" />
+                </ui:VisualElement>
+            </ui:Button>
+
+        </ui:VisualElement>
+
+        <!-- =================== BOTTOM HINT + SPARKLE =================== -->
+        <ui:VisualElement name="nav-hint" class="nav-hint" picking-mode="Ignore">
+            <ui:VisualElement class="nav-hint__line" />
+            <ui:VisualElement class="nav-hint__icon icon--swap" />
+            <ui:VisualElement class="nav-hint__line" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="sparkle" class="sparkle icon--sparkle" picking-mode="Ignore" />
+
+        <!-- =================== SETTINGS OVERLAY =================== -->
+        <ui:VisualElement name="settings-overlay" class="overlay hidden">
+            <ui:VisualElement class="settings-card">
+                <ui:Label text="SETTINGS" class="settings-title" />
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="" class="srow__label" />
+                    <ui:Slider name="volume" low-value="0" high-value="1" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="" class="srow__label" />
+                    <ui:DropdownField name="quality" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="  (FPS)" class="srow__label" />
+                    <ui:DropdownField name="fps" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text=". " class="srow__label" />
+                    <ui:Toggle name="vsync" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:Button name="settings-close" class="btn btn--quit settings-close">
+                    <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                        <ui:Label text="" class="btn__label" />
+                    </ui:VisualElement>
+                </ui:Button>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

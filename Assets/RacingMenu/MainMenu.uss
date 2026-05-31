@@ -1,0 +1,310 @@
+/* =============================================================
+   MainMenu.uss  —  VR Driving Simulator main menu
+   Forza Horizon inspired  TRANSPARENT background overlay
+   Unity UI Toolkit (Unity 2022.1+ recommended)
+
+   NOTES ON UI TOOLKIT LIMITS:
+   - The root is transparent so this UXML draws OVER your 3D
+     scene (a camera render / RenderTexture behind the panel).
+   - USS has no real backdrop-blur. The frosted look here uses a
+     translucent white background-color. For a true frosted-glass
+     blur of the scene behind, use a blur RenderTexture or a
+     URP/HDRP blur material assigned to a background sprite.
+   - No box-shadow in USS — soft drop shadows in the mockup are
+     approximated. Use a 9-slice shadow sprite if you need them.
+   - text-shadow requires Unity 2022.1+.
+   - Replace icon background-image paths with your own sprites.
+   ============================================================= */
+
+/* ---------- Palette ---------- */
+:root {
+    --red:       rgb(226, 45, 40);
+    --red-deep:  rgb(194, 31, 27);
+    --ink:       rgb(27, 30, 36);
+    --sub:       rgb(108, 116, 128);
+    --glass:      rgba(248, 250, 252, 0.62);
+    --glass-line: rgba(255, 255, 255, 0.75);
+}
+
+/* ---------- Root (transparent overlay) ---------- */
+.root {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0);   /* fully transparent */
+}
+
+/* ---------- Logo ---------- */
+.logo {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    align-items: center;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.logo__top {
+    flex-direction: row;
+    align-items: center;
+}
+.logo__word {
+    font-size: 70px;
+    -unity-font-style: bold-and-italic;
+    color: rgb(255, 255, 255);
+    margin-right: 14px;
+    /* -unity-font-definition: url("project://database/Assets/UI/Fonts/Saira-BoldItalic.ttf"); */
+}
+.logo__vr {
+    font-size: 42px;
+    -unity-font-style: bold-and-italic;
+    color: rgb(255, 255, 255);
+    background-color: var(--red);
+    padding: 3px 14px 4px 14px;
+    border-radius: 10px;
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+.logo__sub {
+    margin-top: 4px;
+    margin-left: 8px;
+    font-size: 32px;
+    -unity-font-style: bold-and-italic;
+    color: var(--red);
+    letter-spacing: 9px;
+}
+
+/* ---------- Menu ---------- */
+.menu {
+    position: absolute;
+    left: 72px;
+    top: 240px;
+    width: 460px;
+    flex-direction: column;
+}
+
+/* Base button — frosted translucent white card. */
+.btn {
+    flex-direction: row;
+    align-items: center;
+    height: 82px;
+    margin-bottom: 16px;
+    padding-left: 24px;
+    padding-right: 24px;
+
+    background-color: var(--glass);
+    border-left-width: 1.5px;
+    border-right-width: 1.5px;
+    border-top-width: 1.5px;
+    border-bottom-width: 1.5px;
+    border-left-color: var(--glass-line);
+    border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line);
+    border-bottom-color: var(--glass-line);
+    border-top-left-radius: 13px;
+    border-top-right-radius: 13px;
+    border-bottom-left-radius: 13px;
+    border-bottom-right-radius: 13px;
+
+    transition-property: translate, background-color;
+    transition-duration: 0.14s;
+}
+
+.btn__icon {
+    width: 38px;
+    height: 38px;
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: var(--ink);
+}
+.btn__text {
+    flex-grow: 1;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 18px;
+}
+.btn__label {
+    font-size: 33px;
+    -unity-font-style: bold;
+    color: var(--ink);
+}
+.btn__sub {
+    margin-top: 3px;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: var(--sub);
+    letter-spacing: 1.8px;
+}
+
+/* Hover / press feedback (Forza slides the selection sideways). */
+.btn:hover {
+    translate: 5px 0;
+    background-color: rgba(255, 255, 255, 0.78);
+}
+.btn:active {
+    translate: 2px 0;
+}
+
+/* ---- START (selected) ---- */
+.btn--start {
+    background-color: rgb(255, 255, 255);
+    border-left-color: rgb(255, 255, 255);
+    border-right-color: rgb(255, 255, 255);
+    border-top-color: rgb(255, 255, 255);
+    border-bottom-color: rgb(255, 255, 255);
+    padding-right: 8px;
+}
+.btn--start .btn__icon {
+    -unity-background-image-tint-color: var(--red);
+}
+.btn--start:hover {
+    translate: 5px 0;
+    background-color: rgb(255, 255, 255);
+}
+.badge {
+    width: 58px;
+    height: 58px;
+    border-radius: 13px;
+    background-color: var(--red);
+    align-items: center;
+    justify-content: center;
+}
+.badge__icon {
+    width: 34px;
+    height: 34px;
+    -unity-background-scale-mode: scale-to-fit;
+    -unity-background-image-tint-color: rgb(255, 255, 255);
+}
+
+/* ---- QUIT (solid red) ---- */
+.btn--quit {
+    background-color: var(--red);
+    border-left-color: rgba(255, 255, 255, 0.25);
+    border-right-color: rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.25);
+    border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+.btn--quit .btn__icon {
+    -unity-background-image-tint-color: rgb(255, 255, 255);
+}
+.btn--quit .btn__label {
+    color: rgb(255, 255, 255);
+}
+.btn--quit:hover {
+    translate: 5px 0;
+    background-color: var(--red-deep);
+}
+
+/* ---------- Bottom hint + sparkle ---------- */
+.nav-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 26px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+.nav-hint__line {
+    width: 150px;
+    height: 1.5px;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+.nav-hint__icon {
+    width: 26px;
+    height: 26px;
+    margin-left: 14px;
+    margin-right: 14px;
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0.9);
+}
+.sparkle {
+    position: absolute;
+    right: 26px;
+    bottom: 18px;
+    width: 28px;
+    height: 28px;
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0.92);
+}
+
+/* ---------- Settings overlay (matches frosted theme) ---------- */
+.overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(15, 18, 24, 0.55);
+    align-items: center;
+    justify-content: center;
+    transition-property: opacity;
+    transition-duration: 0.15s;
+}
+.overlay.hidden {
+    opacity: 0;
+    display: none;
+}
+
+.settings-card {
+    width: 720px;
+    padding: 32px 40px 36px 40px;
+    background-color: rgba(248, 250, 252, 0.93);
+    border-left-width: 1.5px; border-right-width: 1.5px;
+    border-top-width: 1.5px; border-bottom-width: 1.5px;
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 16px; border-top-right-radius: 16px;
+    border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+}
+.settings-title {
+    font-size: 40px;
+    -unity-font-style: bold-and-italic;
+    color: var(--red);
+    -unity-text-align: middle-center;
+    letter-spacing: 5px;
+    margin-bottom: 24px;
+}
+.srow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    margin-bottom: 10px;
+}
+.srow__label {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: var(--ink);
+    width: 300px;
+}
+.srow__control {
+    flex-grow: 1;
+    margin-left: 16px;
+}
+.settings-close {
+    margin-top: 18px;
+    width: 200px;
+    align-self: center;
+    justify-content: center;
+}
+
+/*    */
+.srow__control .unity-base-popup-field__input,
+.srow__control .unity-popup-field__input {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 8px; border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+}
+.srow__control .unity-base-popup-field__text { color: var(--ink); font-size: 22px; -unity-font-style: bold; }
+.srow__control .unity-base-slider__dragger { background-color: var(--red); border-radius: 8px; border-width: 0; }
+.srow__control .unity-base-slider__tracker { background-color: rgba(120, 130, 145, 0.5); border-radius: 4px; }
+.srow__control .unity-toggle__checkmark {
+    width: 26px; height: 26px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 6px; border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
+}
+
+/* ---------- Icon sprites (point at your own PNG/SVG sprites) ---------- */
+.icon--flag    { /* background-image: url("project://database/Assets/UI/Icons/flag.png"); */ }
+.icon--helmet  { /* background-image: url("project://database/Assets/UI/Icons/helmet.png"); */ }
+.icon--gear    { /* background-image: url("project://database/Assets/UI/Icons/gear.png"); */ }
+.icon--user    { /* background-image: url("project://database/Assets/UI/Icons/user.png"); */ }
+.icon--power   { /* background-image: url("project://database/Assets/UI/Icons/power.png"); */ }
+.icon--swap    { /* background-image: url("project://database/Assets/UI/Icons/swap.png"); */ }
+.icon--sparkle { /* background-image: url("project://database/Assets/UI/Icons/sparkle.png"); */ }

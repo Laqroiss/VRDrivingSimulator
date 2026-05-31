@@ -8,7 +8,7 @@ using System.Collections;
 /// <summary>
 /// Browser-based authentication.
 ///
-///   Unity ( MainMenu):
+/// Unity setup (called from MenuManager before the game starts):
 /// 1. Add this script to AuthPanel.
 /// 2. Wire up OpenBrowserButton and StatusText.
 /// 3. Set CRM Url to the site address (localhost or VPS).
@@ -24,9 +24,6 @@ public class AuthManager : MonoBehaviour
     public Button     openBrowserButton;
     public TMP_Text   statusText;
 
-    [Header(" ")]
-    public MainMenu mainMenu;
-
     public const string KEY_LOGGED_IN  = "AuthLoggedIn";
     public const string KEY_ID         = "AuthUserId";
     public const string KEY_PHONE      = "AuthPhone";
@@ -41,10 +38,7 @@ public class AuthManager : MonoBehaviour
         openBrowserButton?.onClick.AddListener(OnOpenBrowser);
 
         if (PlayerPrefs.GetInt(KEY_LOGGED_IN, 0) == 1)
-        {
             HideAuth();
-            mainMenu?.ShowMenu();
-        }
     }
 
     // Called by MenuManager - opens the browser, invokes the callback on success
@@ -136,7 +130,6 @@ public class AuthManager : MonoBehaviour
         else
         {
             HideAuth();
-            mainMenu?.ShowMenu();
         }
     }
 
