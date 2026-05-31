@@ -19,6 +19,10 @@ public class MenuManager : MonoBehaviour
     [Header("UI Toolkit menu")]
     [Tooltip("Object with UIDocument + MenuUIToolkit (new menu). The legacy uGUI fields below can stay empty")]
     public MenuUIToolkit menuUI;
+    [Tooltip("Student cabinet (ProfilePanel on the same object as UIDocument)")]
+    public ProfilePanel  profilePanel;
+    [Tooltip("ReplayCRMSync (to launch a replay from the cabinet)")]
+    public ReplayCRMSync replaySync;
 
     [Header("UI (legacy uGUI - optional)")]
     public Canvas      menuCanvas;   // root menu Canvas - for VR positioning
@@ -122,11 +126,19 @@ public class MenuManager : MonoBehaviour
             menuUI.OnStart += HandleStartButton;
             menuUI.OnQuit  += QuitGame;
             menuUI.OnLogin += HandleLogin;
+            menuUI.OnLoginSubmit += HandleLoginSubmit;
             menuUI.ShowMenu();
-            menuUI.SetKeyHint("[Enter] вЂ”      [Tab] вЂ”      [Esc] вЂ” ");
+            menuUI.SetKeyHint("[Enter] Start     [Tab] Settings     [Esc] Close");
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
         }
+
+        if (profilePanel != null)
+        {
+            profilePanel.OnReplay += PlayAttemptReplay;
+            profilePanel.OnLogout += HandleLogout;
+        }
+        ReplayCRMSync.OnReplayFinished += OnReplayFinished;
 
         // Volume
         if (volumeSlider != null)
@@ -160,6 +172,13 @@ public class MenuManager : MonoBehaviour
 
     void Update()
     {
+        // In the menu and while paused the cursor is always visible (StopReplay may have locked it)
+        if ((!_inGame || _paused) && Cursor.lockState != CursorLockMode.None)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible   = true;
+        }
+
         if (_inGame)
         {
             if (LegacyInput.GetKeyDown(KeyCode.Escape))
@@ -176,7 +195,12 @@ public class MenuManager : MonoBehaviour
         else if (LegacyInput.GetKeyDown(KeyCode.Tab))
             ToggleSettings();
         else if (LegacyInput.GetKeyDown(KeyCode.Escape))
-            QuitGame();
+        {
+            // ESC closes open panels rather than quitting (use the QUIT button to exit)
+            menuUI?.SetSettingsVisible(false);
+            menuUI?.HideLogin();
+            profilePanel?.Hide();
+        }
     }
 
 
@@ -245,20 +269,90 @@ public class MenuManager : MonoBehaviour
         else OnStartClicked();
     }
 
-    //  LOG IN / LOG OUT вЂ”   (  )
+    // LOG IN / LOG OUT button:
+    //  - not logged in -> authenticate, then open the cabinet on success
+    //  - logged in     -> open/close the student cabinet
     void HandleLogin()
     {
-        if (authManager != null) authManager.RequestAuthThenStart(() => { });
+        if (AuthManager.IsLoggedIn)
+            profilePanel?.Toggle();          // logged in -> open/close the cabinet
+        else
+        {
+            _afterLogin = () => profilePanel?.Show();   // not logged in -> login form, then cabinet
+            menuUI?.ShowLogin();
+        }
+    }
+
+    // Log out from the cabinet
+    void HandleLogout()
+    {
+        authManager?.Logout();
+        profilePanel?.Hide();
+    }
+
+    private bool _replayCtxInGame;   // replay launched from in-game pause (true) or from the menu (false)
+
+    // Launch a 3D replay from the cabinet
+    void PlayAttemptReplay(string attemptId)
+    {
+        _replayCtxInGame = _inGame;
+        profilePanel?.Hide();
+        menuUI?.HideMenu();
+        menuUI?.SetSettingsVisible(false);
+        Time.timeScale = 1f;            // replays always run in real time (otherwise frames freeze)
+        replaySync?.PlayReplayById(attemptId);
+    }
+
+    // When the replay ends - restore the menu/pause and cursor
+    void OnReplayFinished()
+    {
+        Debug.Log($"[MenuManager] Replay finished -> returning (inGame context={_replayCtxInGame})");
+        StartCoroutine(AfterReplay());
+    }
+
+    IEnumerator AfterReplay()
+    {
+        // let ReplaySystem.StopReplay finish (it locks the cursor/camera into the cockpit)
+        for (int i = 0; i < 4; i++) yield return null;
+
+        menuUI?.ShowMenu();
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+        // from in-game (cabinet opened from pause) - stay paused; from the menu - normal time
+        Time.timeScale = _replayCtxInGame ? 0f : 1f;
+    }
+
+    void OnDestroy()
+    {
+        ReplayCRMSync.OnReplayFinished -= OnReplayFinished;
     }
 
     void OnStartClicked()
     {
         if (authManager != null && !AuthManager.IsLoggedIn)
         {
-            authManager.RequestAuthThenStart(StartGame);
+            _afterLogin = StartGame;       // sign in right here, then start
+            menuUI?.ShowLogin();
             return;
         }
         StartGame();
+    }
+
+    // вв In-game sign-in (no browser) ввввввввввввввввввввввввввввввввввввввв
+    private System.Action _afterLogin;
+
+    void HandleLoginSubmit(string phone, string password)
+    {
+        if (authManager == null) return;
+        menuUI?.SetLoginStatus("Signing inвЂ¦");
+        authManager.LoginInline(phone, password,
+            onSuccess: () =>
+            {
+                menuUI?.HideLogin();
+                var a = _afterLogin; _afterLogin = null;
+                a?.Invoke();
+            },
+            onError: err => menuUI?.SetLoginStatus(err));
     }
 
     void StartGame()
@@ -309,9 +403,9 @@ public class MenuManager : MonoBehaviour
         // Switch to pause mode (ESC during the game)
         _inGame = true;
 
-        //   Start   (UI Toolkit   uGUI)
-        menuUI?.SetStartText("");
-        menuUI?.SetKeyHint("[Esc] вЂ”      [Tab] вЂ”      [Q] вЂ” ");
+        // Change the Start button to "Resume" (UI Toolkit and legacy uGUI)
+        menuUI?.SetStartText("RESUME");
+        menuUI?.SetKeyHint("[Esc] Resume     [Tab] Settings     [Q] Quit");
 
         var startLabel = btnStart?.GetComponentInChildren<TextMeshProUGUI>();
         if (startLabel != null) startLabel.text = "Resume";

@@ -136952,6 +136952,7 @@ GameObject:
   - component: {fileID: 886917183}
   - component: {fileID: 886917182}
   - component: {fileID: 886917181}
+  - component: {fileID: 886917184}
   m_Layer: 0
   m_Name: MenuUI
   m_TagString: Untagged
@@ -137009,6 +137010,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &886917184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 886917180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41c88fbc0d993dd40922340658be18e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProfilePanel
+  crmUrl: http://localhost:3000
 --- !u!1 &887821888
 GameObject:
   m_ObjectHideFlags: 0
@@ -206237,6 +206251,8 @@ MonoBehaviour:
   travelTime: 4
   holdTime: 2
   menuUI: {fileID: 886917181}
+  profilePanel: {fileID: 886917184}
+  replaySync: {fileID: 315935225}
   menuCanvas: {fileID: 0}
   menuPanel: {fileID: 0}
   btnStart: {fileID: 0}
@@ -206294,6 +206310,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AuthManager
   crmUrl: http://localhost:3000/game-login
   callbackPort: 7777
+  apiBaseUrl: http://localhost:3000
   authPanel: {fileID: 0}
   openBrowserButton: {fileID: 0}
   statusText: {fileID: 0}

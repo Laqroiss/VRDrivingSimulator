@@ -102,8 +102,8 @@
     border-bottom-left-radius: 13px;
     border-bottom-right-radius: 13px;
 
-    transition-property: translate, background-color;
-    transition-duration: 0.14s;
+    transition-property: scale, background-color, border-color;
+    transition-duration: 0.12s;
 }
 
 .btn__icon {
@@ -133,11 +133,15 @@
 
 /* Hover / press feedback (Forza slides the selection sideways). */
 .btn:hover {
-    translate: 5px 0;
-    background-color: rgba(255, 255, 255, 0.78);
+    scale: 1.04 1.04;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-left-color: rgb(255, 255, 255);
+    border-right-color: rgb(255, 255, 255);
+    border-top-color: rgb(255, 255, 255);
+    border-bottom-color: rgb(255, 255, 255);
 }
 .btn:active {
-    translate: 2px 0;
+    scale: 0.98 0.98;
 }
 
 /* ---- START (selected) ---- */
@@ -153,7 +157,7 @@
     -unity-background-image-tint-color: var(--red);
 }
 .btn--start:hover {
-    translate: 5px 0;
+    scale: 1.04 1.04;
     background-color: rgb(255, 255, 255);
 }
 .badge {
@@ -186,7 +190,7 @@
     color: rgb(255, 255, 255);
 }
 .btn--quit:hover {
-    translate: 5px 0;
+    scale: 1.04 1.04;
     background-color: var(--red-deep);
 }
 
@@ -300,11 +304,126 @@
     border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
 }
 
+/* ---------- Profile / attempts ---------- */
+.profile-card {
+    width: 780px;
+    max-height: 82%;
+    padding: 30px 36px 30px 36px;
+    background-color: rgba(248, 250, 252, 0.94);
+    border-left-width: 1.5px; border-right-width: 1.5px;
+    border-top-width: 1.5px; border-bottom-width: 1.5px;
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 16px; border-top-right-radius: 16px;
+    border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+}
+.profile-title {
+    font-size: 40px;
+    -unity-font-style: bold-and-italic;
+    color: var(--red);
+    -unity-text-align: middle-center;
+    letter-spacing: 3px;
+}
+.profile-summary {
+    margin-top: 4px;
+    margin-bottom: 18px;
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: var(--sub);
+    -unity-text-align: middle-center;
+}
+.attempts-list {
+    flex-grow: 1;
+    min-height: 220px;
+}
+
+.attempt-row {
+    flex-direction: row;
+    align-items: center;
+    height: 70px;
+    margin-bottom: 10px;
+    padding-left: 18px;
+    padding-right: 12px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-left-width: 1.5px; border-right-width: 1.5px;
+    border-top-width: 1.5px; border-bottom-width: 1.5px;
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 12px; border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
+}
+.attempt-info { flex-grow: 1; flex-direction: column; }
+.attempt-date { font-size: 21px; -unity-font-style: bold; color: var(--ink); }
+.attempt-result { margin-top: 2px; font-size: 15px; -unity-font-style: bold; letter-spacing: 1px; }
+.attempt-pass { color: rgb(34, 160, 70); }
+.attempt-fail { color: var(--red); }
+.attempt-score { font-size: 22px; -unity-font-style: bold; color: var(--ink); margin-right: 16px; }
+.attempt-replay {
+    width: 140px; height: 50px;
+    background-color: var(--red);
+    border-width: 0;
+    border-top-left-radius: 11px; border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;
+    color: rgb(255, 255, 255);
+    font-size: 18px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+}
+.attempt-replay { transition-property: scale, background-color; transition-duration: 0.12s; }
+.attempt-replay:hover { background-color: var(--red-deep); scale: 1.06 1.06; }
+.attempt-replay:active { scale: 0.96 0.96; }
+.attempt-replay:disabled { background-color: rgba(150, 155, 165, 0.55); opacity: 0.6; }
+.attempt-empty { font-size: 20px; color: var(--sub); -unity-text-align: middle-center; margin-top: 30px; }
+
+.profile-actions { flex-direction: row; justify-content: center; margin-top: 18px; }
+.profile-action { width: 280px; margin-left: 8px; margin-right: 8px; justify-content: center; }
+
+/*       (,  ) */
+.profile-logout-btn {
+    position: absolute;
+    top: 22px;
+    right: 24px;
+    width: 46px;
+    height: 46px;
+    padding: 9px;
+    background-color: var(--red);
+    border-width: 0;
+    border-top-left-radius: 11px; border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;
+    -unity-background-image-tint-color: rgb(255, 255, 255);
+    -unity-background-scale-mode: scale-to-fit;
+    transition-property: scale, background-color;
+    transition-duration: 0.12s;
+}
+.profile-logout-btn:hover { background-color: var(--red-deep); scale: 1.1 1.1; }
+.profile-logout-btn:active { scale: 0.95 0.95; }
+.icon--logout { background-image: url("project://database/Assets/RacingMenu/Icons/out.png"); }
+
+/*   */
+.login-status {
+    margin-top: 4px;
+    margin-bottom: 6px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: var(--red);
+    -unity-text-align: middle-center;
+}
+.srow__control .unity-text-field__input {
+    background-color: rgba(255, 255, 255, 0.92);
+    border-left-color: var(--glass-line); border-right-color: var(--glass-line);
+    border-top-color: var(--glass-line); border-bottom-color: var(--glass-line);
+    border-top-left-radius: 8px; border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+    color: var(--ink);
+    font-size: 20px;
+    padding: 6px 10px 6px 10px;
+}
+
 /* ---------- Icon sprites (point at your own PNG/SVG sprites) ---------- */
-.icon--flag    { /* background-image: url("project://database/Assets/UI/Icons/flag.png"); */ }
-.icon--helmet  { /* background-image: url("project://database/Assets/UI/Icons/helmet.png"); */ }
-.icon--gear    { /* background-image: url("project://database/Assets/UI/Icons/gear.png"); */ }
-.icon--user    { /* background-image: url("project://database/Assets/UI/Icons/user.png"); */ }
-.icon--power   { /* background-image: url("project://database/Assets/UI/Icons/power.png"); */ }
-.icon--swap    { /* background-image: url("project://database/Assets/UI/Icons/swap.png"); */ }
-.icon--sparkle { /* background-image: url("project://database/Assets/UI/Icons/sparkle.png"); */ }
+.icon--flag    { background-image: url("project://database/Assets/RacingMenu/Icons/finish-flag.png"); }
+.icon--helmet  { background-image: url("project://database/Assets/RacingMenu/Icons/helmet.png"); }
+.icon--gear    { background-image: url("project://database/Assets/RacingMenu/Icons/settings.png"); }
+.icon--user    { background-image: url("project://database/Assets/RacingMenu/Icons/out.png"); }
+.icon--power   { background-image: url("project://database/Assets/RacingMenu/Icons/power-on.png"); }
+.icon--swap    { /* background-image: url("project://database/Assets/RacingMenu/Icons/swap.png"); */ }
+.icon--sparkle { /* background-image: url("project://database/Assets/RacingMenu/Icons/sparkle.png"); */ }

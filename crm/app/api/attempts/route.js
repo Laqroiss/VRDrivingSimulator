@@ -7,11 +7,24 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const student = searchParams.get('student')
 
-  const filter = student ? { studentName: { $regex: student, $options: 'i' } } : {}
-  const attempts = await Attempt.find(filter, '-track')
-    .sort({ timestamp: -1 })
-    .limit(100)
-    .lean()
+  const match = student ? { studentName: { $regex: student, $options: 'i' } } : {}
+
+  //  :    (track, replayData, penalties...),
+  //    hasReplay —    .  , 
+  //      ,    .
+  const attempts = await Attempt.aggregate([
+    { $match: match },
+    { $sort: { timestamp: -1 } },
+    { $limit: 100 },
+    {
+      $project: {
+        studentId: 1, studentName: 1, studentPhone: 1, timestamp: 1,
+        completed: 1, passed: 1, totalPenaltyPoints: 1, examDuration: 1,
+        exerciseStatuses: 1,
+        hasReplay: { $cond: [{ $ne: ['$replayData', null] }, true, false] },
+      },
+    },
+  ])
 
   return NextResponse.json(attempts)
 }

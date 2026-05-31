@@ -8,19 +8,19 @@ export async function POST(request) {
     const { phone, password } = await request.json()
 
     if (!phone || !password)
-      return NextResponse.json({ error: '   ' }, { status: 400 })
+      return NextResponse.json({ error: 'Enter phone and password' }, { status: 400 })
 
     const user = await User.findOne({ phone: phone.trim() })
     if (!user)
-      return NextResponse.json({ error: '   ' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid phone or password' }, { status: 401 })
 
     const ok = await user.comparePassword(password)
     if (!ok)
-      return NextResponse.json({ error: '   ' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid phone or password' }, { status: 401 })
 
     return NextResponse.json({ id: user._id.toString(), phone: user.phone, fullName: user.fullName })
   } catch (err) {
     console.error('[login]', err)
-    return NextResponse.json({ error: ' ' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

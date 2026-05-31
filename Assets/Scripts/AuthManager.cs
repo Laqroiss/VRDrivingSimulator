@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 using TMPro;
 using System.Net;
 using System.Threading;
 using System.Collections;
+using System.Text;
 
 /// <summary>
 /// Browser-based authentication.
@@ -18,6 +20,8 @@ public class AuthManager : MonoBehaviour
     [Header("CRM")]
     public string crmUrl       = "http://localhost:3000/game-login";
     public int    callbackPort = 7777;
+    [Tooltip("CRM API base for in-game sign-in (no browser)")]
+    public string apiBaseUrl   = "http://localhost:3000";
 
     [Header("UI")]
     public GameObject authPanel;
@@ -134,6 +138,64 @@ public class AuthManager : MonoBehaviour
     }
 
     void HideAuth() { if (authPanel != null) authPanel.SetActive(false); }
+
+    [System.Serializable] class LoginResp { public string id; public string phone; public string fullName; public string error; }
+
+    /// <summary>In-game sign-in (no browser): POST to CRM /api/auth/login.</summary>
+    public void LoginInline(string phone, string password, System.Action onSuccess, System.Action<string> onError)
+    {
+        StartCoroutine(LoginInlineRoutine(phone, password, onSuccess, onError));
+    }
+
+    IEnumerator LoginInlineRoutine(string phone, string password, System.Action onSuccess, System.Action<string> onError)
+    {
+        if (string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(password))
+        { onError?.Invoke("Enter phone and password"); yield break; }
+
+        string json = "{\"phone\":\"" + EscapeJson(phone.Trim()) + "\",\"password\":\"" + EscapeJson(password) + "\"}";
+        using var req = new UnityWebRequest($"{apiBaseUrl}/api/auth/login", "POST")
+        {
+            uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)),
+            downloadHandler = new DownloadHandlerBuffer(),
+        };
+        req.SetRequestHeader("Content-Type", "application/json");
+        yield return req.SendWebRequest();
+
+        LoginResp resp = null;
+        try { resp = JsonUtility.FromJson<LoginResp>(req.downloadHandler.text); } catch { }
+
+        if (resp != null && !string.IsNullOrEmpty(resp.id))
+        {
+            PlayerPrefs.SetInt(KEY_LOGGED_IN, 1);
+            PlayerPrefs.SetString(KEY_ID,        resp.id);
+            PlayerPrefs.SetString(KEY_PHONE,     resp.phone);
+            PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
+            PlayerPrefs.Save();
+            if (authPanel != null) authPanel.SetActive(false);
+            Debug.Log($"[AuthManager] Signed in: {resp.fullName}");
+            onSuccess?.Invoke();
+        }
+        else
+        {
+            string msg = resp != null && !string.IsNullOrEmpty(resp.error)
+                ? resp.error : "Sign-in failed (CRM offline?)";
+            onError?.Invoke(msg);
+        }
+    }
+
+    static string EscapeJson(string s) => s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
+
+    /// <summary>Log out: clear the saved session and show the sign-in screen.</summary>
+    public void Logout()
+    {
+        PlayerPrefs.SetInt(KEY_LOGGED_IN, 0);
+        PlayerPrefs.DeleteKey(KEY_ID);
+        PlayerPrefs.DeleteKey(KEY_PHONE);
+        PlayerPrefs.DeleteKey(KEY_FULL_NAME);
+        PlayerPrefs.Save();
+        if (authPanel != null) authPanel.SetActive(true);
+        Debug.Log("[AuthManager] Logged out");
+    }
 
     void SetStatus(string msg, bool isError)
     {

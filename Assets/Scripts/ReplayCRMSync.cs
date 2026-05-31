@@ -114,10 +114,22 @@ public class ReplayCRMSync : MonoBehaviour
     // Playback
     private HttpListener      _listener;
     private bool              _launchReplay;
+    private volatile bool     _replayLoadFailed;   // replay load failed (404/network)
     private CRMReplay         _pendingReplay;
     private AttemptMeta       _pendingMeta;
     private bool              _replayRunning;
     private Coroutine         _sceneReplayCoroutine;
+
+    /// <summary>Fires when replay playback finishes.</summary>
+    public static event System.Action OnReplayFinished;
+
+    /// <summary>Launch a 3D replay of an attempt by its id (from the cabinet). Network request runs in the background.</summary>
+    public void PlayReplayById(string attemptId)
+    {
+        if (string.IsNullOrEmpty(attemptId)) { Debug.LogWarning("[ReplayCRMSync] PlayReplayById: empty id"); return; }
+        Debug.Log($"[ReplayCRMSync] Launching replay from cabinet: id='{attemptId}'  ->  {crmUrl}/api/attempts/{attemptId}/replay");
+        ThreadPool.QueueUserWorkItem(_ => FetchAndQueueReplay(attemptId));
+    }
 
     // тт Unity тттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттт
 
@@ -182,6 +194,13 @@ public class ReplayCRMSync : MonoBehaviour
             StartFullReplay(_pendingReplay, _pendingMeta);
             _pendingReplay = null;
             _pendingMeta   = null;
+        }
+
+        // Replay load failed - notify (so the menu comes back)
+        if (_replayLoadFailed)
+        {
+            _replayLoadFailed = false;
+            OnReplayFinished?.Invoke();
         }
     }
 
@@ -509,6 +528,9 @@ public class ReplayCRMSync : MonoBehaviour
 
         while (_replayRunning)
         {
+            // Replay stopped early (Stop button) - exit to bring the menu back
+            if (replaySystem != null && !replaySystem.IsReplaying) break;
+
             float replayTime = replaySystem != null ? replaySystem.CurrentReplayTime : 0f;
             if (replayTime >= duration) break;
 
@@ -568,6 +590,7 @@ public class ReplayCRMSync : MonoBehaviour
         _railway?.ResumeTrain();
         _replayRunning = false;
         HideHUD();
+        OnReplayFinished?.Invoke();
 
         Debug.Log("[ReplayCRMSync] Playback finished");
     }
@@ -625,7 +648,7 @@ public class ReplayCRMSync : MonoBehaviour
             replayTask.Wait();
             var replay = JsonUtility.FromJson<CRMReplay>(replayTask.Result);
             if (replay?.frames == null || replay.frames.Count == 0)
-            { Debug.LogWarning("[ReplayCRMSync]  "); return; }
+            { Debug.LogWarning("[ReplayCRMSync] Replay is empty"); _replayLoadFailed = true; return; }
 
             // 2. Attempt metadata (student name, penalties)
             AttemptMeta meta = null;
@@ -653,7 +676,8 @@ public class ReplayCRMSync : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[ReplayCRMSync]   : {e.Message}");
+            Debug.LogError($"[ReplayCRMSync] Error fetching replay (no replay recorded for this attempt?): {e.Message}");
+            _replayLoadFailed = true;
         }
     }
 }

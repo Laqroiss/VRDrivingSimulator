@@ -39,8 +39,8 @@
             <ui:Button name="login-button" class="btn">
                 <ui:VisualElement class="btn__icon icon--user" picking-mode="Ignore" />
                 <ui:VisualElement class="btn__text" picking-mode="Ignore">
-                    <ui:Label text="LOG IN / LOG OUT" class="btn__label" />
-                    <ui:Label text="PROFILE &amp; SOCIAL" class="btn__sub" />
+                    <ui:Label text="PROFILE" class="btn__label" />
+                    <ui:Label text="ACCOUNT &amp; ATTEMPTS" class="btn__sub" />
                 </ui:VisualElement>
             </ui:Button>
 
@@ -63,34 +63,86 @@
 
         <ui:VisualElement name="sparkle" class="sparkle icon--sparkle" picking-mode="Ignore" />
 
+        <!-- =================== PROFILE OVERLAY =================== -->
+        <ui:VisualElement name="profile-overlay" class="overlay hidden">
+            <ui:VisualElement class="profile-card">
+                <ui:Label name="profile-name" text="PROFILE" class="profile-title" picking-mode="Ignore" />
+                <ui:Label name="profile-summary" text="" class="profile-summary" picking-mode="Ignore" />
+                <ui:ScrollView name="attempts-list" class="attempts-list" />
+                <ui:Button name="profile-close" class="btn settings-close">
+                    <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                        <ui:Label text="CLOSE" class="btn__label" />
+                    </ui:VisualElement>
+                </ui:Button>
+                <ui:Button name="profile-logout" class="profile-logout-btn icon--logout" tooltip="Log out" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- =================== LOGIN OVERLAY =================== -->
+        <ui:VisualElement name="login-overlay" class="overlay hidden">
+            <ui:VisualElement class="settings-card">
+                <ui:Label text="SIGN IN" class="settings-title" />
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="Phone" class="srow__label" />
+                    <ui:TextField name="login-phone" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="Password" class="srow__label" />
+                    <ui:TextField name="login-password" password="true" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:Label name="login-status" text="" class="login-status" />
+
+                <ui:VisualElement class="profile-actions">
+                    <ui:Button name="login-submit" class="btn btn--start profile-action">
+                        <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                            <ui:Label text="SIGN IN" class="btn__label" />
+                        </ui:VisualElement>
+                    </ui:Button>
+                    <ui:Button name="login-close" class="btn profile-action">
+                        <ui:VisualElement class="btn__text" picking-mode="Ignore">
+                            <ui:Label text="CANCEL" class="btn__label" />
+                        </ui:VisualElement>
+                    </ui:Button>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- =================== SETTINGS OVERLAY =================== -->
         <ui:VisualElement name="settings-overlay" class="overlay hidden">
             <ui:VisualElement class="settings-card">
                 <ui:Label text="SETTINGS" class="settings-title" />
 
                 <ui:VisualElement class="srow">
-                    <ui:Label text="" class="srow__label" />
+                    <ui:Label text="Volume" class="srow__label" />
                     <ui:Slider name="volume" low-value="0" high-value="1" class="srow__control" />
                 </ui:VisualElement>
 
                 <ui:VisualElement class="srow">
-                    <ui:Label text="" class="srow__label" />
+                    <ui:Label text="Quality" class="srow__label" />
                     <ui:DropdownField name="quality" class="srow__control" />
                 </ui:VisualElement>
 
                 <ui:VisualElement class="srow">
-                    <ui:Label text="  (FPS)" class="srow__label" />
+                    <ui:Label text="FPS Limit" class="srow__label" />
                     <ui:DropdownField name="fps" class="srow__control" />
                 </ui:VisualElement>
 
                 <ui:VisualElement class="srow">
-                    <ui:Label text=". " class="srow__label" />
+                    <ui:Label text="V-Sync" class="srow__label" />
                     <ui:Toggle name="vsync" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="Input" class="srow__label" />
+                    <ui:DropdownField name="input-type" class="srow__control" />
                 </ui:VisualElement>
 
                 <ui:Button name="settings-close" class="btn btn--quit settings-close">
                     <ui:VisualElement class="btn__text" picking-mode="Ignore">
-                        <ui:Label text="" class="btn__label" />
+                        <ui:Label text="CLOSE" class="btn__label" />
                     </ui:VisualElement>
                 </ui:Button>
             </ui:VisualElement>

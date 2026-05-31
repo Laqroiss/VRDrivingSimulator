@@ -321,7 +321,10 @@ public class ReplaySystem : MonoBehaviour
                     wp[wi] = carPos + carRot * wheelLocalPos[wi];
                     bool isFront = wi < 2;
                     wr[wi] = carRot * Quaternion.Euler(0f, isFront ? steerAngle : 0f, 0f);
-                    wv[wi] = Quaternion.Euler(spinAng, 0f, 0f);
+                    // wheelVisualRot - the visual's WORLD rotation: ApplyFrame does
+                    // Inverse(gw.rotation)*wv, so wv = (wheel world rotation) * local spin.
+                    // This way the visual spins around its axle while keeping the model's orientation.
+                    wv[wi] = wr[wi] * Quaternion.Euler(spinAng, 0f, 0f);
                 }
             }
 
@@ -723,56 +726,24 @@ public class ReplaySystem : MonoBehaviour
         foreach (var al  in _ghost.GetComponentsInChildren<AudioListener>()) Destroy(al);
         foreach (var au  in _ghost.GetComponentsInChildren<AudioSource>())   Destroy(au);
 
-        //       —     
-        if (car.wheels != null)
-        {
-            var hiddenWheels = new System.Collections.Generic.HashSet<GameObject>();
-            foreach (var w in car.wheels)
-            {
-                if (w.wheelObject == null || !hiddenWheels.Add(w.wheelObject)) continue;
-                string path = GetRelativePath(car.transform, w.wheelObject.transform);
-                if (path == null) continue;
-                var orig = _ghost.transform.Find(path);
-                if (orig != null) orig.gameObject.SetActive(false);
-            }
-        }
-
-        //  —      ghost (  )
+        // Ghost wheels = those already cloned TOGETHER with the car (taken by sibling
+        // index) and animated directly. No separate clones or hiding - there are no
+        // duplicate/static wheels at all.
         var ghostWheelList = new List<Transform>();
         if (car.wheels != null)
         {
-            for (int i = 0; i < car.wheels.Length; i++)
+            foreach (var w in car.wheels)
             {
-                var w = car.wheels[i];
-                if (w.wheelObject == null)
+                Transform gw = null;
+                if (w.wheelObject != null && w.wheelObject.transform.parent == car.transform)
                 {
-                    Debug.LogWarning($"[Replay] wheels[{i}].wheelObject == null —  ");
-                    ghostWheelList.Add(null);
-                    continue;
+                    int idx = w.wheelObject.transform.GetSiblingIndex();
+                    if (idx >= 0 && idx < _ghost.transform.childCount)
+                        gw = _ghost.transform.GetChild(idx);
                 }
-
-                //   —   wheelObject  ,    
-                bool duplicate = false;
-                for (int j = 0; j < i; j++)
-                {
-                    if (car.wheels[j].wheelObject == w.wheelObject)
-                    {
-                        ghostWheelList.Add(ghostWheelList[j]);
-                        Debug.LogWarning($"[Replay] wheels[{i}]  wheels[{j}] —   {w.wheelObject.name}");
-                        duplicate = true;
-                        break;
-                    }
-                }
-                if (duplicate) continue;
-
-                var clone = Instantiate(w.wheelObject, _ghost.transform); //   ghost
-                clone.name = $"GhostWheel_{i}";
-                //    —     
-                clone.transform.localPosition = car.transform.InverseTransformPoint(w.wheelObject.transform.position);
-                clone.transform.localRotation = Quaternion.Inverse(car.transform.rotation) * w.wheelObject.transform.rotation;
-                foreach (var mono in clone.GetComponentsInChildren<MonoBehaviour>()) Destroy(mono);
-                foreach (var col  in clone.GetComponentsInChildren<Collider>())      Destroy(col);
-                ghostWheelList.Add(clone.transform);
+                if (gw == null)
+                    Debug.LogWarning($"[Replay] Cloned wheel not found in the ghost (idx) - skipping");
+                ghostWheelList.Add(gw);
             }
         }
         _ghostWheels = ghostWheelList.ToArray();

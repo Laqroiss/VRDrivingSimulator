@@ -22,19 +22,23 @@ public class MenuUIToolkit : MonoBehaviour
     public event Action OnStart;
     public event Action OnQuit;
     public event Action OnLogin;
+    public event Action<string, string> OnLoginSubmit;   // (phone, password)
 
     const string K_VOLUME  = "Volume";
     const string K_QUALITY = "gfx_quality";
     const string K_VSYNC   = "gfx_vsync";
     const string K_FPS     = "gfx_fpsCap";
+    const string K_INPUT   = "InputType";   // 0 = Keyboard, 1 = Wheel
     static readonly int[] FpsOptions = { 0, 30, 60, 72, 90, 120, 144 };
 
     private bool _init;
-    private VisualElement _root, _overlay;
+    private VisualElement _root, _overlay, _loginOverlay;
     private Button _btnStart, _btnSettings, _btnLogin, _btnQuit, _btnClose;
-    private Label _keyHint, _startLabel;
+    private Button _loginSubmit, _loginClose;
+    private TextField _loginPhone, _loginPassword;
+    private Label _keyHint, _startLabel, _loginStatus;
     private Slider _volume;
-    private DropdownField _quality, _fps;
+    private DropdownField _quality, _fps, _inputType;
     private Toggle _vsync;
 
     // тт Apply saved settings at startup ттттттттттттттттттттттттттттттттттттттт
@@ -73,12 +77,23 @@ public class MenuUIToolkit : MonoBehaviour
         _quality     = r.Q<DropdownField>("quality");
         _fps         = r.Q<DropdownField>("fps");
         _vsync       = r.Q<Toggle>("vsync");
+        _inputType   = r.Q<DropdownField>("input-type");
+
+        _loginOverlay  = r.Q("login-overlay");
+        _loginPhone    = r.Q<TextField>("login-phone");
+        _loginPassword = r.Q<TextField>("login-password");
+        _loginSubmit   = r.Q<Button>("login-submit");
+        _loginClose    = r.Q<Button>("login-close");
+        _loginStatus   = r.Q<Label>("login-status");
 
         if (_btnStart    != null) _btnStart.clicked    += () => OnStart?.Invoke();
         if (_btnSettings != null) _btnSettings.clicked += ToggleSettings;
         if (_btnLogin    != null) _btnLogin.clicked    += () => OnLogin?.Invoke();
         if (_btnQuit     != null) _btnQuit.clicked     += () => OnQuit?.Invoke();
         if (_btnClose    != null) _btnClose.clicked    += () => SetSettingsVisible(false);
+        if (_loginSubmit != null) _loginSubmit.clicked += () =>
+            OnLoginSubmit?.Invoke(_loginPhone?.value ?? "", _loginPassword?.value ?? "");
+        if (_loginClose  != null) _loginClose.clicked  += HideLogin;
 
         SetupSettings();
         _init = true;
@@ -104,9 +119,23 @@ public class MenuUIToolkit : MonoBehaviour
     public void SetSettingsVisible(bool on)
     {
         EnsureInit();
-        if (_overlay == null) return;
-        if (on) _overlay.RemoveFromClassList("hidden");
-        else    _overlay.AddToClassList("hidden");
+        SetOverlay(_overlay, on);
+    }
+
+    public void ShowLogin()
+    {
+        EnsureInit();
+        if (_loginStatus != null) _loginStatus.text = "";
+        SetOverlay(_loginOverlay, true);
+    }
+    public void HideLogin() { EnsureInit(); SetOverlay(_loginOverlay, false); }
+    public void SetLoginStatus(string t) { EnsureInit(); if (_loginStatus != null) _loginStatus.text = t; }
+
+    static void SetOverlay(VisualElement ov, bool on)
+    {
+        if (ov == null) return;
+        if (on) { ov.RemoveFromClassList("hidden"); ov.BringToFront(); }
+        else    ov.AddToClassList("hidden");
     }
 
     // тт Settings ттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттттт
@@ -132,7 +161,7 @@ public class MenuUIToolkit : MonoBehaviour
 
         if (_fps != null)
         {
-            _fps.choices = FpsOptions.Select(f => f == 0 ? " " : f.ToString()).ToList();
+            _fps.choices = FpsOptions.Select(f => f == 0 ? "Unlimited" : f.ToString()).ToList();
             int saved = PlayerPrefs.GetInt(K_FPS, 0);
             int idx = Array.IndexOf(FpsOptions, saved); if (idx < 0) idx = 0;
             _fps.index = idx;
@@ -153,5 +182,28 @@ public class MenuUIToolkit : MonoBehaviour
             _vsync.RegisterValueChangedCallback(e =>
             { QualitySettings.vSyncCount = e.newValue ? 1 : 0; PlayerPrefs.SetInt(K_VSYNC, e.newValue ? 1 : 0); PlayerPrefs.Save(); });
         }
+
+        if (_inputType != null)
+        {
+            _inputType.choices = new List<string> { "Keyboard", "Wheel" };
+            var car = FindAnyObjectByType<Car>();
+            int def = car != null ? (int)car.inputMode : 0;   // default - as set in the car inspector
+            int saved = Mathf.Clamp(PlayerPrefs.GetInt(K_INPUT, def), 0, 1);
+            _inputType.index = saved;
+            ApplyInputType(saved);
+            _inputType.RegisterValueChangedCallback(_ =>
+            {
+                int v = Mathf.Clamp(_inputType.index, 0, 1);
+                ApplyInputType(v);
+                PlayerPrefs.SetInt(K_INPUT, v); PlayerPrefs.Save();
+            });
+        }
+    }
+
+    // Applies the input type to the car (0 = Keyboard, 1 = Wheel)
+    static void ApplyInputType(int v)
+    {
+        var car = FindAnyObjectByType<Car>();
+        if (car != null) car.inputMode = (Car.InputMode)v;
     }
 }
