@@ -65,6 +65,7 @@ public class HillStartExercise : MonoBehaviour
         if (_completed) return;
         var car = other.GetComponentInParent<Car>();
         if (car == null) return;
+        if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(9)) return;
 
         _carInZone = true;
         _active    = true;

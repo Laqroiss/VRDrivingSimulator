@@ -178,6 +178,16 @@ public class WaypointArrow : MonoBehaviour
         gameObject.SetActive(true);
     }
 
+    /// <summary>
+    /// /  ,   .
+    ///  RouteRibbon,      .
+    /// </summary>
+    public void SetVisualVisible(bool visible)
+    {
+        foreach (var r in GetComponentsInChildren<Renderer>(true))
+            r.enabled = visible;
+    }
+
     void OnDrawGizmos()
     {
         Color gc = direction == DirectionType.Checkpoint ? new Color(1f, 0.8f, 0f, 0.3f) :

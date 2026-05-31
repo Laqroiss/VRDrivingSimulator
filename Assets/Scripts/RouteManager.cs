@@ -130,6 +130,7 @@ public class RouteManager : MonoBehaviour
     public int CurrentWaypointIndex => _current;
     public bool IsComplete          => _current >= waypoints.Count;
     public int  TotalWaypoints      => waypoints.Count;
+    public bool RouteActive         => _routeActive; //  RouteRibbon —      
 
     //   
     public void RestartRoute() => StartRoute();

@@ -102,6 +102,9 @@ public class ParkingZone : MonoBehaviour
         // ——— Entering the zone ———
         if (_phase == Phase.Idle && inZone)
         {
+            // Don't start until the previous exercise is finished
+            if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(_exNum)) return;
+
             _phase        = Phase.Active;
             _timer        = 0f;
             _holdTimer    = 0f;
@@ -151,12 +154,13 @@ public class ParkingZone : MonoBehaviour
             }
         }
 
-        // ———      —  ———
+        // ——— Left the zone without fixation - exercise FAILED ———
         if (_phase == Phase.Active && !inZone)
         {
-            Debug.Log($"ParkingZone:    — ,  ");
-            _phase     = Phase.Idle;
+            _phase     = Phase.Done;
             _holdTimer = 0f;
+            Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - left the zone without fixation -> FAILED");
+            ExamManager.Instance?.MarkExerciseFailed(_exNum);
         }
     }
 

@@ -36,6 +36,7 @@ public class PedestrianExercise : MonoBehaviour
     public void Activate()
     {
         if (_phase != Phase.WaitingActivation) return;
+        if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(4)) return;
         _phase = Phase.WaitingEntry;
         ExamManager.Instance?.SetExerciseActive(4);
         Debug.Log("PedestrianExercise: activated - watch for the pedestrian crossing");

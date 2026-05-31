@@ -96,6 +96,7 @@ public class RedLightDetector : MonoBehaviour
     {
         if (!IsActivated) return;
         if (other.GetComponentInParent<Car>() == null) return;
+        if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(3)) return;
 
         _carInZone = true;
 

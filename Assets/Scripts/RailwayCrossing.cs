@@ -25,6 +25,10 @@ public class RailwayCrossing : MonoBehaviour
     public float stopWaitTime  = 3f;   // how long to wait after stopping
     public float maxStopSpeed  = 0.3f; // "stopped" speed
 
+    [Header("Activation prerequisite")]
+    [Tooltip("Activate the exercise only after parallel parking (Ex.6) is done - guards against accidental triggers")]
+    public bool requireParallelParkingFirst = true;
+
     [Header("Train object (optional)")]
     public GameObject trainObject;
     public Transform  trainStart;
@@ -84,6 +88,15 @@ public class RailwayCrossing : MonoBehaviour
     {
         if (_completed || _active) return;
         if (other.GetComponentInParent<Car>() == null) return;
+
+        // Don't activate until the previous exercise is FINISHED (prerequisite from ExamManager,
+        // by default Ex.6 - parallel parking; passed or not doesn't matter, only that it's finished).
+        if (requireParallelParkingFirst &&
+            ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(7))
+        {
+            Debug.Log("RailwayCrossing: zone ignored - previous exercise not finished yet");
+            return;
+        }
 
         _active = true;
         if (_carRb == null) _carRb = other.GetComponentInParent<Rigidbody>();
@@ -157,6 +170,9 @@ public class RailwayCrossing : MonoBehaviour
     // Called from StopLineTrigger (attach a separate script to the stop line)
     public void OnStopLineCrossed()
     {
+        // The stop line only counts while the exercise is actually active -
+        // otherwise it would fire on an accidental crossing before the exercise starts.
+        if (!_active || _completed) return;
         if (_crossedStopLine) return;
         _crossedStopLine = true;
 

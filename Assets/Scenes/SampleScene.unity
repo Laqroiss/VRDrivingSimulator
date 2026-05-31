@@ -48252,6 +48252,7 @@ MonoBehaviour:
   studentName: "\u0417\u0443\u0431\u0435\u043D\u043A\u043E \u041C\u0438\u0445\u0430\u0438\u043B
     \u041F\u0435\u0442\u0440\u043E\u0432\u0438\u0447"
   trackFPS: 5
+  autosaveInterval: 5
 --- !u!114 &315935225
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118035,13 +118036,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 779370015}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: -69.368, y: 1, z: 45.812}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!1 &780073051
 GameObject:
   m_ObjectHideFlags: 0
@@ -268582,7 +268583,7 @@ MonoBehaviour:
   - {fileID: 1098018321}
   - {fileID: 2022497010}
   - {fileID: 779370016}
-  showMode: 0
+  showMode: 1
   previewCount: 2
   onlyDuringExam: 1
 --- !u!4 &1800216104
@@ -304095,13 +304096,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2022497009}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: -56.36, y: 1, z: -22.64}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!21 &2022796845
 Material:
   serializedVersion: 8
@@ -326738,7 +326739,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
       propertyPath: inputMode
-      value: 1
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: wheels.Array.data[0].localPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: wheels.Array.data[1].localPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: wheels.Array.data[2].localPosition.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3604366210368771760, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
+      propertyPath: wheels.Array.data[3].localPosition.y
+      value: 0.25
       objectReference: {fileID: 0}
     - target: {fileID: 8944524703509214454, guid: a50ef00dc1ba53849b75d2bd67d70cb4, type: 3}
       propertyPath: m_LocalPosition.x

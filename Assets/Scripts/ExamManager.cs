@@ -13,6 +13,10 @@ public class ExamManager : MonoBehaviour
     [Header("Car reference")]
     public Car car;
 
+    [Header("Exercise prerequisites (0 = no prerequisite)")]
+    [Tooltip("For each exercise 1..10 - the exercise that must be COMPLETED before it activates. If the previous one isn't done, the next won't start.")]
+    public int[] exercisePrerequisite = { 0, 0, 0, 3, 4, 5, 6, 7, 8, 0 };
+
     // ——— State ———
     public enum ExamState { WaitingStart, InProgress, Finished }
     public ExamState State { get; private set; } = ExamState.WaitingStart;
@@ -179,6 +183,24 @@ public class ExamManager : MonoBehaviour
         _speedViolationTimer = 0f;
         OnExamStart.Invoke();
         Debug.Log("ExamManager: Exam started!");
+    }
+
+    /// <summary>
+    /// Whether an exercise is unlocked: its prerequisite (see exercisePrerequisite) is FINISHED -
+    /// it reached a final status of Completed OR Failed (passed or not doesn't matter).
+    /// While the previous one is still Pending/Active, the next won't activate.
+    /// </summary>
+    public bool IsExerciseUnlocked(int exerciseNum)
+    {
+        int idx = exerciseNum - 1;
+        if (idx < 0 || idx >= 10) return true;
+        int pre = (exercisePrerequisite != null && idx < exercisePrerequisite.Length)
+                  ? exercisePrerequisite[idx] : 0;
+        if (pre <= 0) return true;
+        int pidx = pre - 1;
+        if (pidx < 0 || pidx >= 10) return true;
+        return ExerciseStatuses[pidx] == ExerciseStatus.Completed
+            || ExerciseStatuses[pidx] == ExerciseStatus.Failed;
     }
 
     public void SetExerciseActive(int exerciseNum)

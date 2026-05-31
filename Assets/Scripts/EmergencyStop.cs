@@ -81,7 +81,11 @@ public class EmergencyStop : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (!_activated) return;
+        // Active if the legacy path fired (activateAfterExercise finished)
+        // OR the ExamManager prerequisite is FINISHED (passed or not doesn't matter).
+        if (!_activated &&
+            (ExamManager.Instance == null || !ExamManager.Instance.IsExerciseUnlocked(8)))
+            return;
         if (_triggered || _completed) return;
         if (other.GetComponentInParent<Car>() == null) return;
 

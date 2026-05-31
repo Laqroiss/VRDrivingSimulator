@@ -20,6 +20,7 @@ public class IntersectionExercise : MonoBehaviour
     {
         if (_completed || _active) return;
         if (other.GetComponentInParent<Car>() == null) return;
+        if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(2)) return;
 
         _active = true;
         _timer  = 0f;
