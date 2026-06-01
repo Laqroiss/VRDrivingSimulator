@@ -76,7 +76,7 @@ public class RedLightDetector : MonoBehaviour
         if (!_penalty20Given && _timeInIntersection > 20f)
         {
             _penalty20Given = true;
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "Took more than 20 seconds to cross the regulated intersection",
                 ExamManager.P3_OVERTIME_20, 3);
         }
@@ -84,7 +84,7 @@ public class RedLightDetector : MonoBehaviour
         if (!_penalty30Given && _timeInIntersection > 30f)
         {
             _penalty30Given = true;
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "Took more than 30 seconds to cross the regulated intersection",
                 ExamManager.P3_OVERTIME_30, 3);
         }

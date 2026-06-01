@@ -11,6 +11,7 @@ const PenaltySchema = new mongoose.Schema({
 
 const TrackPointSchema = new mongoose.Schema({
   x:     Number,
+  y:     Number,   //   (     )
   z:     Number,
   rot:   Number,   //   Y  
   speed: Number,
@@ -28,6 +29,10 @@ const AttemptSchema = new mongoose.Schema({
   totalPenaltyPoints: Number,
   examDuration:      Number,  // 
   exerciseStatuses:  [String], // ['Completed', 'Failed', 'Pending', ...]
+  activatedGates:    [String], //    (/) —  
+  exerciseActivatedAt: [Number], //     () —    
+  namedTimerKeys:    [String], //   () — ,   
+  namedTimerStarts:  [Number], //     ( )
   penalties:         [PenaltySchema],
   track:             [TrackPointSchema],
   lightEvents: [{

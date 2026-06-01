@@ -119,11 +119,16 @@ public class ParkingZone : MonoBehaviour
         if (_phase != Phase.Active) return;
 
         // ——— Exercise timer ———
-        _timer += Time.deltaTime;
+        // Use time since activation from ExamManager (not a local counter): it survives
+        // Resume, so the 2-min limit doesn't reset if you leave at 1:59 and continue.
+        _timer = ExamManager.Instance != null
+            ? ExamManager.Instance.GetTimeSinceActivation(_exNum)
+            : _timer + Time.deltaTime;
         if (!_overtimeGiven && _timer > timeLimit)
         {
             _overtimeGiven = true;
-            ExamManager.Instance?.AddPenalty(
+            // AddPenaltyOnce - so Resume (when _overtimeGiven is reset) doesn't add it again.
+            ExamManager.Instance?.AddPenaltyOnce(
                 $"Took more than 2 minutes on exercise {_exNum}",
                 _exNum == 5 ? ExamManager.P5_OVERTIME : ExamManager.P6_OVERTIME,
                 _exNum);

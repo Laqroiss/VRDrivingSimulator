@@ -39,6 +39,7 @@ public class PedestrianExercise : MonoBehaviour
         if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(4)) return;
         _phase = Phase.WaitingEntry;
         ExamManager.Instance?.SetExerciseActive(4);
+        ExamManager.Instance?.MarkGateActivated(gameObject.name);
         Debug.Log("PedestrianExercise: activated - watch for the pedestrian crossing");
     }
 

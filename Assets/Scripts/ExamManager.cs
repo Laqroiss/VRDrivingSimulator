@@ -96,7 +96,60 @@ public class ExamManager : MonoBehaviour
     public int                  TotalPenaltyPoints  { get; private set; }
     public float                ExamTimeLeft        { get; private set; }
 
+    // Names of activated "gates" (traffic-light checkpoints, pedestrian crossing, etc.).
+    // Saved to the DB and restored on resume, so intersections don't stay LOCKED.
+    public List<string> ActivatedGates { get; private set; } = new List<string>();
+    public void MarkGateActivated(string key)
+    {
+        if (!string.IsNullOrEmpty(key) && !ActivatedGates.Contains(key))
+            ActivatedGates.Add(key);
+    }
+
+    // Seconds since the exam started. Survives resume, since ExamTimeLeft is restored.
+    public float ExamElapsed => Mathf.Max(0f, examDuration - ExamTimeLeft);
+
+    // Activation moment (ExamElapsed) for each exercise; -1 = not activated yet. Saved to the DB
+    // and restored - so exercise timers (e.g. the 2-min parking limit) keep counting after
+    // resume instead of resetting.
+    public float[] ExerciseActivatedAt { get; private set; } = MakeActivatedAt();
+    static float[] MakeActivatedAt() { var a = new float[10]; for (int i = 0; i < 10; i++) a[i] = -1f; return a; }
+
+    /// <summary>Exam seconds elapsed since the exercise activated (0 if not activated yet).</summary>
+    public float GetTimeSinceActivation(int exerciseNum)
+    {
+        int idx = exerciseNum - 1;
+        if (idx < 0 || idx >= 10 || ExerciseActivatedAt[idx] < 0f) return 0f;
+        return Mathf.Max(0f, ExamElapsed - ExerciseActivatedAt[idx]);
+    }
+
+    // Arbitrary named timers (start moment in exam seconds). For "budgets" that start later
+    // than exercise activation - e.g. the regulated-intersection crossing countdown
+    // (CheckGreenLight). They survive resume.
+    private Dictionary<string, float> _namedTimers = new Dictionary<string, float>();
+
+    /// <summary>Starts a named timer (if not already started/restored).</summary>
+    public void StartNamedTimer(string key)
+    {
+        if (!string.IsNullOrEmpty(key) && !_namedTimers.ContainsKey(key))
+            _namedTimers[key] = ExamElapsed;
+    }
+    public bool  HasNamedTimer(string key) => key != null && _namedTimers.ContainsKey(key);
+    public float GetNamedTimer(string key)
+        => (key != null && _namedTimers.TryGetValue(key, out var s)) ? Mathf.Max(0f, ExamElapsed - s) : 0f;
+    public void  StopNamedTimer(string key) { if (key != null) _namedTimers.Remove(key); }
+
+    public IReadOnlyDictionary<string, float> NamedTimers => _namedTimers;
+    public void RestoreNamedTimers(string[] keys, float[] starts)
+    {
+        _namedTimers.Clear();
+        if (keys == null || starts == null) return;
+        int n = Mathf.Min(keys.Length, starts.Length);
+        for (int i = 0; i < n; i++)
+            if (!string.IsNullOrEmpty(keys[i])) _namedTimers[keys[i]] = starts[i];
+    }
+
     private float _speedViolationTimer;
+    private float _penaltyGraceUntil;   // after resume, suppress penalties while the car settles
 
     // ——— Events ———
     public UnityEvent             OnExamStart        = new UnityEvent();
@@ -180,9 +233,44 @@ public class ExamManager : MonoBehaviour
         ExamTimeLeft = examDuration;
         Penalties.Clear();
         TotalPenaltyPoints = 0;
+        ActivatedGates.Clear();
+        for (int i = 0; i < ExerciseActivatedAt.Length; i++) ExerciseActivatedAt[i] = -1f;
+        _namedTimers.Clear();
         _speedViolationTimer = 0f;
         OnExamStart.Invoke();
         Debug.Log("ExamManager: Exam started!");
+    }
+
+    /// <summary>
+    /// Resumes the exam from a DB snapshot: restores elapsed time, the penalty list,
+    /// total points and exercise statuses, and sets the exam to InProgress.
+    /// That way the tablet (StatusPanel) and route ribbon show the correct state right away.
+    /// Called from ExamResume after teleporting the car to the save point.
+    /// </summary>
+    public void ResumeExam(float elapsedSeconds, int totalPenaltyPoints,
+                           List<PenaltyRecord> penalties, ExerciseStatus[] statuses,
+                           List<string> activatedGates = null, float[] activatedAt = null)
+    {
+        State        = ExamState.InProgress;
+        ExamTimeLeft = Mathf.Max(5f, examDuration - elapsedSeconds);
+
+        Penalties          = penalties ?? new List<PenaltyRecord>();
+        TotalPenaltyPoints = totalPenaltyPoints;
+        ActivatedGates     = activatedGates ?? new List<string>();
+
+        if (activatedAt != null)
+            for (int i = 0; i < ExerciseActivatedAt.Length && i < activatedAt.Length; i++)
+                ExerciseActivatedAt[i] = activatedAt[i];
+
+        if (statuses != null)
+            for (int i = 0; i < ExerciseStatuses.Length && i < statuses.Length; i++)
+                ExerciseStatuses[i] = statuses[i];
+
+        _speedViolationTimer = 0f;
+        _penaltyGraceUntil   = Time.time + 2.5f;   // 2.5s without penalties: the car lands and settles
+        OnExamStart.Invoke();
+        Debug.Log($"ExamManager: Exam RESUMED - penalty {TotalPenaltyPoints} pts, " +
+                  $"{elapsedSeconds:F0}s elapsed, {ExamTimeLeft:F0}s left");
     }
 
     /// <summary>
@@ -210,6 +298,7 @@ public class ExamManager : MonoBehaviour
         if (ExerciseStatuses[idx] == ExerciseStatus.Pending)
         {
             ExerciseStatuses[idx] = ExerciseStatus.Active;
+            if (ExerciseActivatedAt[idx] < 0f) ExerciseActivatedAt[idx] = ExamElapsed;
             OnExerciseActivate.Invoke(exerciseNum);
             Debug.Log($"ExamManager: {GetExerciseName(exerciseNum)} - started");
         }
@@ -238,6 +327,9 @@ public class ExamManager : MonoBehaviour
 
     public void AddPenalty(string description, int points, int exerciseNum)
     {
+        // Grace window right after resume - don't penalize (the car teleports and settles)
+        if (Time.time < _penaltyGraceUntil) return;
+
         Penalties.Add(new PenaltyRecord
         {
             description = description,
@@ -249,6 +341,19 @@ public class ExamManager : MonoBehaviour
 
         string prefix = exerciseNum > 0 ? GetExerciseName(exerciseNum) : "General violation";
         Debug.LogWarning($"PENALTY | {prefix} | {description} - {points} pts (total: {TotalPenaltyPoints} pts)");
+    }
+
+    /// <summary>
+    /// Adds a penalty ONLY once: if a penalty with the same description and exercise already
+    /// exists (including one restored from the DB on resume), it's skipped. For one-off penalties
+    /// like "exercise time exceeded", so Resume doesn't add them again.
+    /// </summary>
+    public bool AddPenaltyOnce(string description, int points, int exerciseNum)
+    {
+        foreach (var p in Penalties)
+            if (p.exerciseNum == exerciseNum && p.description == description) return false;
+        AddPenalty(description, points, exerciseNum);
+        return true;
     }
 
     public void AddCollision() => AddPenalty("Collision with an obstacle or another vehicle", PG_COLLISION, 0);

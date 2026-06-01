@@ -73,8 +73,12 @@ public class ExamResultSender : MonoBehaviour
 
     [System.Serializable] class TrackPoint
     {
-        public float x, z, rot, speed, rpm, t;
+        public float x, y, z, rot, speed, rpm, t;
     }
+
+    // DTOs for restoring an attempt from the DB (field names match the /resume JSON response)
+    [System.Serializable] public class TrackSeed   { public float x, y, z, rot, speed, rpm, t; }
+    [System.Serializable] public class PenaltySeed { public string description; public int points; public int exerciseNum; public float t, x, z; }
 
     void Awake()
     {
@@ -207,6 +211,7 @@ public class ExamResultSender : MonoBehaviour
         _track.Add(new TrackPoint
         {
             x     = t.position.x,
+            y     = t.position.y,
             z     = t.position.z,
             rot   = t.eulerAngles.y,
             speed = _car.rb != null ? _car.rb.linearVelocity.magnitude * 3.6f : 0f,
@@ -242,10 +247,28 @@ public class ExamResultSender : MonoBehaviour
         var trackJson = new List<string>();
         foreach (var pt in _track)
             trackJson.Add(
-                $"{{\"x\":{F(pt.x)},\"z\":{F(pt.z)},\"rot\":{F(pt.rot)},\"speed\":{F(pt.speed)},\"rpm\":{F(pt.rpm)},\"t\":{F(pt.t)}}}"
+                $"{{\"x\":{F(pt.x)},\"y\":{F(pt.y)},\"z\":{F(pt.z)},\"rot\":{F(pt.rot)},\"speed\":{F(pt.speed)},\"rpm\":{F(pt.rpm)},\"t\":{F(pt.t)}}}"
             );
 
         string statusesJson = "[\"" + string.Join("\",\"", statuses) + "\"]";
+
+        // Activated "gates" (traffic-light checkpoints, pedestrian crossing) - so on
+        // resume we restore exactly what was already opened.
+        var gatesEsc = new List<string>();
+        foreach (var g in _exam.ActivatedGates) gatesEsc.Add(Escape(g));
+        string gatesJson = gatesEsc.Count > 0 ? "[\"" + string.Join("\",\"", gatesEsc) + "\"]" : "[]";
+
+        // Activation moment of each exercise (exam seconds) - so timers keep running after Resume.
+        var atJson = new List<string>();
+        foreach (var v in _exam.ExerciseActivatedAt) atJson.Add(F(v));
+        string activatedAtJson = "[" + string.Join(",", atJson) + "]";
+
+        // Named timers (e.g. the regulated-intersection crossing countdown) - keys and starts.
+        var ntKeys = new List<string>();
+        var ntStarts = new List<string>();
+        foreach (var kv in _exam.NamedTimers) { ntKeys.Add("\"" + Escape(kv.Key) + "\""); ntStarts.Add(F(kv.Value)); }
+        string ntKeysJson   = "[" + string.Join(",", ntKeys)   + "]";
+        string ntStartsJson = "[" + string.Join(",", ntStarts) + "]";
 
         var lightEventsJson = new List<string>();
         foreach (var e in _lightEvents)
@@ -267,10 +290,15 @@ public class ExamResultSender : MonoBehaviour
             $"\"studentPhone\":\"{Escape(phone)}\"," +
             $"\"studentName\":\"{Escape(studentName)}\"," +
             $"\"completed\":{(completed ? "true" : "false")}," +
-            $"\"passed\":{(_exam.TotalPenaltyPoints < 100 ? "true" : "false")}," +
+            // "Passed" only for a completed exam (<100 pts); an unfinished snapshot has passed=false
+            $"\"passed\":{(completed && _exam.TotalPenaltyPoints < 100 ? "true" : "false")}," +
             $"\"totalPenaltyPoints\":{_exam.TotalPenaltyPoints}," +
             $"\"examDuration\":{F(_elapsed)}," +
             $"\"exerciseStatuses\":{statusesJson}," +
+            $"\"activatedGates\":{gatesJson}," +
+            $"\"exerciseActivatedAt\":{activatedAtJson}," +
+            $"\"namedTimerKeys\":{ntKeysJson}," +
+            $"\"namedTimerStarts\":{ntStartsJson}," +
             $"\"penalties\":[{string.Join(",", penaltiesJson)}]," +
             $"\"track\":[{string.Join(",", trackJson)}]," +
             $"\"lightEvents\":[{string.Join(",", lightEventsJson)}]," +
@@ -296,6 +324,52 @@ public class ExamResultSender : MonoBehaviour
         catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] No access to local backup: {e.Message}"); }
         SaveLocal(BuildJson(false));
         StartCoroutine(Persist(false));
+    }
+
+    /// <summary>
+    /// Adopts an existing (unfinished) attempt from the DB so we keep APPENDING to the same
+    /// record instead of creating a new one. Restores the record id, elapsed time, the
+    /// accumulated track and past penalty timings/positions - so the final snapshot and
+    /// replay stay intact. Called from ExamResume when the exam is resumed.
+    /// </summary>
+    public void AdoptResumedAttempt(string attemptId, float elapsed,
+                                    System.Collections.Generic.List<TrackSeed> track,
+                                    System.Collections.Generic.List<PenaltySeed> penalties)
+    {
+        _attemptId    = attemptId;
+        _attemptBegun = true;   // don't create a new record in Update()
+        _creating     = false;
+        _finalDone    = false;
+        _wasFinished  = false;
+        _saving       = false;
+        _elapsed      = elapsed;
+        _autosaveTimer = 0f;
+        _trackTimer    = 0f;
+
+        // Restore the track (for route-line / replay integrity)
+        _track.Clear();
+        if (track != null)
+            foreach (var s in track)
+                _track.Add(new TrackPoint { x = s.x, y = s.y, z = s.z, rot = s.rot, speed = s.speed, rpm = s.rpm, t = s.t });
+
+        // Restore past penalty timings and positions (parallel arrays to ExamManager.Penalties)
+        _penaltyTimes.Clear();
+        _penaltyPositions.Clear();
+        if (penalties != null)
+            foreach (var p in penalties)
+            {
+                _penaltyTimes.Add(p.t);
+                _penaltyPositions.Add(new Vector3(p.x, 0f, p.z));
+            }
+        _lastPenCount = _penaltyTimes.Count;
+
+        // Fresh backup file for the continued session
+        _localGuid = System.Guid.NewGuid().ToString("N");
+        try { Directory.CreateDirectory(BackupDir); } catch { }
+        SaveLocal(BuildJson(false));
+
+        Debug.Log($"[ExamResultSender] Resumed attempt {attemptId}: track {_track.Count} pts, " +
+                  $"penalties {_lastPenCount}, {_elapsed:F0}s elapsed");
     }
 
     string LocalPath => _localGuid != null ? Path.Combine(BackupDir, _localGuid + ".json") : null;
@@ -474,6 +548,10 @@ public class ExamResultSender : MonoBehaviour
             }
         }
     }
+
+    /// <summary>Synchronously save the current attempt snapshot (for "Save & exit to menu").
+    /// The attempt stays unfinished (completed:false) - it can be continued later.</summary>
+    public void SaveNow() => FlushSync();
 
     // Synchronous emergency flush on quit/minimize (coroutines wouldn't finish in time here).
     void FlushSync()

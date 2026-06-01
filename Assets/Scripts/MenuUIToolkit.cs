@@ -22,24 +22,29 @@ public class MenuUIToolkit : MonoBehaviour
     public event Action OnStart;
     public event Action OnQuit;
     public event Action OnLogin;
-    public event Action<string, string> OnLoginSubmit;   // (phone, password)
+    public event Action<string, string> OnLoginSubmit;             // (phone, password)
+    public event Action<string, string, string> OnRegisterSubmit; // (fullName, phone, password)
 
     const string K_VOLUME  = "Volume";
     const string K_QUALITY = "gfx_quality";
     const string K_VSYNC   = "gfx_vsync";
     const string K_FPS     = "gfx_fpsCap";
     const string K_INPUT   = "InputType";   // 0 = Keyboard, 1 = Wheel
+    const string K_NAVHELP = "nav_help";     // 1 = show the route ribbon
     static readonly int[] FpsOptions = { 0, 30, 60, 72, 90, 120, 144 };
 
     private bool _init;
     private VisualElement _root, _overlay, _loginOverlay;
     private Button _btnStart, _btnSettings, _btnLogin, _btnQuit, _btnClose;
-    private Button _loginSubmit, _loginClose;
-    private TextField _loginPhone, _loginPassword;
-    private Label _keyHint, _startLabel, _loginStatus;
+    private Button _loginSubmit, _loginClose, _loginSwitch;
+    private TextField _loginPhone, _loginPassword, _loginFullname;
+    private VisualElement _loginFullnameRow;
+    private Label _keyHint, _startLabel, _loginStatus, _loginTitle, _loginSubmitLabel, _loginSwitchLabel;
+    private Label _loginBtnLabel, _loginBtnSub;
+    private bool _registerMode;
     private Slider _volume;
     private DropdownField _quality, _fps, _inputType;
-    private Toggle _vsync;
+    private Toggle _vsync, _navHelp;
 
     // тт Apply saved settings at startup ттттттттттттттттттттттттттттттттттттттт
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -69,6 +74,8 @@ public class MenuUIToolkit : MonoBehaviour
         _btnStart    = r.Q<Button>("start-button");
         _btnSettings = r.Q<Button>("settings-button");
         _btnLogin    = r.Q<Button>("login-button");
+        _loginBtnLabel = _btnLogin?.Q<Label>(className: "btn__label");
+        _loginBtnSub   = _btnLogin?.Q<Label>(className: "btn__sub");
         _btnQuit     = r.Q<Button>("quit-button");
         _btnClose    = r.Q<Button>("settings-close");
         _keyHint     = r.Q<Label>("key-hint");                 // not in this design - will be null, that's fine
@@ -78,22 +85,29 @@ public class MenuUIToolkit : MonoBehaviour
         _fps         = r.Q<DropdownField>("fps");
         _vsync       = r.Q<Toggle>("vsync");
         _inputType   = r.Q<DropdownField>("input-type");
+        _navHelp     = r.Q<Toggle>("nav-help");
 
-        _loginOverlay  = r.Q("login-overlay");
-        _loginPhone    = r.Q<TextField>("login-phone");
-        _loginPassword = r.Q<TextField>("login-password");
-        _loginSubmit   = r.Q<Button>("login-submit");
-        _loginClose    = r.Q<Button>("login-close");
-        _loginStatus   = r.Q<Label>("login-status");
+        _loginOverlay     = r.Q("login-overlay");
+        _loginPhone       = r.Q<TextField>("login-phone");
+        _loginPassword    = r.Q<TextField>("login-password");
+        _loginFullname    = r.Q<TextField>("login-fullname");
+        _loginFullnameRow = r.Q("login-fullname-row");
+        _loginSubmit      = r.Q<Button>("login-submit");
+        _loginClose       = r.Q<Button>("login-close");
+        _loginSwitch      = r.Q<Button>("login-switch");
+        _loginStatus      = r.Q<Label>("login-status");
+        _loginTitle       = r.Q<Label>("login-title");
+        _loginSubmitLabel = r.Q<Label>("login-submit-label");
+        _loginSwitchLabel = r.Q<Label>("login-switch-label");
 
         if (_btnStart    != null) _btnStart.clicked    += () => OnStart?.Invoke();
         if (_btnSettings != null) _btnSettings.clicked += ToggleSettings;
         if (_btnLogin    != null) _btnLogin.clicked    += () => OnLogin?.Invoke();
         if (_btnQuit     != null) _btnQuit.clicked     += () => OnQuit?.Invoke();
         if (_btnClose    != null) _btnClose.clicked    += () => SetSettingsVisible(false);
-        if (_loginSubmit != null) _loginSubmit.clicked += () =>
-            OnLoginSubmit?.Invoke(_loginPhone?.value ?? "", _loginPassword?.value ?? "");
+        if (_loginSubmit != null) _loginSubmit.clicked += SubmitLoginOrRegister;
         if (_loginClose  != null) _loginClose.clicked  += HideLogin;
+        if (_loginSwitch != null) _loginSwitch.clicked += () => SetRegisterMode(!_registerMode);
 
         SetupSettings();
         _init = true;
@@ -110,6 +124,14 @@ public class MenuUIToolkit : MonoBehaviour
     }
     public void SetKeyHint(string t)   { EnsureInit(); if (_keyHint != null) _keyHint.text = t; }
 
+    /// <summary>Changes the profile button label (in game "Save & exit", in the menu "PROFILE").</summary>
+    public void SetProfileButtonText(string label, string sub)
+    {
+        EnsureInit();
+        if (_loginBtnLabel != null) _loginBtnLabel.text = label;
+        if (_loginBtnSub   != null) _loginBtnSub.text   = sub;
+    }
+
     public void ToggleSettings()
     {
         EnsureInit();
@@ -125,11 +147,33 @@ public class MenuUIToolkit : MonoBehaviour
     public void ShowLogin()
     {
         EnsureInit();
-        if (_loginStatus != null) _loginStatus.text = "";
+        SetRegisterMode(false);            // always open in sign-in mode
         SetOverlay(_loginOverlay, true);
     }
     public void HideLogin() { EnsureInit(); SetOverlay(_loginOverlay, false); }
     public void SetLoginStatus(string t) { EnsureInit(); if (_loginStatus != null) _loginStatus.text = t; }
+
+    // Submit button: sign in or register depending on the mode
+    void SubmitLoginOrRegister()
+    {
+        string phone = _loginPhone?.value ?? "";
+        string pass  = _loginPassword?.value ?? "";
+        if (_registerMode)
+            OnRegisterSubmit?.Invoke(_loginFullname?.value ?? "", phone, pass);
+        else
+            OnLoginSubmit?.Invoke(phone, pass);
+    }
+
+    // Toggle between "sign in" and "register"
+    void SetRegisterMode(bool on)
+    {
+        _registerMode = on;
+        if (_loginFullnameRow != null) _loginFullnameRow.style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
+        if (_loginTitle       != null) _loginTitle.text       = on ? "SIGN UP" : "SIGN IN";
+        if (_loginSubmitLabel != null) _loginSubmitLabel.text = on ? "SIGN UP" : "SIGN IN";
+        if (_loginSwitchLabel != null) _loginSwitchLabel.text = on ? "Have an account? Sign in" : "No account? Sign up";
+        if (_loginStatus      != null) _loginStatus.text = "";
+    }
 
     static void SetOverlay(VisualElement ov, bool on)
     {
@@ -196,6 +240,18 @@ public class MenuUIToolkit : MonoBehaviour
                 int v = Mathf.Clamp(_inputType.index, 0, 1);
                 ApplyInputType(v);
                 PlayerPrefs.SetInt(K_INPUT, v); PlayerPrefs.Save();
+            });
+        }
+
+        if (_navHelp != null)
+        {
+            // Navigation help (route ribbon). RouteRibbon reads this pref every frame,
+            // so toggling works on the fly and doesn't depend on the 3-segment system.
+            _navHelp.value = PlayerPrefs.GetInt(K_NAVHELP, 1) == 1;
+            _navHelp.RegisterValueChangedCallback(e =>
+            {
+                PlayerPrefs.SetInt(K_NAVHELP, e.newValue ? 1 : 0);
+                PlayerPrefs.Save();
             });
         }
     }

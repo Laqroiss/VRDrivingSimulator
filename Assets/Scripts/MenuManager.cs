@@ -51,6 +51,10 @@ public class MenuManager : MonoBehaviour
     [Tooltip("Drag the object with the AuthManager component here")]
     public AuthManager authManager;
 
+    [Header("Exam resume")]
+    [Tooltip("ExamResume (usually on the ExamManager object) - continue from the last DB checkpoint")]
+    public ExamResume examResume;
+
     [Header("Animation")]
     public float fadeInDuration   = 1.5f;
     public float fadeOutDuration  = 0.8f;
@@ -127,6 +131,7 @@ public class MenuManager : MonoBehaviour
             menuUI.OnQuit  += QuitGame;
             menuUI.OnLogin += HandleLogin;
             menuUI.OnLoginSubmit += HandleLoginSubmit;
+            menuUI.OnRegisterSubmit += HandleRegisterSubmit;
             menuUI.ShowMenu();
             menuUI.SetKeyHint("[Enter] Start     [Tab] Settings     [Esc] Close");
             Cursor.lockState = CursorLockMode.None;
@@ -135,10 +140,13 @@ public class MenuManager : MonoBehaviour
 
         if (profilePanel != null)
         {
-            profilePanel.OnReplay += PlayAttemptReplay;
-            profilePanel.OnLogout += HandleLogout;
+            profilePanel.OnReplay        += PlayAttemptReplay;
+            profilePanel.OnResumeAttempt += HandleResumeAttempt;
+            profilePanel.OnLogout        += HandleLogout;
         }
         ReplayCRMSync.OnReplayFinished += OnReplayFinished;
+
+        if (examResume == null) examResume = FindAnyObjectByType<ExamResume>();
 
         // Volume
         if (volumeSlider != null)
@@ -269,11 +277,32 @@ public class MenuManager : MonoBehaviour
         else OnStartClicked();
     }
 
+    private bool _resumeOnEnter; // next cockpit entry is a resume, not a fresh start
+
+    // "CONTINUE" on an abandoned attempt in the cabinet - continue THAT exact attempt
+    // from the last saved checkpoint.
+    void HandleResumeAttempt(string attemptId)
+    {
+        if (_inGame || !_menuActive || examResume == null) return;
+        profilePanel?.Hide();
+        menuUI?.SetSettingsVisible(false);
+        examResume.LoadResumable(attemptId, ok =>
+        {
+            if (!ok) { Debug.LogWarning("[MenuManager] Failed to load the attempt to continue"); return; }
+            _resumeOnEnter = true;
+            StartGame();
+        });
+    }
+
     // LOG IN / LOG OUT button:
     //  - not logged in -> authenticate, then open the cabinet on success
     //  - logged in     -> open/close the student cabinet
     void HandleLogin()
     {
+        // During an exam the cabinet/replays are unavailable - the button acts as "Save & exit to menu".
+        // A replay can only be launched from the main menu (where the camera flies), after exiting.
+        if (_inGame) { ExitToMenu(); return; }
+
         if (AuthManager.IsLoggedIn)
             profilePanel?.Toggle();          // logged in -> open/close the cabinet
         else
@@ -281,6 +310,18 @@ public class MenuManager : MonoBehaviour
             _afterLogin = () => profilePanel?.Show();   // not logged in -> login form, then cabinet
             menuUI?.ShowLogin();
         }
+    }
+
+    // Saves the current attempt (as unfinished - it can be continued later) and returns to the
+    // main menu by reloading the scene. From the menu you can open the cabinet and launch a replay.
+    void ExitToMenu()
+    {
+        FindAnyObjectByType<ExamResultSender>()?.SaveNow();
+        Time.timeScale = 1f;                 // timeScale survives a scene reload - reset it
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
+        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        UnityEngine.SceneManagement.SceneManager.LoadScene(scene.buildIndex);
     }
 
     // Log out from the cabinet
@@ -329,6 +370,7 @@ public class MenuManager : MonoBehaviour
 
     void OnStartClicked()
     {
+        _resumeOnEnter = false;            // normal start - a new exam, not a resume
         if (authManager != null && !AuthManager.IsLoggedIn)
         {
             _afterLogin = StartGame;       // sign in right here, then start
@@ -355,6 +397,20 @@ public class MenuManager : MonoBehaviour
             onError: err => menuUI?.SetLoginStatus(err));
     }
 
+    void HandleRegisterSubmit(string fullName, string phone, string password)
+    {
+        if (authManager == null) return;
+        menuUI?.SetLoginStatus("Creating account…");
+        authManager.RegisterInline(fullName, phone, password,
+            onSuccess: () =>
+            {
+                menuUI?.HideLogin();
+                var a = _afterLogin; _afterLogin = null;
+                a?.Invoke();
+            },
+            onError: err => menuUI?.SetLoginStatus(err));
+    }
+
     void StartGame()
     {
         if (!_menuActive) return;
@@ -362,24 +418,10 @@ public class MenuManager : MonoBehaviour
         StartCoroutine(TransitionToCockpit());
     }
 
-    IEnumerator TransitionToCockpit()
+    // Enables XR and seats the camera in the cockpit (HeadPitch). Used both for a normal start
+    // (after the fly-by) and for a resume (instantly, no fly-by).
+    void SnapCameraToCockpit()
     {
-        // Hide the menu
-        menuUI?.HideMenu();
-        yield return StartCoroutine(FadeMenu(1f, 0f, fadeOutDuration));
-        if (menuPanel != null)
-            menuPanel.gameObject.SetActive(false);
-        else if (_cam != null)
-        {
-            // Fallback: hide the whole Canvas under the camera
-            var c = _cam.GetComponentInChildren<Canvas>();
-            if (c != null) c.gameObject.SetActive(false);
-        }
-
-        //       (XR  )
-        yield return StartCoroutine(FlyTo(_cockpitWorldPos, _cockpitWorldRot, cockpitFlyTime));
-
-        //   XR   
         if (xrHeadAnchor != null)
         {
             xrHeadAnchor.SetActive(true);
@@ -395,6 +437,41 @@ public class MenuManager : MonoBehaviour
         // Re-enable TrackedPoseDriver - player is in the cockpit, head drives the camera again
         foreach (var tpd in FindObjectsByType<TrackedPoseDriver>(FindObjectsInactive.Include))
             tpd.enabled = true;
+    }
+
+    IEnumerator TransitionToCockpit()
+    {
+        // Hide the menu
+        menuUI?.HideMenu();
+
+        yield return StartCoroutine(FadeMenu(1f, 0f, fadeOutDuration));
+        if (menuPanel != null)
+            menuPanel.gameObject.SetActive(false);
+        else if (_cam != null)
+        {
+            // Fallback: hide the whole Canvas under the camera
+            var c = _cam.GetComponentInChildren<Canvas>();
+            if (c != null) c.gameObject.SetActive(false);
+        }
+
+        if (_resumeOnEnter && examResume != null)
+        {
+            // Resume - NO camera fly-by. Place the car at the checkpoint, restore the exam
+            // (statuses/gates) RIGHT THEN, and hand over control immediately. Otherwise during
+            // the camera fly-by the car already sits inside an exercise zone while statuses
+            // aren't restored yet - a trigger (railway crossing etc.) fires with the wrong
+            // state, "eats" the entry and stays locked, since the car is already inside and
+            examResume.TeleportCarToCheckpoint();
+            examResume.RestoreExamState();
+            _resumeOnEnter = false;
+            SnapCameraToCockpit();
+        }
+        else
+        {
+            // Normal start - smooth fly-by to the remembered cockpit pose (XR still off)
+            yield return StartCoroutine(FlyTo(_cockpitWorldPos, _cockpitWorldRot, cockpitFlyTime));
+            SnapCameraToCockpit();
+        }
 
         // Leave Park - the driver can shift to Drive and go
         if (car != null)
@@ -406,6 +483,9 @@ public class MenuManager : MonoBehaviour
         // Change the Start button to "Resume" (UI Toolkit and legacy uGUI)
         menuUI?.SetStartText("RESUME");
         menuUI?.SetKeyHint("[Esc] Resume     [Tab] Settings     [Q] Quit");
+
+        // In game the profile button = "Save & exit to menu" (cabinet/replay only from the menu)
+        menuUI?.SetProfileButtonText("SAVE & EXIT", "ATTEMPT → MAIN MENU");
 
         var startLabel = btnStart?.GetComponentInChildren<TextMeshProUGUI>();
         if (startLabel != null) startLabel.text = "Resume";

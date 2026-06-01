@@ -99,17 +99,24 @@ public class RouteRibbon : MonoBehaviour
 
     void LateUpdate()
     {
-        // : alwaysVisible → ;      (ExamManager).
-        bool active;
-        if (alwaysVisible)                     active = true;
-        else if (ExamManager.Instance != null) active = ExamManager.Instance.State == ExamManager.ExamState.InProgress;
-        else                                   active = true;
+        // Navigation help (setting). Read the pref every frame - toggles on the fly.
+        bool navOn = PlayerPrefs.GetInt("nav_help", 1) == 1;
 
-        //   →    
-        if (active && !_prevActive) { _headIndex = 0; _carIndex = 0; }
-        _prevActive = active;
+        // Route activity by exam state (for restart logic; independent of nav_help).
+        bool routeActive;
+        if (alwaysVisible)                     routeActive = true;
+        else if (ExamManager.Instance != null) routeActive = ExamManager.Instance.State == ExamManager.ExamState.InProgress;
+        else                                   routeActive = true;
 
-        if (!active || _pts.Count < 2)
+        // Route restart (new exam) -> ribbon back to the start.
+        // Tied to routeActive, NOT nav_help - so toggling help doesn't reset progress.
+        if (routeActive && !_prevActive) { _headIndex = 0; _carIndex = 0; }
+        _prevActive = routeActive;
+
+        // Draw only if the route is active AND help is on.
+        // When off - just hide the mesh (don't move AdvanceHead); when on,
+        // AdvanceHead catches up to the car along the current segment in one frame - no reset.
+        if (!routeActive || !navOn || _pts.Count < 2)
         {
             _mr.enabled = false;
             return;

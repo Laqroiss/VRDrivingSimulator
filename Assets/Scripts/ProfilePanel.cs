@@ -18,6 +18,8 @@ public class ProfilePanel : MonoBehaviour
 
     /// <summary>attemptId -> launch a replay. MenuManager wires this to ReplayCRMSync.</summary>
     public event Action<string> OnReplay;
+    /// <summary>attemptId -> continue an unfinished (abandoned) attempt. MenuManager wires this to ExamResume.</summary>
+    public event Action<string> OnResumeAttempt;
     /// <summary>The "Log out" button was clicked.</summary>
     public event Action OnLogout;
 
@@ -28,6 +30,7 @@ public class ProfilePanel : MonoBehaviour
         public bool   passed;
         public bool   completed;
         public bool   hasReplay;
+        public bool   hasTrack;
         public int    totalPenaltyPoints;
         public float  examDuration;
     }
@@ -100,7 +103,12 @@ public class ProfilePanel : MonoBehaviour
     {
         if (_list != null) _list.Clear();
 
-        string url = $"{crmUrl}/api/attempts?student={UnityWebRequest.EscapeURL(studentName)}";
+        // Query by studentId (account binding) - matches the website and avoids pulling
+        // other/orphaned records without an id. Name is just a fallback when there's no id.
+        string studentId = PlayerPrefs.GetString(AuthManager.KEY_ID, "");
+        string url = !string.IsNullOrEmpty(studentId)
+            ? $"{crmUrl}/api/attempts?studentId={UnityWebRequest.EscapeURL(studentId)}"
+            : $"{crmUrl}/api/attempts?student={UnityWebRequest.EscapeURL(studentName)}";
         using var req = UnityWebRequest.Get(url);
         yield return req.SendWebRequest();
 
@@ -127,7 +135,7 @@ public class ProfilePanel : MonoBehaviour
         int total = items.Length, passed = 0, best = int.MaxValue;
         foreach (var a in items)
         {
-            if (a.passed) passed++;
+            if (a.completed && a.passed) passed++;        // "passed" only counts for attempts that reached the finish
             if (a.completed && a.totalPenaltyPoints < best) best = a.totalPenaltyPoints;
         }
         if (_summary != null)
@@ -156,6 +164,17 @@ public class ProfilePanel : MonoBehaviour
         var score = new Label($"{a.totalPenaltyPoints} pts"); score.AddToClassList("attempt-score");
 
         var id  = a._id;
+        row.Add(info); row.Add(score);
+
+        // Abandoned attempt (didn't reach the finish) with a recorded track - offer "CONTINUE" from the save point
+        if (!a.completed && a.hasTrack)
+        {
+            var resume = new Button(() => OnResumeAttempt?.Invoke(id)) { text = "CONTINUE" };
+            resume.AddToClassList("attempt-resume");
+            resume.tooltip = "Continue this exam from the last saved point";
+            row.Add(resume);
+        }
+
         var btn = new Button(() => OnReplay?.Invoke(id)) { text = "REPLAY" };
         btn.AddToClassList("attempt-replay");
         if (!a.hasReplay)                       // no replay recorded — nothing to play
@@ -164,7 +183,7 @@ public class ProfilePanel : MonoBehaviour
             btn.tooltip = "No replay for this attempt";
         }
 
-        row.Add(info); row.Add(score); row.Add(btn);
+        row.Add(btn);
         _list.Add(row);
     }
 

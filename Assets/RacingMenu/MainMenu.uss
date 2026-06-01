@@ -373,6 +373,23 @@
 .attempt-replay:hover { background-color: var(--red-deep); scale: 1.06 1.06; }
 .attempt-replay:active { scale: 0.96 0.96; }
 .attempt-replay:disabled { background-color: rgba(150, 155, 165, 0.55); opacity: 0.6; }
+/*     ()  — ,   REPLAY */
+.attempt-resume {
+    width: 140px; height: 50px;
+    margin-right: 8px;
+    background-color: rgb(245, 176, 65);
+    border-width: 0;
+    border-top-left-radius: 11px; border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;
+    color: rgb(40, 30, 10);
+    font-size: 18px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    transition-property: scale, background-color; transition-duration: 0.12s;
+}
+.attempt-resume:hover  { background-color: rgb(250, 191, 96); scale: 1.06 1.06; }
+.attempt-resume:active { scale: 0.96 0.96; }
+
 .attempt-empty { font-size: 20px; color: var(--sub); -unity-text-align: middle-center; margin-top: 30px; }
 
 .profile-actions { flex-direction: row; justify-content: center; margin-top: 18px; }
@@ -408,6 +425,18 @@
     color: var(--red);
     -unity-text-align: middle-center;
 }
+.login-switch-btn {
+    margin-top: 14px;
+    align-self: center;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+.login-switch-label {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(40, 110, 180);
+}
+.login-switch-btn:hover .login-switch-label { color: var(--red); }
 .srow__control .unity-text-field__input {
     background-color: rgba(255, 255, 255, 0.92);
     border-left-color: var(--glass-line); border-right-color: var(--glass-line);

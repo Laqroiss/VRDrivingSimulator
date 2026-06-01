@@ -48,12 +48,15 @@ public class IntersectionExercise : MonoBehaviour
     {
         if (!_active || _completed) return;
 
-        _timer += Time.deltaTime;
+        //      ExamManager —  Resume (  ).
+        _timer = ExamManager.Instance != null
+            ? ExamManager.Instance.GetTimeSinceActivation(2)
+            : _timer + Time.deltaTime;
 
         if (!_overtime15 && _timer > timeLimit)
         {
             _overtime15 = true;
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "    №2  2 ",
                 ExamManager.P2_OVERTIME, 2);
         }

@@ -81,7 +81,12 @@
         <!-- =================== LOGIN OVERLAY =================== -->
         <ui:VisualElement name="login-overlay" class="overlay hidden">
             <ui:VisualElement class="settings-card">
-                <ui:Label text="SIGN IN" class="settings-title" />
+                <ui:Label name="login-title" text="SIGN IN" class="settings-title" />
+
+                <ui:VisualElement name="login-fullname-row" class="srow">
+                    <ui:Label text="Full name" class="srow__label" />
+                    <ui:TextField name="login-fullname" class="srow__control" />
+                </ui:VisualElement>
 
                 <ui:VisualElement class="srow">
                     <ui:Label text="Phone" class="srow__label" />
@@ -98,7 +103,7 @@
                 <ui:VisualElement class="profile-actions">
                     <ui:Button name="login-submit" class="btn btn--start profile-action">
                         <ui:VisualElement class="btn__text" picking-mode="Ignore">
-                            <ui:Label text="SIGN IN" class="btn__label" />
+                            <ui:Label name="login-submit-label" text="SIGN IN" class="btn__label" />
                         </ui:VisualElement>
                     </ui:Button>
                     <ui:Button name="login-close" class="btn profile-action">
@@ -107,6 +112,10 @@
                         </ui:VisualElement>
                     </ui:Button>
                 </ui:VisualElement>
+
+                <ui:Button name="login-switch" class="login-switch-btn">
+                    <ui:Label name="login-switch-label" text="No account? Sign up" class="login-switch-label" />
+                </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -138,6 +147,11 @@
                 <ui:VisualElement class="srow">
                     <ui:Label text="Input" class="srow__label" />
                     <ui:DropdownField name="input-type" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
+                    <ui:Label text="Navigation Help" class="srow__label" />
+                    <ui:Toggle name="nav-help" class="srow__control" />
                 </ui:VisualElement>
 
                 <ui:Button name="settings-close" class="btn btn--quit settings-close">

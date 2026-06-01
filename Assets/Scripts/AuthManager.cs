@@ -183,6 +183,49 @@ public class AuthManager : MonoBehaviour
         }
     }
 
+    /// <summary>In-game registration: POST to CRM /api/auth/register, then sign in.</summary>
+    public void RegisterInline(string fullName, string phone, string password, System.Action onSuccess, System.Action<string> onError)
+    {
+        StartCoroutine(RegisterInlineRoutine(fullName, phone, password, onSuccess, onError));
+    }
+
+    IEnumerator RegisterInlineRoutine(string fullName, string phone, string password, System.Action onSuccess, System.Action<string> onError)
+    {
+        if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(password))
+        { onError?.Invoke("Fill in all fields"); yield break; }
+
+        string json = "{\"fullName\":\"" + EscapeJson(fullName.Trim()) + "\",\"phone\":\"" + EscapeJson(phone.Trim())
+                    + "\",\"password\":\"" + EscapeJson(password) + "\"}";
+        using var req = new UnityWebRequest($"{apiBaseUrl}/api/auth/register", "POST")
+        {
+            uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)),
+            downloadHandler = new DownloadHandlerBuffer(),
+        };
+        req.SetRequestHeader("Content-Type", "application/json");
+        yield return req.SendWebRequest();
+
+        LoginResp resp = null;
+        try { resp = JsonUtility.FromJson<LoginResp>(req.downloadHandler.text); } catch { }
+
+        if (resp != null && !string.IsNullOrEmpty(resp.id))
+        {
+            PlayerPrefs.SetInt(KEY_LOGGED_IN, 1);
+            PlayerPrefs.SetString(KEY_ID,        resp.id);
+            PlayerPrefs.SetString(KEY_PHONE,     resp.phone);
+            PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
+            PlayerPrefs.Save();
+            if (authPanel != null) authPanel.SetActive(false);
+            Debug.Log($"[AuthManager] Registered: {resp.fullName}");
+            onSuccess?.Invoke();
+        }
+        else
+        {
+            string msg = resp != null && !string.IsNullOrEmpty(resp.error)
+                ? resp.error : "Registration failed (CRM offline?)";
+            onError?.Invoke(msg);
+        }
+    }
+
     static string EscapeJson(string s) => s?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? "";
 
     /// <summary>Log out: clear the saved session and show the sign-in screen.</summary>

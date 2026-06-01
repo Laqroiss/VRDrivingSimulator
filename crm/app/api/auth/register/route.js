@@ -8,16 +8,16 @@ export async function POST(request) {
     const { phone, fullName, password } = await request.json()
 
     if (!phone || !fullName || !password)
-      return NextResponse.json({ error: '  ' }, { status: 400 })
+      return NextResponse.json({ error: 'Fill in all fields' }, { status: 400 })
 
     const exists = await User.findOne({ phone: phone.trim() })
     if (exists)
-      return NextResponse.json({ error: '   ' }, { status: 409 })
+      return NextResponse.json({ error: 'Phone number already registered' }, { status: 409 })
 
     const user = await User.create({ phone: phone.trim(), fullName: fullName.trim(), password })
     return NextResponse.json({ id: user._id.toString(), phone: user.phone, fullName: user.fullName }, { status: 201 })
   } catch (err) {
     console.error('[register]', err)
-    return NextResponse.json({ error: ' ' }, { status: 500 })
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

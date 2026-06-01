@@ -123,7 +123,7 @@ public class RailwayCrossing : MonoBehaviour
         if (_crossedStopLine && !_stopLinePenalty)
         {
             _stopLinePenalty = true;
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "Drove onto or across the \"Stop\" line before stopping (Ex.7)",
                 ExamManager.P7_ON_STOP_LINE, 7);
         }
@@ -154,7 +154,7 @@ public class RailwayCrossing : MonoBehaviour
 
         if (earlyStart)
         {
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "Started moving less than 3 seconds after stopping (Ex.7)",
                 ExamManager.P7_EARLY_START, 7);
             ExamManager.Instance?.MarkExerciseFailed(7);
@@ -179,7 +179,7 @@ public class RailwayCrossing : MonoBehaviour
         if (_carRb != null && _carRb.linearVelocity.magnitude > maxStopSpeed && !_stopLinePenalty)
         {
             _stopLinePenalty = true;
-            ExamManager.Instance?.AddPenalty(
+            ExamManager.Instance?.AddPenaltyOnce(
                 "Drove onto or across the \"Stop\" line before stopping (Ex.7)",
                 ExamManager.P7_ON_STOP_LINE, 7);
         }

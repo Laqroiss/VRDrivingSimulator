@@ -60,6 +60,7 @@ public class GreenLightTimer : MonoBehaviour
         if (!_activated && completedExercise == activateOnExercise)
         {
             _activated = true;
+            ExamManager.Instance?.MarkGateActivated(gameObject.name);
             Debug.Log($"GreenLightTimer [{name}]: activated after Ex.{completedExercise} finished");
         }
     }
@@ -69,6 +70,7 @@ public class GreenLightTimer : MonoBehaviour
     {
         if (_activated) return;
         _activated = true;
+        ExamManager.Instance?.MarkGateActivated(gameObject.name);
         Debug.Log($"GreenLightTimer [{name}]: activated by external call");
     }
 
@@ -99,7 +101,10 @@ public class GreenLightTimer : MonoBehaviour
 
         if (_timerActive)
         {
-            _timer += Time.deltaTime;
+            // Crossing time comes from the ExamManager named timer - survives Resume.
+            _timer = ExamManager.Instance != null
+                ? ExamManager.Instance.GetNamedTimer(gameObject.name)
+                : _timer + Time.deltaTime;
             if (!_penalty20Done && _timer > 20f) Apply20Penalty();
             if (!_penalty30Done && _timer > 30f) Apply30Penalty();
         }
@@ -127,8 +132,11 @@ public class GreenLightTimer : MonoBehaviour
 
     void StartTimer(string source, string lightState)
     {
-        _timerActive   = true;
-        _timer         = 0f;
+        _timerActive = true;
+        // Named timer in ExamManager (by object name) - on Resume it keeps the start moment,
+        // so the crossing count doesn't reset. StartNamedTimer leaves a restored start untouched.
+        ExamManager.Instance?.StartNamedTimer(gameObject.name);
+        _timer = ExamManager.Instance != null ? ExamManager.Instance.GetNamedTimer(gameObject.name) : 0f;
         _penalty20Done = false;
         _penalty30Done = false;
         Debug.Log($"GreenLightTimer [{name}]: timer started ({source}, light={lightState})");
@@ -140,12 +148,14 @@ public class GreenLightTimer : MonoBehaviour
     {
         if (!_timerActive) return;
 
+        if (ExamManager.Instance != null) _timer = ExamManager.Instance.GetNamedTimer(gameObject.name);
         Debug.Log($"GreenLightTimer [{name}]: exited IntersectionPass - total {_timer:F1} sec");
 
         if (!_penalty20Done && _timer > 20f) Apply20Penalty();
         if (!_penalty30Done && _timer > 30f) Apply30Penalty();
 
         _timerActive = false;
+        ExamManager.Instance?.StopNamedTimer(gameObject.name);
     }
 
     // тт Penalties ттттттттттттттттттттттттттттттттттттттттттттттттттттттттттт
@@ -153,7 +163,7 @@ public class GreenLightTimer : MonoBehaviour
     void Apply20Penalty()
     {
         _penalty20Done = true;
-        ExamManager.Instance?.AddPenalty(
+        ExamManager.Instance?.AddPenaltyOnce(
             "Took more than 20 seconds to cross the regulated intersection",
             ExamManager.P3_OVERTIME_20, 3);
     }
@@ -161,7 +171,7 @@ public class GreenLightTimer : MonoBehaviour
     void Apply30Penalty()
     {
         _penalty30Done = true;
-        ExamManager.Instance?.AddPenalty(
+        ExamManager.Instance?.AddPenaltyOnce(
             "Took more than 30 seconds to cross the regulated intersection",
             ExamManager.P3_OVERTIME_30, 3);
     }
