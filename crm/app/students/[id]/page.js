@@ -4,11 +4,12 @@ import User from '@/models/User'
 import Attempt from '@/models/Attempt'
 import DeleteButton from '@/components/DeleteButton'
 import EditStudentButton from '@/components/EditStudentButton'
+import Counter from '@/components/Counter'
 
 export const dynamic = 'force-dynamic'
 
 function fmt(date) {
-  return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 function dur(s) {
   if (!s) return '‚Äî'
@@ -22,7 +23,7 @@ function initials(name) {
 export default async function StudentPage({ params }) {
   await connectDB()
   const user = await User.findById(params.id, '-password').lean()
-  if (!user) return <div className="empty-state"><div className="icon">‚</div><p>  </p></div>
+  if (!user) return <div className="empty-state"><div className="icon">‚</div><p>Student not found</p></div>
 
   const attempts = await Attempt.find({ studentId: params.id }, '-track').sort({ timestamp: -1 }).lean()
   const passed   = attempts.filter(a => a.passed).length
@@ -30,18 +31,15 @@ export default async function StudentPage({ params }) {
   const avgScore = attempts.length
     ? Math.round(attempts.reduce((s, a) => s + (a.totalPenaltyPoints ?? 0), 0) / attempts.length)
     : 0
-  const bestScore = attempts.length
-    ? Math.min(...attempts.map(a => a.totalPenaltyPoints ?? 999))
-    : null
 
   return (
     <div>
       <div className="road-stripe" />
       <Link href="/admin" style={{ color: 'var(--muted2)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
-        ‚Üê   
+        ‚Üê Back to list
       </Link>
 
-      {/*   */}
+      {/* Student card */}
       <div className="student-hero">
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div className="student-avatar">{initials(user.fullName)}</div>
@@ -49,7 +47,7 @@ export default async function StudentPage({ params }) {
             <div className="student-name">{user.fullName}</div>
             <div className="student-meta">
               <span>û {user.phone}</span>
-              <span>Ö  {new Date(user.createdAt).toLocaleDateString('ru-RU')}</span>
+              <span>Ö Registered {new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
             </div>
             <div style={{ marginTop: 10 }}>
               <EditStudentButton student={{ _id: user._id.toString(), fullName: user.fullName, phone: user.phone }} />
@@ -58,30 +56,30 @@ export default async function StudentPage({ params }) {
         </div>
         <div className="student-stats">
           {[
-            { val: attempts.length, lbl: '',     color: 'var(--text)'  },
-            { val: passed,          lbl: '',        color: 'var(--green)' },
-            { val: failed,          lbl: ' ',     color: failed > 0 ? 'var(--red)' : 'var(--muted)' },
-            { val: avgScore,        lbl: '. ',  color: avgScore >= 100 ? 'var(--red)' : 'var(--accent)' },
+            { val: attempts.length, lbl: 'Attempts',  color: 'var(--text)'  },
+            { val: passed,          lbl: 'Passed',     color: 'var(--green)' },
+            { val: failed,          lbl: 'Failed',     color: failed > 0 ? 'var(--red)' : 'var(--muted)' },
+            { val: avgScore,        lbl: 'Avg points', color: avgScore >= 100 ? 'var(--red)' : 'var(--gold)' },
           ].map(s => (
             <div key={s.lbl} className="student-stat">
-              <div className="val" style={{ color: s.color }}>{s.val}</div>
+              <div className="val" style={{ color: s.color }}><Counter value={s.val} /></div>
               <div className="lbl">{s.lbl}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/*  */}
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}> </div>
+      {/* History */}
+      <div className="section-title">Exam history</div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th></th>
-              <th></th>
-              <th> </th>
-              <th></th>
-              <th></th>
+              <th>Date</th>
+              <th>Result</th>
+              <th>Penalty points</th>
+              <th>Duration</th>
+              <th>Errors</th>
               <th></th>
             </tr>
           </thead>
@@ -90,14 +88,14 @@ export default async function StudentPage({ params }) {
               <tr><td colSpan={6}>
                 <div className="empty-state">
                   <div className="icon">¶</div>
-                  <p>   </p>
+                  <p>No exams yet</p>
                 </div>
               </td></tr>
             )}
             {attempts.map(a => (
               <tr key={a._id.toString()}>
                 <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
-                <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span></td>
+                <td><span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'PASSED' : 'FAILED'}</span></td>
                 <td>
                   <span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : a.totalPenaltyPoints <= 20 ? 'var(--green)' : 'var(--text)' }}>
                     {a.totalPenaltyPoints ?? '‚Äî'}
@@ -108,7 +106,7 @@ export default async function StudentPage({ params }) {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <Link href={`/attempts/${a._id}`}>
-                      <button className="ghost"> ‚Üí</button>
+                      <button className="ghost">Details ‚Üí</button>
                     </Link>
                     <DeleteButton id={a._id.toString()} />
                   </div>

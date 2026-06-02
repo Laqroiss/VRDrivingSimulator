@@ -12,7 +12,7 @@ export async function GET(request, { params }) {
   const isAdminReq = isAdmin(request)
   await connectDB()
   const user = await User.findById(params.id, '-password').lean()
-  if (!user) return NextResponse.json({ error: ' ' }, { status: 404 })
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const attempts = await Attempt.find({ studentId: params.id }, '-track').sort({ timestamp: -1 }).lean()
   return NextResponse.json({ user, attempts })
@@ -24,7 +24,7 @@ export async function PUT(request, { params }) {
   await connectDB()
   const { fullName, phone, password } = await request.json()
   if (!fullName || !phone)
-    return NextResponse.json({ error: '   ' }, { status: 400 })
+    return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 })
 
   const update = { fullName: fullName.trim(), phone: phone.trim() }
 
@@ -34,7 +34,7 @@ export async function PUT(request, { params }) {
   }
 
   const user = await User.findByIdAndUpdate(params.id, update, { new: true, select: '-password' })
-  if (!user) return NextResponse.json({ error: ' ' }, { status: 404 })
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(user)
 }
 

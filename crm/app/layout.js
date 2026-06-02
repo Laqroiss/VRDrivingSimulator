@@ -1,24 +1,26 @@
 import './globals.css'
+import NavLinks from '@/components/NavLinks'
+import Logo from '@/components/Logo'
 
-export const metadata = { title: 'VR Driving CRM', description: '  ' }
+export const metadata = { title: 'VRDrive CRM', description: 'Driving school management system' }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ru">
+    <html lang="en">
       <body>
+        <div className="bg-fx" aria-hidden="true">
+          <div className="bg-aurora" />
+        </div>
+
         <header className="site-header">
           <div className="container inner">
-            <a href="/admin" className="site-logo">
-              <div className="logo-icon">ð—</div>
-              VR<span>Drive</span> CRM
-            </a>
-            <a href="/admin"   className="nav-link">ð¤ </a>
-            <a href="/attempts" className="nav-link">ð‹ </a>
+            <Logo />
+            <NavLinks />
             <div className="nav-spacer" />
-            <a href="/cabinet" className="nav-cabinet">ð‘  </a>
+            <a href="/cabinet" className="nav-cabinet">ð‘ Student Portal</a>
           </div>
         </header>
-        <main className="container" style={{ paddingTop: 32, paddingBottom: 48 }}>
+        <main className="container" style={{ paddingTop: 32, paddingBottom: 56 }}>
           {children}
         </main>
       </body>

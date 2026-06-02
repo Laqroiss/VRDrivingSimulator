@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { LogoMark } from '@/components/Logo'
 
 export default function AdminLoginPage() {
   const [password, setPass] = useState('')
@@ -17,7 +18,7 @@ export default function AdminLoginPage() {
     })
     const data = await res.json()
     setBusy(false)
-    if (!res.ok) { setError(data.error || ''); return }
+    if (!res.ok) { setError(data.error || 'Error'); return }
     router.push('/admin')
   }
 
@@ -25,23 +26,23 @@ export default function AdminLoginPage() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-logo">
-          <div className="icon">�</div>
-          <h1>VRDrive CRM</h1>
-          <p>  </p>
+          <LogoMark size={54} />
+          <h1 style={{ marginTop: 12 }}>VRDrive CRM</h1>
+          <p>Driving school management system</p>
         </div>
         <div className="road-stripe" style={{ marginBottom: 24 }} />
         <div className="form-field">
-          <label> </label>
-          <input type="password" value={password} placeholder=" "
+          <label>Admin password</label>
+          <input type="password" value={password} placeholder="Enter password"
             onChange={e => setPass(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()} />
         </div>
         {error && <div className="error-msg">{error}</div>}
         <button className="btn-primary btn-block" onClick={login} disabled={busy}>
-          {busy ? '...' : '  '}
+          {busy ? 'Signing in…' : 'Sign in'}
         </button>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <a href="/cabinet" style={{ fontSize: 13, color: 'var(--muted2)' }}>   →</a>
+          <a href="/cabinet" style={{ fontSize: 13, color: 'var(--muted2)' }}>Student portal →</a>
         </div>
       </div>
     </div>

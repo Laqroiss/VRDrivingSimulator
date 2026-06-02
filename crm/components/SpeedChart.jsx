@@ -13,19 +13,19 @@ export default function SpeedChart({ track }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={data} margin={{ top: 4, right: 20, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#2a2d3a" />
-        <XAxis dataKey="t" stroke="#64748b" tick={{ fontSize: 11 }}
+        <CartesianGrid strokeDasharray="3 3" stroke="#e7e9f1" />
+        <XAxis dataKey="t" stroke="#6b7280" tick={{ fontSize: 11 }}
           tickFormatter={v => `${v}s`} />
-        <YAxis yAxisId="speed" stroke="#4f8ef7" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
-        <YAxis yAxisId="rpm" orientation="right" stroke="#f97316" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
+        <YAxis yAxisId="speed" stroke="#2563eb" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
+        <YAxis yAxisId="rpm" orientation="right" stroke="#d98a1f" tick={{ fontSize: 11 }} domain={[0, 'auto']} />
         <Tooltip
-          contentStyle={{ background: '#1a1d27', border: '1px solid #2a2d3a', borderRadius: 8 }}
+          contentStyle={{ background: '#fff', border: '1px solid #e7e9f1', borderRadius: 8, color: '#171a22' }}
           labelFormatter={v => `${v}s`}
-          formatter={(val, name) => name === 'speed' ? [`${val} /`, ''] : [`${val}`, 'RPM']}
+          formatter={(val, name) => name === 'speed' ? [`${val} km/h`, 'Speed'] : [`${val}`, 'RPM']}
         />
-        <Legend formatter={n => n === 'speed' ? ' (/)' : 'RPM'} />
-        <Line yAxisId="speed" type="monotone" dataKey="speed" stroke="#4f8ef7" dot={false} strokeWidth={2} />
-        <Line yAxisId="rpm"   type="monotone" dataKey="rpm"   stroke="#f97316" dot={false} strokeWidth={1.5} />
+        <Legend formatter={n => n === 'speed' ? 'Speed (km/h)' : 'RPM'} />
+        <Line yAxisId="speed" type="monotone" dataKey="speed" stroke="#2563eb" dot={false} strokeWidth={2} />
+        <Line yAxisId="rpm"   type="monotone" dataKey="rpm"   stroke="#d98a1f" dot={false} strokeWidth={1.5} />
       </LineChart>
     </ResponsiveContainer>
   )

@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Counter from '@/components/Counter'
+import Gauge from '@/components/Gauge'
+import Tilt from '@/components/Tilt'
 
 function fmt(date) {
-  return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 function initials(name) {
   return name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
@@ -23,7 +26,7 @@ export default function AdminPage() {
   }, [])
 
   const deleteStudent = async (id) => {
-    if (!confirm('     ?')) return
+    if (!confirm('Delete this student and all their attempts?')) return
     await fetch(`/api/students/${id}`, { method: 'DELETE' })
     setStudents(s => s.filter(u => u._id !== id))
   }
@@ -43,9 +46,7 @@ export default function AdminPage() {
   const passRate      = totalAttempts ? Math.round(totalPassed / totalAttempts * 100) : 0
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--muted)' }}>
-       ...
-    </div>
+    <div className="loader"><div className="ring" />Loading data…</div>
   )
 
   return (
@@ -54,32 +55,41 @@ export default function AdminPage() {
 
       <div className="page-header">
         <div>
-          <div className="page-title"> </div>
-          <div className="page-sub">    </div>
+          <div className="page-title">Admin Dashboard</div>
+          <div className="page-sub">Manage students and exam results</div>
         </div>
-        <button className="btn-ghost ghost" onClick={logout}> →</button>
+        <button className="btn-ghost ghost" onClick={logout}>Log out →</button>
       </div>
 
-      {/*  */}
-      <div className="stat-grid stat-grid-4" style={{ marginBottom: 28 }}>
+      {/* Overall pass-rate gauge */}
+      <div style={{ marginBottom: 18 }}>
+        <Gauge value={passRate} total={totalAttempts} passed={totalPassed} />
+      </div>
+
+      {/* Stats */}
+      <div className="stat-grid stat-grid-4 stagger" style={{ marginBottom: 28 }}>
         {[
-          { label: '',    value: students.length, sub: '',  color: 'var(--blue2)' },
-          { label: '',      value: totalAttempts,   sub: ' ',   color: 'var(--text)' },
-          { label: '',        value: totalPassed,     sub: '',            color: 'var(--green)' },
-          { label: ' ', value: passRate + '%', sub: ' ',  color: passRate >= 70 ? 'var(--green)' : 'var(--accent)' },
+          { label: 'Students',  value: students.length, suffix: '',  sub: 'registered',     color: 'var(--blue)' },
+          { label: 'Attempts',  value: totalAttempts,   suffix: '',  sub: 'exams total',     color: 'var(--ink)' },
+          { label: 'Passed',    value: totalPassed,     suffix: '',  sub: 'successful',      color: 'var(--green)' },
+          { label: 'Pass rate', value: passRate,        suffix: '%', sub: 'group average',   color: passRate >= 70 ? 'var(--green)' : passRate >= 40 ? 'var(--gold)' : 'var(--red)' },
         ].map(s => (
-          <div key={s.label} className="stat-card">
-            <div className="stat-label">{s.label}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-sub">{s.sub}</div>
-          </div>
+          <Tilt key={s.label}>
+            <div className="stat-card">
+              <div className="stat-label">{s.label}</div>
+              <div className="stat-value" style={{ color: s.color }}>
+                <Counter value={s.value} suffix={s.suffix} />
+              </div>
+              <div className="stat-sub">{s.sub}</div>
+            </div>
+          </Tilt>
         ))}
       </div>
 
-      {/*  */}
+      {/* Search */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}> </div>
-        <input type="search" placeholder="    …"
+        <div className="section-title" style={{ marginBottom: 0 }}>Students</div>
+        <input type="search" placeholder="Search by name or phone…"
           value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} />
       </div>
 
@@ -87,12 +97,12 @@ export default function AdminPage() {
         <table>
           <thead>
             <tr>
-              <th></th>
-              <th></th>
-              <th> </th>
-              <th></th>
-              <th></th>
-              <th> </th>
+              <th>Student</th>
+              <th>Phone</th>
+              <th>Registered</th>
+              <th>Attempts</th>
+              <th>Passed</th>
+              <th>Failed</th>
               <th></th>
             </tr>
           </thead>
@@ -101,7 +111,7 @@ export default function AdminPage() {
               <tr><td colSpan={7}>
                 <div className="empty-state">
                   <div className="icon">�</div>
-                  <p>  </p>
+                  <p>No students found</p>
                 </div>
               </td></tr>
             )}
@@ -109,7 +119,7 @@ export default function AdminPage() {
               <tr key={u._id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(135deg,#f59e0b,#b45309)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: '#000', flexShrink: 0 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(135deg,var(--red),var(--red-deep))', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                       {initials(u.fullName)}
                     </div>
                     <span style={{ fontWeight: 600 }}>{u.fullName}</span>
@@ -123,9 +133,9 @@ export default function AdminPage() {
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <Link href={`/students/${u._id}`}>
-                      <button className="ghost"> →</button>
+                      <button className="ghost">Profile →</button>
                     </Link>
-                    <button className="btn-danger" onClick={() => deleteStudent(u._id)}></button>
+                    <button className="btn-danger" onClick={() => deleteStudent(u._id)}>Delete</button>
                   </div>
                 </td>
               </tr>

@@ -14,7 +14,7 @@ export default function EditStudentButton({ student }) {
 
   const save = async () => {
     setError('')
-    if (!fullName.trim() || !phone.trim()) { setError('   '); return }
+    if (!fullName.trim() || !phone.trim()) { setError('Name and phone are required'); return }
     setBusy(true)
     const res  = await fetch(`/api/students/${student._id}`, {
       method:  'PUT',
@@ -23,14 +23,14 @@ export default function EditStudentButton({ student }) {
     })
     const data = await res.json()
     setBusy(false)
-    if (!res.ok) { setError(data.error || ''); return }
+    if (!res.ok) { setError(data.error || 'Error'); return }
     setSaved(true)
     setTimeout(() => { setSaved(false); setOpen(false); router.refresh() }, 800)
   }
 
   return (
     <>
-      <button className="ghost" onClick={() => setOpen(true)}>‚Ô </button>
+      <button className="ghost" onClick={() => setOpen(true)}>‚Ô Edit</button>
 
       {open && (
         <div style={{
@@ -45,24 +45,24 @@ export default function EditStudentButton({ student }) {
           }}>
             {/*  */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <div style={{ fontWeight: 800, fontSize: 17 }}> </div>
+              <div style={{ fontWeight: 800, fontSize: 17 }}>Edit student</div>
               <button className="ghost" onClick={() => setOpen(false)} style={{ padding: '4px 10px' }}>‚</button>
             </div>
 
             <div className="road-stripe" style={{ marginBottom: 20 }} />
 
             <div className="form-field">
-              <label></label>
+              <label>Full name</label>
               <input type="text" value={fullName} onChange={e => setName(e.target.value)} />
             </div>
 
             <div className="form-field">
-              <label></label>
+              <label>Phone</label>
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 
             <div className="form-field">
-              <label>  <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(    )</span></label>
+              <label>New password <span style={{ color: 'var(--muted)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(leave blank to keep)</span></label>
               <input type="password" value={password} onChange={e => setPass(e.target.value)}
                 placeholder="‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢‚Ä¢" />
             </div>
@@ -71,14 +71,14 @@ export default function EditStudentButton({ student }) {
 
             {saved && (
               <div style={{ color: 'var(--green)', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 7, padding: '9px 12px', marginBottom: 12, fontSize: 13 }}>
-                ‚  
+                ‚ Saved successfully
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-              <button className="ghost" onClick={() => setOpen(false)} disabled={busy}></button>
+              <button className="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancel</button>
               <button className="btn-primary" onClick={save} disabled={busy}>
-                {busy ? '...' : ''}
+                {busy ? 'Saving‚Ä¶' : 'Save'}
               </button>
             </div>
           </div>

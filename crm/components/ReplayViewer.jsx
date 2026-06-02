@@ -24,9 +24,9 @@ const PHASE_COLOR = {
   Green: '#22c55e', BlinkGreen: '#86efac', Yellow: '#facc15',
   Red: '#ef4444', RedYellow: '#f97316', Off: '#64748b',
 }
-const PHASE_RU = {
-  Green: '', BlinkGreen: ' ', Yellow: '',
-  Red: '', RedYellow: '+', Off: '',
+const PHASE_LABEL = {
+  Green: 'Green', BlinkGreen: 'Blinking green', Yellow: 'Yellow',
+  Red: 'Red', RedYellow: 'Red + yellow', Off: 'Off',
 }
 
 function getLightState(lightId, currentT, lightEvents) {
@@ -213,7 +213,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
     ctx.font = '12px monospace'
     ctx.textAlign = 'left'
     ctx.textBaseline = 'top'
-    ctx.fillText(`${cur.speed?.toFixed(0) ?? 0} /  ${cur.rpm?.toFixed(0) ?? 0} RPM  ${cur.t?.toFixed(1) ?? 0}s`, 10, 10)
+    ctx.fillText(`${cur.speed?.toFixed(0) ?? 0} km/h  ${cur.rpm?.toFixed(0) ?? 0} RPM  ${cur.t?.toFixed(1) ?? 0}s`, 10, 10)
   }, [track, penalties])
 
   useEffect(() => { draw(0) }, [draw])
@@ -301,7 +301,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
             background: 'rgba(0,0,0,0.7)', color: '#f97316',
             fontSize: 11, padding: '3px 8px', borderRadius: 4
           }}>
-               ‚Äî   
+            No traffic-light data ‚Äî retake the exam
           </div>
         )}
 
@@ -369,7 +369,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
               pointerEvents: 'none',
             }}>
               <div style={{ fontWeight: 600, marginBottom: 6, color: '#e2e8f0' }}>
-                 {activeLight + 1}
+                Light {activeLight + 1}
               </div>
               {state ? (<>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -380,14 +380,14 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
                     flexShrink: 0,
                   }} />
                   <span style={{ color: PHASE_COLOR[state.phaseA] ?? '#fff', fontWeight: 700 }}>
-                    {PHASE_RU[state.phaseA] ?? state.phaseA}
+                    {PHASE_LABEL[state.phaseA] ?? state.phaseA}
                   </span>
                 </div>
                 <div style={{ color: '#facc15', fontWeight: 700, textAlign: 'center' }}>
-                   {state.remaining.toFixed(1)}
+                  {state.remaining.toFixed(1)}s left
                 </div>
               </>) : (
-                <div style={{ color: '#64748b' }}> </div>
+                <div style={{ color: '#64748b' }}>No data</div>
               )}
             </div>
           )
@@ -398,7 +398,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
       <div style={{ marginTop: 12, position: 'relative' }}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={toggle} style={{ width: 90, flexShrink: 0 }}>
-            {playing ? '‚è∏ ' : '‚ '}
+            {playing ? '‚è∏ Pause' : '‚ Play'}
           </button>
           <input type="range" min={0} max={duration} step={0.1}
             value={track[idx]?.t ?? 0} onChange={onSlider}
@@ -414,8 +414,8 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
         <div style={{ marginTop: 16 }}>
           <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
             {penalties.some(p => p.t > 0)
-              ? '     :'
-              : '‚      ‚Äî      '}
+              ? 'Click an error to jump the replay:'
+              : '‚ No timing data for errors ‚Äî retake the exam to enable seeking'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {penalties.map((p, i) => (
@@ -439,7 +439,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
                   justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0,
                 }}>{i + 1}</span>
                 <span style={{ flex: 1, fontSize: 13 }}>
-                  {p.exerciseNum > 0 ? `.${p.exerciseNum}  ` : ''}{p.description}
+                  {p.exerciseNum > 0 ? `Ex.${p.exerciseNum}  ` : ''}{p.description}
                 </span>
                 {p.t != null && (
                   <span style={{ color: 'var(--muted)', fontSize: 11, whiteSpace: 'nowrap' }}>

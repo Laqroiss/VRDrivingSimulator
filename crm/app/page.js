@@ -6,7 +6,7 @@ import Attempt from '@/models/Attempt'
 export const dynamic = 'force-dynamic'
 
 function fmt(date) {
-  return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export default async function StudentsPage({ searchParams }) {
@@ -28,11 +28,11 @@ export default async function StudentsPage({ searchParams }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}></h1>
-          <p style={{ color: 'var(--muted)' }}> : {users.length}</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Students</h1>
+          <p style={{ color: 'var(--muted)' }}>Registered: {users.length}</p>
         </div>
         <form method="GET">
-          <input type="search" name="q" defaultValue={q} placeholder="  …" />
+          <input type="search" name="q" defaultValue={q} placeholder="Search by name…" />
         </form>
       </div>
 
@@ -40,20 +40,20 @@ export default async function StudentsPage({ searchParams }) {
         <table>
           <thead>
             <tr>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th> </th>
-              <th> </th>
+              <th>Student</th>
+              <th>Phone</th>
+              <th>Registered</th>
+              <th>Attempts</th>
+              <th>Passed</th>
+              <th>Failed</th>
+              <th>Last attempt</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {stats.length === 0 && (
               <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted)', padding: 40 }}>
-                  
+                No registered students
               </td></tr>
             )}
             {stats.map(({ user, total, passed, failed, last }) => (
@@ -67,7 +67,7 @@ export default async function StudentsPage({ searchParams }) {
                 <td style={{ color: 'var(--muted)' }}>{last ? fmt(last.timestamp) : '—'}</td>
                 <td>
                   <Link href={`/students/${user._id}`}>
-                    <button className="ghost" style={{ fontSize: 12 }}> →</button>
+                    <button className="ghost" style={{ fontSize: 12 }}>Profile →</button>
                   </Link>
                 </td>
               </tr>

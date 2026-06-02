@@ -4,7 +4,7 @@ export async function POST(request) {
   const { password } = await request.json()
   const correct = process.env.ADMIN_PASSWORD || 'admin123'
   if (password !== correct)
-    return NextResponse.json({ error: ' ' }, { status: 401 })
+    return NextResponse.json({ error: 'Wrong password' }, { status: 401 })
 
   const token = Buffer.from(`admin:${correct}`).toString('base64')
   const res   = NextResponse.json({ ok: true })

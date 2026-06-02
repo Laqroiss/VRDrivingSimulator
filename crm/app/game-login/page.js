@@ -21,8 +21,8 @@ export default function GameLoginPage({ searchParams }) {
 
   const submit = async () => {
     setError('')
-    if (!phone || !password) { setError('  '); return }
-    if (mode === 'register' && !fullName) { setError(' '); return }
+    if (!phone || !password) { setError('Fill in all fields'); return }
+    if (mode === 'register' && !fullName) { setError('Enter your full name'); return }
     setBusy(true)
 
     const url  = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
@@ -37,12 +37,12 @@ export default function GameLoginPage({ searchParams }) {
         body:    JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || ''); setBusy(false); return }
+      if (!res.ok) { setError(data.error || 'Error'); setBusy(false); return }
       setDone(true)
-      setStatus(` , ${data.fullName?.split(' ')[0]}!   ...`)
+      setStatus(`Welcome, ${data.fullName?.split(' ')[0]}! Returning to the game…`)
       setTimeout(() => redirectToGame(data), 1000)
     } catch {
-      setError('   ')
+      setError('No connection to the server')
       setBusy(false)
     }
   }
@@ -56,7 +56,7 @@ export default function GameLoginPage({ searchParams }) {
           <div style={s.logo}>�</div>
           <div>
             <div style={s.kicker}>DRIVING SCHOOL SYSTEM</div>
-            <div style={s.appTitle}> </div>
+            <div style={s.appTitle}>DRIVING SIMULATOR</div>
           </div>
         </div>
 
@@ -70,25 +70,25 @@ export default function GameLoginPage({ searchParams }) {
         ) : (
           <>
             <h2 style={s.modeTitle}>
-              {mode === 'login' ? '  ' : ''}
+              {mode === 'login' ? 'Sign in' : 'Sign up'}
             </h2>
 
             <div style={s.field}>
-              <label style={s.label}> </label>
-              <input style={s.input} placeholder="+7 (___) ___-__-__"
+              <label style={s.label}>PHONE NUMBER</label>
+              <input style={s.input} placeholder="+1 (___) ___-____"
                 value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 
             {mode === 'register' && (
               <div style={s.field}>
-                <label style={s.label}></label>
-                <input style={s.input} placeholder="  "
+                <label style={s.label}>FULL NAME</label>
+                <input style={s.input} placeholder="Full name"
                   value={fullName} onChange={e => setName(e.target.value)} />
               </div>
             )}
 
             <div style={s.field}>
-              <label style={s.label}></label>
+              <label style={s.label}>PASSWORD</label>
               <input style={s.input} type="password" placeholder="••••••••"
                 value={password} onChange={e => setPass(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && submit()} />
@@ -98,20 +98,20 @@ export default function GameLoginPage({ searchParams }) {
 
             <button style={{ ...s.btn, opacity: busy ? 0.6 : 1 }}
               onClick={submit} disabled={busy}>
-              {busy ? '...' : mode === 'login' ? '' : ''}
+              {busy ? 'Loading…' : mode === 'login' ? 'Sign in' : 'Sign up'}
             </button>
 
             <button style={s.toggle}
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}>
               {mode === 'login'
-                ? ' ? '
-                : '  ? '}
+                ? 'No account? Sign up'
+                : 'Already have an account? Sign in'}
             </button>
           </>
         )}
 
         <div style={s.footer}>
-          <span>� .  №2024-</span>
+          <span>� STATE LICENSE #2024-AV</span>
           <span>v 3.4.1 / VR</span>
         </div>
       </div>

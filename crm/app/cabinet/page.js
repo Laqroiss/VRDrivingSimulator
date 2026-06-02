@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { LogoMark } from '@/components/Logo'
 
 function fmt(date) {
-  return new Date(date).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 function dur(s) {
   if (!s) return '—'
@@ -33,7 +34,7 @@ export default function CabinetPage() {
 
   const login = async () => {
     setError('')
-    if (!phone || !password) { setError('  '); return }
+    if (!phone || !password) { setError('Fill in all fields'); return }
     setBusy(true)
     const res  = await fetch('/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -41,7 +42,7 @@ export default function CabinetPage() {
     })
     const data = await res.json()
     setBusy(false)
-    if (!res.ok) { setError(data.error || ''); return }
+    if (!res.ok) { setError(data.error || 'Error'); return }
     localStorage.setItem('cabinet_user', JSON.stringify({ id: data.id, fullName: data.fullName, phone: data.phone }))
     setUser(data); loadAttempts(data.id); setStep('data')
   }
@@ -64,28 +65,28 @@ export default function CabinetPage() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-logo">
-          <div className="icon">�</div>
-          <h1> </h1>
-          <p>  </p>
+          <LogoMark size={54} />
+          <h1 style={{ marginTop: 12 }}>Student Portal</h1>
+          <p>View your exam results</p>
         </div>
         <div className="road-stripe" style={{ marginBottom: 24 }} />
         <div className="form-field">
-          <label> </label>
-          <input type="tel" value={phone} placeholder="+7 (___) ___-__-__"
+          <label>Phone number</label>
+          <input type="tel" value={phone} placeholder="+1 (___) ___-____"
             onChange={e => setPhone(e.target.value)} />
         </div>
         <div className="form-field">
-          <label></label>
-          <input type="password" value={password} placeholder=" "
+          <label>Password</label>
+          <input type="password" value={password} placeholder="Enter password"
             onChange={e => setPass(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()} />
         </div>
         {error && <div className="error-msg">{error}</div>}
         <button className="btn-primary btn-block" onClick={login} disabled={busy}>
-          {busy ? '...' : ''}
+          {busy ? 'Loading…' : 'Sign in'}
         </button>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <a href="/game-login" style={{ fontSize: 13, color: 'var(--muted2)' }}> ?  →</a>
+          <a href="/game-login" style={{ fontSize: 13, color: 'var(--muted2)' }}>No account? Sign up →</a>
         </div>
       </div>
     </div>
@@ -95,7 +96,7 @@ export default function CabinetPage() {
     <div>
       <div className="road-stripe" />
 
-      {/*  */}
+      {/* Profile */}
       <div className="student-hero" style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div className="student-avatar">{initials(user?.fullName)}</div>
@@ -109,9 +110,9 @@ export default function CabinetPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
           <div className="student-stats">
             {[
-              { val: attempts.length, lbl: '',  color: 'var(--text)'  },
-              { val: passed,          lbl: '',     color: 'var(--green)' },
-              { val: attempts.length - passed, lbl: ' ', color: (attempts.length - passed) > 0 ? 'var(--red)' : 'var(--muted)' },
+              { val: attempts.length, lbl: 'Attempts', color: 'var(--text)'  },
+              { val: passed,          lbl: 'Passed',   color: 'var(--green)' },
+              { val: attempts.length - passed, lbl: 'Failed', color: (attempts.length - passed) > 0 ? 'var(--red)' : 'var(--muted)' },
             ].map(s => (
               <div key={s.lbl} className="student-stat">
                 <div className="val" style={{ color: s.color }}>{s.val}</div>
@@ -119,17 +120,17 @@ export default function CabinetPage() {
               </div>
             ))}
           </div>
-          <button className="ghost" onClick={logout}> →</button>
+          <button className="ghost" onClick={logout}>Log out →</button>
         </div>
       </div>
 
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}> </div>
+      <div className="section-title">My exams</div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th></th><th></th><th> </th>
-              <th></th><th></th><th></th>
+              <th>Date</th><th>Result</th><th>Penalty points</th>
+              <th>Duration</th><th>Errors</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -137,7 +138,7 @@ export default function CabinetPage() {
               <tr><td colSpan={6}>
                 <div className="empty-state">
                   <div className="icon">�</div>
-                  <p>      </p>
+                  <p>You haven't taken an exam in the simulator yet</p>
                 </div>
               </td></tr>
             )}
@@ -146,15 +147,15 @@ export default function CabinetPage() {
                 <td style={{ color: 'var(--muted2)' }}>{fmt(a.timestamp)}</td>
                 <td>
                   {a.completed === false
-                    ? <span className="badge" style={{ background: '#3a341a', color: '#e0c34d' }}> </span>
-                    : <span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? '' : ' '}</span>}
+                    ? <span className="badge warn">INCOMPLETE</span>
+                    : <span className={`badge ${a.passed ? 'pass' : 'fail'}`}>{a.passed ? 'PASSED' : 'FAILED'}</span>}
                 </td>
                 <td><span style={{ fontWeight: 700, color: a.totalPenaltyPoints >= 100 ? 'var(--red)' : 'var(--text)' }}>{a.totalPenaltyPoints ?? '—'}</span></td>
                 <td style={{ color: 'var(--muted2)' }}>{dur(a.examDuration)}</td>
                 <td style={{ color: 'var(--muted2)' }}>{a.penalties?.length ?? 0}</td>
                 <td>
                   <Link href={`/attempts/${a._id}`}>
-                    <button className="ghost"> →</button>
+                    <button className="ghost">Details →</button>
                   </Link>
                 </td>
               </tr>

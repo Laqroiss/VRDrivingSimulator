@@ -6,11 +6,11 @@ export default function LaunchReplayButton({ attemptId, hasReplay }) {
 
   const launch = () => {
     if (!hasReplay) return
-    setStatus('...')
-    //    Unity â€”     
+    setStatus('Launchingâ€¦')
+    // Open the local Unity port â€” it responds and closes the tab
     const win = window.open(`http://localhost:7779/?id=${attemptId}`, '_blank', 'width=400,height=200')
     setTimeout(() => {
-      setStatus('   ')
+      setStatus('Sent to the game')
       setTimeout(() => setStatus(''), 3000)
     }, 800)
   }
@@ -18,8 +18,8 @@ export default function LaunchReplayButton({ attemptId, hasReplay }) {
   if (!hasReplay) return (
     <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
       <div>ð¬</div>
-      <div></div>
-      <div> </div>
+      <div>No replay</div>
+      <div>recorded</div>
     </div>
   )
 
@@ -42,7 +42,7 @@ export default function LaunchReplayButton({ attemptId, hasReplay }) {
           boxShadow: '0 0 20px rgba(59,130,246,0.3)',
         }}
       >
-        â   
+        â Play in game
       </button>
       {status && (
         <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6 }}>{status}</div>

@@ -7,7 +7,7 @@ export async function GET(_, { params }) {
   await connectDB()
   const attempt = await Attempt.findById(params.id, 'replayData').lean()
   if (!attempt?.replayData)
-    return NextResponse.json({ error: '  ' }, { status: 404 })
+    return NextResponse.json({ error: 'Replay not found' }, { status: 404 })
 
   const json = attempt.replayData.toString('utf8')
   return new NextResponse(json, { headers: { 'Content-Type': 'application/json' } })
