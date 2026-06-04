@@ -52,8 +52,6 @@ public class ReplayUIBuilder : MonoBehaviour
 
         _root = BuildCanvas();
         BuildPlayerPanel();
-        BuildListPanel();
-        BuildRecordButton();
     }
 
     // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
@@ -120,149 +118,6 @@ public class ReplayUIBuilder : MonoBehaviour
 
         replaySystem.replayPlayerPanel = panel.gameObject;
         panel.gameObject.SetActive(false);
-    }
-
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-    //     ( )
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-
-    void BuildListPanel()
-    {
-        //        (ContentSizeFitter)
-        var panelGO = new GameObject("ReplayListPanel");
-        panelGO.transform.SetParent(_root, false);
-
-        var panelImg = panelGO.AddComponent<Image>();
-        panelImg.color = colorBg;
-
-        var panelRT = panelGO.GetComponent<RectTransform>();
-        panelRT.anchorMin        = new Vector2(1f, 1f);
-        panelRT.anchorMax        = new Vector2(1f, 1f);
-        panelRT.pivot            = new Vector2(1f, 1f);
-        panelRT.anchoredPosition = new Vector2(-16f, -16f);
-        panelRT.sizeDelta        = new Vector2(listPanelW, 0f); //  
-
-        var vlg = panelGO.AddComponent<VerticalLayoutGroup>();
-        vlg.padding                = new RectOffset((int)padding, (int)padding, (int)padding, (int)padding);
-        vlg.spacing                = spacing;
-        vlg.childControlWidth      = true;
-        vlg.childControlHeight     = true;
-        vlg.childForceExpandWidth  = true;
-        vlg.childForceExpandHeight = false;
-
-        var csf = panelGO.AddComponent<ContentSizeFitter>();
-        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        // 
-        var header = MakeLabel(panelGO, "Header", "", fontSize);
-        header.fontStyle = FontStyles.Bold;
-        header.alignment = TextAlignmentOptions.Center;
-        var hLE = header.gameObject.GetComponent<LayoutElement>();
-        hLE.preferredHeight = hLE.minHeight = fontSize + 12f;
-
-        MakeSeparator(panelGO);
-
-        //  вЂ”   ,  ScrollRect
-        var listGO = new GameObject("List");
-        listGO.transform.SetParent(panelGO.transform, false);
-
-        var listVLG = listGO.AddComponent<VerticalLayoutGroup>();
-        listVLG.spacing               = spacing;
-        listVLG.childControlWidth     = true;
-        listVLG.childControlHeight    = true;
-        listVLG.childForceExpandWidth  = true;
-        listVLG.childForceExpandHeight = false;
-
-        var listCSF = listGO.AddComponent<ContentSizeFitter>();
-        listCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        replaySystem.replayListParent  = listGO.transform;
-        replaySystem.replayEntryPrefab = BuildEntryPrefab();
-    }
-
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-    //    (  )
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-
-    void BuildRecordButton()
-    {
-        var go = new GameObject("BtnRecord");
-        go.transform.SetParent(_root, false);
-
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin        = new Vector2(1f, 0f);
-        rt.anchorMax        = new Vector2(1f, 0f);
-        rt.pivot            = new Vector2(1f, 0f);
-        rt.sizeDelta        = new Vector2(260f, btnH);
-        rt.anchoredPosition = new Vector2(-16f, 16f);
-
-        var img = go.AddComponent<Image>();
-        img.color = colorBtnRecord;
-
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic   = img;
-        var cs  = btn.colors;
-        cs.normalColor      = Color.white;
-        cs.highlightedColor = Lighten(Color.white, 0.15f);
-        cs.pressedColor     = Darken(Color.white,  0.2f);
-        cs.selectedColor    = Color.white;
-        btn.colors = cs;
-
-        var lbl = MakeSimpleLabel(go, "[o]  ", fontSize * 0.85f);
-        lbl.alignment = TextAlignmentOptions.Center;
-
-        replaySystem.btnRecord      = btn;
-        replaySystem.btnRecordLabel = lbl;
-    }
-
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-    //   
-    // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
-
-    GameObject BuildEntryPrefab()
-    {
-        var go = new GameObject("ReplayEntryPrefab");
-        go.transform.SetParent(_root, false);
-        go.SetActive(false);
-
-        go.AddComponent<RectTransform>().sizeDelta = new Vector2(0f, btnH);
-
-        var img = go.AddComponent<Image>();
-        img.color = colorBtn;
-
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic   = img;
-        var cs  = btn.colors;
-        cs.normalColor      = Color.white;
-        cs.highlightedColor = Lighten(Color.white, 0.2f);
-        cs.pressedColor     = Darken(Color.white, 0.15f);
-        cs.selectedColor    = Color.white;
-        btn.colors = cs;
-
-        var le = go.AddComponent<LayoutElement>();
-        le.preferredHeight = btnH;
-        le.minHeight       = btnH;
-
-        var hlg = go.AddComponent<HorizontalLayoutGroup>();
-        hlg.padding                = new RectOffset((int)padding, (int)padding, 0, 0);
-        hlg.childAlignment         = TextAnchor.MiddleLeft;
-        hlg.childControlHeight     = true;
-        hlg.childForceExpandHeight = true;
-        hlg.childForceExpandWidth  = true;
-
-        var lblGO = new GameObject("Label");
-        lblGO.transform.SetParent(go.transform, false);
-
-        var tmp = lblGO.AddComponent<TextMeshProUGUI>();
-        if (font != null) tmp.font = font;
-        tmp.fontSize         = smallFontSize;
-        tmp.color            = colorText;
-        tmp.alignment        = TextAlignmentOptions.MidlineLeft;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
-        tmp.overflowMode     = TextOverflowModes.Ellipsis;
-        tmp.text             = " 1  вЂ”  0.0 ";
-
-        return go;
     }
 
     // вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
@@ -404,15 +259,6 @@ public class ReplayUIBuilder : MonoBehaviour
         btn.colors = cs;
         MakeSimpleLabel(go, label, fontSize * 0.85f);
         return btn;
-    }
-
-    void MakeSeparator(GameObject parent)
-    {
-        var go = new GameObject("Sep");
-        go.transform.SetParent(parent.transform, false);
-        var le = go.AddComponent<LayoutElement>();
-        le.preferredHeight = le.minHeight = 2f;
-        go.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.15f);
     }
 
     static Color Lighten(Color c, float a) =>

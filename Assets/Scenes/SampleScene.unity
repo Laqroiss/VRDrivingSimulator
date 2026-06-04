@@ -32350,7 +32350,6 @@ GameObject:
   - component: {fileID: 193445315}
   - component: {fileID: 193445314}
   - component: {fileID: 193445313}
-  - component: {fileID: 193445317}
   m_Layer: 0
   m_Name: AutoDrome
   m_TagString: Untagged
@@ -32452,22 +32451,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &193445317
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 193445312}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8bd0186f924337e41be54317fac0d2df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  keyAccel: 286
-  keyBrake: 287
-  targetSpeedKmh: 100
-  car: {fileID: 1030701742}
 --- !u!21 &194394419
 Material:
   serializedVersion: 8
@@ -49134,6 +49117,7 @@ GameObject:
   - component: {fileID: 315935223}
   - component: {fileID: 315935224}
   - component: {fileID: 315935225}
+  - component: {fileID: 315935226}
   m_Layer: 0
   m_Name: ExamManager
   m_TagString: Untagged
@@ -49220,6 +49204,20 @@ MonoBehaviour:
   crmUrl: http://localhost:3000
   replayPort: 7779
   recordFPS: 15
+--- !u!114 &315935226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 315935221}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ef4998706e1f734bacd854063c24e64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExamResume
+  crmUrl: http://localhost:3000
+  fallbackRideHeight: 0.4
 --- !u!21 &318207467
 Material:
   serializedVersion: 8
@@ -206266,6 +206264,7 @@ MonoBehaviour:
   vrMenuDistance: 2
   vrMenuScale: 0.002
   authManager: {fileID: 1386819820}
+  examResume: {fileID: 0}
   fadeInDuration: 1.5
   fadeOutDuration: 0.8
   cockpitFlyTime: 2.5
@@ -253168,9 +253167,6 @@ MonoBehaviour:
   engineAudio: {fileID: 0}
   recordFPS: 30
   maxSavedReplays: 5
-  keyRecord: 282
-  keyPlayLast: 283
-  keyStopReplay: 284
   btnRecord: {fileID: 0}
   btnRecordLabel: {fileID: 0}
   replayPlayerPanel: {fileID: 0}

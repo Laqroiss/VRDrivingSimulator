@@ -52,11 +52,6 @@ public class ReplaySystem : MonoBehaviour
     public float recordFPS      = 30f;
     public int   maxSavedReplays = 5;
 
-    [Header(" ")]
-    public KeyCode keyRecord     = KeyCode.F1; // / 
-    public KeyCode keyPlayLast   = KeyCode.F2; //   
-    public KeyCode keyStopReplay = KeyCode.F3; //  
-
     [Header("Record button (in scene, optional)")]
     public Button            btnRecord;
     public TextMeshProUGUI   btnRecordLabel;
@@ -155,20 +150,6 @@ public class ReplaySystem : MonoBehaviour
             Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible   = locked;
         }
-
-        if (LegacyInput.GetKeyDown(keyRecord))
-            ToggleRecording();
-
-        if (LegacyInput.GetKeyDown(keyPlayLast))
-        {
-            if (_sessions.Count > 0)
-                StartReplay(_sessions[_sessions.Count - 1]);
-            else
-                Debug.Log("[Replay]   .  F1   .");
-        }
-
-        if (LegacyInput.GetKeyDown(keyStopReplay))
-            StopReplay();
 
         // Replay camera - update in Update so input always reads correctly
         if (_replaying && replayCamera != null && _ghost != null)
