@@ -115,7 +115,7 @@ public class EmergencyStop : MonoBehaviour
             if (_carRb != null && _carRb.linearVelocity.magnitude <= MinStopSpeed)
             {
                 stopped = true;
-                Debug.Log("EmergencyStop: car stopped â");
+                Debug.Log("EmergencyStop: car stopped âœ“");
                 break;
             }
             stopTimer += Time.deltaTime;
@@ -131,7 +131,7 @@ public class EmergencyStop : MonoBehaviour
             if (_indicators != null && _indicators.HazardLightsOn)
             {
                 hazardsOn = true;
-                Debug.Log("EmergencyStop: hazards on â");
+                Debug.Log("EmergencyStop: hazards on âœ“");
                 break;
             }
             hazardTimer += Time.deltaTime;

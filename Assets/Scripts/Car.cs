@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine.Events;
 
 [System.Serializable]
@@ -209,6 +210,15 @@ public class WheelProperties
     [HideInInspector] public float slipHistory = 0f;
     [HideInInspector] public float tcsReduction = 0f; // Traction control reduction factor
     [HideInInspector] public float visualBottomOffset = 0f; // distance from wheel pivot to tire bottom (measured from mesh)
+
+    // â”€â”€ Physics diagnostics (for detailed logging, no effect on behavior) â”€â”€
+    [HideInInspector] public bool  dbgGrounded;
+    [HideInInspector] public float dbgGroundDist;
+    [HideInInspector] public float dbgCompression;
+    [HideInInspector] public float dbgCompSpeed;
+    [HideInInspector] public float dbgVelDamp;
+    [HideInInspector] public float dbgUpAlign;
+    [HideInInspector] public float dbgDrop;
 }
 
 public class Car : MonoBehaviour
@@ -236,6 +246,12 @@ public class Car : MonoBehaviour
     public float suspensionForceClamp = 200f;
     [Tooltip("Max suspension travel change per frame for the damper (m). Smaller = curbs feel softer, larger = stiffer/sharper jolt. Caps the geometric jump when hitting a curb so the car doesn't rear up")]
     public float maxSuspensionStep = 0.025f;
+    [Tooltip("Suspension velocity damper (fraction of suspensionForce). Damps compression/rebound speed so the car doesn't bounce. Too high = the damper itself oscillates. 0.05..0.08 is fine. 0 = off.")]
+    public float suspensionDampRatio = 0.06f;
+    [Tooltip("Layers the wheels rest on (road, ramp, curbs). Anything not in the mask (barriers, walls, posts, decor) is ignored by suspension - wheels won't climb it. Default = everything; to keep wheels off obstacles, put them on a separate layer and remove it from the mask.")]
+    public LayerMask groundMask = ~0;
+    // Reused buffer for the suspension SphereCast (no per-frame allocations).
+    static readonly RaycastHit[] _suspCastBuf = new RaycastHit[16];
     [HideInInspector] public Rigidbody rb;
     [HideInInspector] public bool forwards = true;
 
@@ -293,6 +309,15 @@ public class Car : MonoBehaviour
     public float debugLogInterval = 0.5f;
     private float _lastDebugTime = 0f;
 
+    [Header("Physics Debug (wheel/body diagnostics)")]
+    [Tooltip("Enable detailed [PHYS] physics log. Logs per-frame on anomalies (launch/spin/tip-over/force spike) + a rare heartbeat. Nearly silent during normal driving.")]
+    public bool physicsDebug = false;
+    [Tooltip("Physics-log heartbeat interval during calm driving, sec")]
+    public float physicsDebugHeartbeat = 0.5f;
+    private float _lastPhysHeartbeat = 0f;
+    private float _physElapsed = 0f;
+    private Vector3 _prevVel = Vector3.zero;
+
 
     // Assists
     public bool steeringAssist = true;
@@ -309,6 +334,8 @@ public class Car : MonoBehaviour
     [HideInInspector] public float externalBrake    = 0f;
     [HideInInspector] public float externalSteer    = 0f;
     [Tooltip("Steering smoothing time constant (sec) for a physical wheel/pedals. A wheel is already analog - use a small value (0.01..0.03) for instant response. 0 = direct, no filter.")]
+    public float wheelSteerSmoothing = 0.018f;
+    [Tooltip("Quadratic downforce: F = vÂ² * downforce. ~0.1..0.3 for a sedan. Increases grip with speed")]
     public float downforce = 0.16f;
     [HideInInspector] public float isBraking = 0f;
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
@@ -359,6 +386,15 @@ public class Car : MonoBehaviour
 
         rb.centerOfMass += COMOffset;
         rb.inertiaTensor *= Inertia;
+
+        // Guard against launching skyward on a hard landing/flip:
+        // cap depenetration speed out of deep collider overlap and max angular
+        // velocity so the car doesn't get flung or spun.
+        rb.maxDepenetrationVelocity = 1.5f;
+        rb.maxAngularVelocity       = 7f;
+        // More solver iterations so a resting/jammed collider doesn't jitter.
+        rb.solverIterations         = 12;
+        rb.solverVelocityIterations = 4;
     }
 
     void Update()
@@ -404,7 +440,7 @@ public class Car : MonoBehaviour
                 Debug.LogWarning($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Drive at {currentSpeedKmh:F1} km/h. Stop first.");
         }
 
-        // ââ Input âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+        // â”€â”€ Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         float rawThrottle = 0f;
         bool  brakePedal  = false;
 
@@ -416,20 +452,22 @@ public class Car : MonoBehaviour
         {
             // Wheel/pedals are analog - near-instant response (no keyboard filter needed).
             float steerTarget = externalSteer * speedSteerScale;
-            userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.07f));
+            userInput.x = wheelSteerSmoothing <= 0f
+                ? steerTarget
+                : Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / wheelSteerSmoothing));
             rawThrottle = externalThrottle;
             brakePedal  = externalBrake > 0.02f;
         }
         else
         {
-            // Keyboard gives an instant 1: smooth more so the car doesn't jerk.
+            // Keyboard gives an instant Â±1: smooth more so the car doesn't jerk.
             float steerTarget = LegacyInput.GetAxisRaw("Horizontal") * speedSteerScale;
             userInput.x = Mathf.Lerp(userInput.x, steerTarget, 1f - Mathf.Exp(-Time.deltaTime / 0.18f));
             rawThrottle = Mathf.Max(0f, LegacyInput.GetAxisRaw("Vertical"));
             brakePedal  = LegacyInput.GetKey(KeyCode.Space);
         }
 
-        // ââ Creep + engine brake (always, regardless of input source) ââââ
+        // â”€â”€ Creep + engine brake (always, regardless of input source) â”€â”€â”€â”€
         float signedThrottle = transmissionMode == TransmissionMode.Reverse ? -rawThrottle
                              : transmissionMode == TransmissionMode.Neutral  ? 0f
                              : rawThrottle;
@@ -543,9 +581,77 @@ public class Car : MonoBehaviour
         }
     }
 
+    // Detailed physics diagnostics. Logs per-frame ONLY on an anomaly
+    // (launch/sharp impulse/spin/tip-over/suspension force spike) plus a rare
+    // heartbeat during calm driving, so the log shows the exact glitch without noise.
+    static readonly string[] _wheelNames4 = { "RR", "FR", "FL", "RL" };
+    void LogPhysics()
+    {
+        _physElapsed += Time.fixedDeltaTime;
+
+        Vector3 vel   = rb.linearVelocity;
+        Vector3 accel = (vel - _prevVel) / Mathf.Max(1e-5f, Time.fixedDeltaTime);
+        _prevVel      = vel;
+
+        float spd  = vel.magnitude * 3.6f;
+        float velY = vel.y;
+        float angV = rb.angularVelocity.magnitude;
+        float tilt = Vector3.Angle(transform.up, Vector3.up);
+
+        int   groundedCount = 0;
+        float maxN = 0f;
+        foreach (var w in wheels)
+        {
+            if (w.dbgGrounded) groundedCount++;
+            if (w.normalForce > maxN) maxN = w.normalForce;
+        }
+        bool forceSpike = maxN >= suspensionForceClamp * 0.95f;
+
+        // Anomaly condition: something is happening to the car that isn't normal.
+        bool anomaly =
+            Mathf.Abs(velY) > 4f ||   // launch/fall
+            accel.magnitude  > 30f || // sharp impulse (impact/launch)
+            angV             > 4f  || // fast spin
+            tilt             > 20f || // tip-over
+            forceSpike;               // suspension hit its force ceiling
+
+        bool heartbeat = (_physElapsed - _lastPhysHeartbeat) >= physicsDebugHeartbeat;
+        if (!anomaly && !heartbeat) return;
+        if (heartbeat) _lastPhysHeartbeat = _physElapsed;
+
+        var sb = new StringBuilder(256);
+        sb.Append(anomaly ? "[PHYS âš ANOMALY]" : "[PHYS beat]");
+        sb.Append($" t={_physElapsed:F2} spd={spd:F1}km/h posY={transform.position.y:F2}");
+        sb.Append($" velY={velY:+0.0;-0.0} |v|={vel.magnitude:F1} acc={accel.magnitude:F0}");
+        sb.Append($" angV={angV:F2} tilt={tilt:F0}Â° gnd={groundedCount}/{wheels.Length}");
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            var w = wheels[i];
+            string nm = (wheels.Length == 4) ? _wheelNames4[i] : $"W{i}";
+            sb.Append($"\n   {nm} g={(w.dbgGrounded ? 1 : 0)} gd={w.dbgGroundDist:F3}");
+            sb.Append($" comp={w.dbgCompression:F3} N={w.normalForce:F0} cSpd={w.dbgCompSpeed:+0.0;-0.0}");
+            sb.Append($" vDmp={w.dbgVelDamp:F0} up={w.dbgUpAlign:F2} drop={w.dbgDrop:F3} slip={w.slip:F2}");
+        }
+        if (anomaly) Debug.LogWarning(sb.ToString());
+        else         Debug.Log(sb.ToString());
+    }
+
+    // Body collider impact log (barrier/wall/obstacle) - only with physicsDebug on.
+    // Shows what was hit, with what impulse and speed, to diagnose a hard bounce
+    // off a barrier.
+    void OnCollisionEnter(Collision c)
+    {
+        if (!physicsDebug) return;
+        float spdKmh = rb != null ? rb.linearVelocity.magnitude * 3.6f : 0f;
+        Vector3 n = c.contactCount > 0 ? c.GetContact(0).normal : Vector3.zero;
+        Debug.LogWarning(
+            $"[PHYS HIT] '{c.gameObject.name}' impulse={c.impulse.magnitude:F0} " +
+            $"relVel={c.relativeVelocity.magnitude:F1} spd={spdKmh:F1}km/h normal=({n.x:F2},{n.y:F2},{n.z:F2})");
+    }
+
     void FixedUpdate()
     {
-        // Quadratic downforce: grows with v, like real aerodynamics.
+        // Quadratic downforce: grows with vÂ², like real aerodynamics.
         // Greatly increases normalForce at high speed - and through it, max grip.
         float vSpeed = rb.linearVelocity.magnitude;
         rb.AddForce(-transform.up * vSpeed * vSpeed * downforce);
@@ -564,7 +670,6 @@ public class Car : MonoBehaviour
             rb.AddTorque(-transform.up * yawVel * yawDamping, ForceMode.Force);
         }
         float averageWheelAngularVelocity = 0f;
-        // Debug.Log(rb.velocity.magnitude);
         foreach (var w in wheels)
         {
             RaycastHit hit;
@@ -582,7 +687,43 @@ public class Car : MonoBehaviour
             float inertia = w.mass * w.size * w.size / 2f;
             float lateralVel = w.localVelocity.x;
 
-            bool grounded = Physics.Raycast(w.wheelWorldPosition, -transform.up, out hit, rayLen);
+            // SphereCast with the tire radius: a wheel is a circle, not a point. The sphere
+            // rolls smoothly over a curb edge without a distance jump (which used to spike
+            // the force and launch the wheel into the arch). The tilted normal at the edge
+            // gives a real, proportional jolt - the curb is felt, but the car isn't blown up.
+            float castDist = w.suspensionLength + w.size; // downward travel of the wheel center
+            bool grounded = false;
+            hit = default;
+            float nearest = float.MaxValue;
+            int hitCount = Physics.SphereCastNonAlloc(
+                w.wheelWorldPosition, w.size, -transform.up,
+                _suspCastBuf, castDist, groundMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < hitCount; i++)
+            {
+                // Skip the car's own colliders (body/arches/wheels) so the sphere
+                // doesn't catch on itself - no layer juggling needed.
+                if (_suspCastBuf[i].collider.attachedRigidbody == rb) continue;
+                // Barriers (Fence) are NOT support: their top is horizontal, so the wheel
+                // would climb onto them, max out the suspension force and flip the car.
+                // Only the body box collider should hit a barrier.
+                if (_suspCastBuf[i].collider.name.IndexOf("Fence", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                // Ignore walls/barriers: suspension should rest only on surfaces whose
+                // normal points up. Otherwise the wheel-radius sphere catches a vertical
+                // wall sideways -> groundDist collapses -> the wheel visually jumps into
+                // the arch. Wall collisions are still handled by the body box collider.
+                // Threshold ~70Â° (dot<0.34 = wall).
+                if (Vector3.Dot(_suspCastBuf[i].normal, transform.up) < 0.34f) continue;
+                if (_suspCastBuf[i].distance < nearest)
+                {
+                    nearest = _suspCastBuf[i].distance;
+                    hit = _suspCastBuf[i];
+                    grounded = true;
+                }
+            }
+            // Distance to the surface along the ray (like the old Raycast): the sphere
+            // center contacts (size) above the surface, hence +size.
+            // On flat road this equals the old Raycast value exactly.
+            float groundDist = grounded ? hit.distance + w.size : rayLen;
             Vector3 worldVelAtHit = rb.GetPointVelocity(hit.point);
             float lateralHitVel = wheelObj.InverseTransformDirection(worldVelAtHit).x;
 
@@ -621,29 +762,66 @@ public class Car : MonoBehaviour
             {
                 // Suspension compression from ray geometry. Clamped to rayLen so a tall
                 // curb can't inject an enormous force in a single frame.
-                float compression = Mathf.Clamp(rayLen - hit.distance, 0f, rayLen);
+                float compression = Mathf.Clamp(rayLen - groundDist, 0f, rayLen);
 
                 // Damper on suspension compression speed (travel change per frame). This is
                 // what gives the noticeable curb "jolt". The per-frame step is capped
                 // (maxSuspensionStep): flat road behaves as before, but a sharp geometric
                 // jump on a curb no longer produces a force of hundreds of kN -
                 // the jolt stays felt, but the car doesn't rear up.
-                float suspStep = Mathf.Clamp(w.lastSuspensionLength - hit.distance,
+                float suspStep = Mathf.Clamp(w.lastSuspensionLength - groundDist,
                                              -maxSuspensionStep, maxSuspensionStep);
                 float damping = suspStep * dampAmount;
-                w.normalForce = Mathf.Clamp((compression + damping) * suspensionForce, 0f, suspensionForceClamp);
+
+                // Velocity damper: damps compression speed ALONG the suspension axis
+                // (transform.up), not along the contact normal. This matters: at a curb/line
+                // edge the normal tilts, and using hit.normal let the car's forward speed
+                // (tens of km/h) leak into the damper -> a false impulse of tens of kN and a
+                // launch/convulsion. Along the suspension axis only real vertical body
+                // motion counts. Clamp Â±4 m/s so a single contact glitch can't spike the force.
+                float compressionSpeed = Mathf.Clamp(-Vector3.Dot(velocityAtWheel, transform.up), -4f, 4f);
+                float velDamp = compressionSpeed * suspensionForce * suspensionDampRatio;
+
+                w.normalForce = Mathf.Clamp(
+                    (compression + damping) * suspensionForce + velDamp,
+                    0f, suspensionForceClamp);
+
+                // Tame chaos on flips/wall jams. upDot = how well the car's up aligns with
+                // the contact normal. On flat road and normal ramp climbs the car is aligned
+                // with the surface -> upDotâ‰ˆ1 -> full force. When tipped on its side ->
+                // upDot drops -> suspension cuts out, so a downed car isn't bounced around.
+                // 1.0 when tilt <25Â°, 0.0 when tilt >60Â°.
+                float upDot   = Vector3.Dot(hit.normal, transform.up);
+                float upAlign = Mathf.Clamp01((upDot - 0.5f) / 0.4f);
+                w.normalForce *= upAlign;
+
+                // snapshot for the physics log
+                w.dbgGrounded = true; w.dbgGroundDist = groundDist; w.dbgCompression = compression;
+                w.dbgCompSpeed = compressionSpeed; w.dbgVelDamp = velDamp; w.dbgUpAlign = upAlign;
+
+                // Grip force (friction) is damped by upAlign too - otherwise on its side/roof
+                // the friction (from last frame's normalForce) would keep pushing the body
+                // off the surface.
+                // flip: if the car is upside down (its up points down) the suspension fully
+                // cuts out, so the wheels don't push a downed car.
+                float flip = Vector3.Dot(transform.up, Vector3.up) < 0.2f ? 0f : 1f;
+                w.normalForce *= flip;
 
                 Vector3 springDir = hit.normal * w.normalForce;
                 w.suspensionForceDirection = springDir;
 
-                rb.AddForceAtPosition(springDir + totalWorldForce, hit.point);
-                w.lastSuspensionLength = hit.distance;
+                rb.AddForceAtPosition((springDir + totalWorldForce * upAlign) * flip, hit.point);
+                w.lastSuspensionLength = groundDist;
 
                 // Visual wheel: seat the tire bottom right on the contact point (via the
                 // measured visualBottomOffset - closes the "floating" gap above the road).
                 // The lower clamp of 0 stops the wheel rising above its mount on a curb.
-                float wheelDrop = Mathf.Clamp(hit.distance - w.visualBottomOffset, 0f, rayLen);
+                // groundDist changes smoothly (sphere-cast), so the wheel no longer jumps
+                // into the arch on a curb (hit.distance used to collapse to 0 and teleport
+                // the wheel to its mount).
+                float wheelDrop = Mathf.Clamp(groundDist - w.visualBottomOffset, 0f, rayLen);
                 wheelObj.position = w.wheelWorldPosition - transform.up * wheelDrop;
+                w.dbgDrop = wheelDrop;
 
                 if (w.slidding)
                 {
@@ -697,6 +875,10 @@ public class Car : MonoBehaviour
                 w.normalForce = 0f; // wheel in the air - no grip force
                 w.lastSuspensionLength = rayLen; // reset travel: no false damper spike on next touchdown
                 wheelObj.position = w.wheelWorldPosition - transform.up * (w.suspensionLength + w.size);
+                // snapshot for the physics log: wheel in the air
+                w.dbgGrounded = false; w.dbgGroundDist = rayLen; w.dbgCompression = 0f;
+                w.dbgCompSpeed = 0f; w.dbgVelDamp = 0f; w.dbgUpAlign = 0f;
+                w.dbgDrop = w.suspensionLength + w.size;
                 if (w.skidTrail != null && w.skidTrail.emitting)
                 {
                     w.skidTrail.emitting = false;
@@ -719,6 +901,8 @@ public class Car : MonoBehaviour
         e.SetRPM(averageWheelAngularVelocity);
 
         if (physicsDebug) LogPhysics();
+
+        // Park - brake, and lock only once stopped
         if (transmissionMode == TransmissionMode.Park)
         {
             float spd = rb.linearVelocity.magnitude;
@@ -736,8 +920,11 @@ public class Car : MonoBehaviour
             }
         }
 
-        //  -:   HillStopZone +   =    
-        bool shouldHardLock = fullStopHold && LegacyInput.GetKey(KeyCode.Space);
+        // Full stop-hold: in a HillStopZone + brake held = car pinned in place.
+        // Brake comes from the active input source: pedal (externalBrake) on a wheel,
+        // Space on keyboard. Otherwise the hold didn't trigger on a wheel and the car slid off the slope.
+        bool brakeHeld      = externalInput ? (externalBrake > 0.02f) : LegacyInput.GetKey(KeyCode.Space);
+        bool shouldHardLock = fullStopHold && brakeHeld;
         if (shouldHardLock)
         {
             if (!_isHardLocked)

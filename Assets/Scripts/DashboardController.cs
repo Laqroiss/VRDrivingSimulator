@@ -37,7 +37,7 @@ public class DashboardController : MonoBehaviour
 
     [Header("Steering wheel animation")]
     public Transform steeringWheel;
-    [Tooltip("Max steering wheel angle in degrees ()")]
+    [Tooltip("Max steering wheel angle in degrees (±)")]
     public float steeringMaxAngle = 450f;
     public float steeringAnimSpeed = 15f;
 

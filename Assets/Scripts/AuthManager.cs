@@ -89,7 +89,7 @@ public class AuthManager : MonoBehaviour
                 // Close the browser tab
                 string html = @"<html><head><meta charset='utf-8'></head><body>
                     <p style='font-family:sans-serif;text-align:center;margin-top:40px;font-size:20px'>
-                    â Signed in! You can close this window.</p>
+                    âœ… Signed in! You can close this window.</p>
                     <script>setTimeout(()=>window.close(),1500)</script></body></html>";
                 var buf = System.Text.Encoding.UTF8.GetBytes(html);
                 ctx.Response.ContentLength64 = buf.Length;

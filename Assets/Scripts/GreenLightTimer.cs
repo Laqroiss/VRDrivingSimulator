@@ -23,7 +23,7 @@ public class GreenLightTimer : MonoBehaviour
     [Header("Traffic light for this direction")]
     public TrafficLight linkedTrafficLight;
 
-    // ââ runtime ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private bool  _activated    = false; // whether it's allowed to react at all
     private bool  _carInZone    = false;
     private bool  _timerActive  = false;
@@ -31,7 +31,7 @@ public class GreenLightTimer : MonoBehaviour
     private bool  _penalty20Done = false;
     private bool  _penalty30Done = false;
 
-    // ââ Unity âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Unity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void Start()
     {
@@ -74,7 +74,7 @@ public class GreenLightTimer : MonoBehaviour
         Debug.Log($"GreenLightTimer [{name}]: activated by external call");
     }
 
-    // ââ Trigger (CheckGreenLight zone) ââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Trigger (CheckGreenLight zone) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void OnTriggerEnter(Collider other)
     {
@@ -91,7 +91,7 @@ public class GreenLightTimer : MonoBehaviour
         // Don't stop the timer - it runs until exiting IntersectionPass
     }
 
-    // ââ Update ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void Update()
     {
@@ -110,7 +110,7 @@ public class GreenLightTimer : MonoBehaviour
         }
     }
 
-    // ââ Timer-start logic ââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Timer-start logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void TryStartTimer(string source)
     {
@@ -142,7 +142,7 @@ public class GreenLightTimer : MonoBehaviour
         Debug.Log($"GreenLightTimer [{name}]: timer started ({source}, light={lightState})");
     }
 
-    // ââ Called from IntersectionPassRelay when exiting the intersection zone â
+    // â”€â”€ Called from IntersectionPassRelay when exiting the intersection zone â”€
 
     public void OnExitIntersectionPass()
     {
@@ -158,7 +158,7 @@ public class GreenLightTimer : MonoBehaviour
         ExamManager.Instance?.StopNamedTimer(gameObject.name);
     }
 
-    // ââ Penalties âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Penalties â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     void Apply20Penalty()
     {
@@ -176,7 +176,7 @@ public class GreenLightTimer : MonoBehaviour
             ExamManager.P3_OVERTIME_30, 3);
     }
 
-    // ââ Debug Gizmos ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    // â”€â”€ Debug Gizmos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public bool IsActivated  => _activated;
     public bool IsActive     => _timerActive;

@@ -159,7 +159,7 @@ public class MenuManager : MonoBehaviour
             });
         }
 
-        // Quality/VSync/FPS    GraphicsSettings (  Settings)
+        // Quality/VSync/FPS are now handled by the GraphicsSettings component (on the Settings panel)
 
         if (settingsPanel != null) settingsPanel.SetActive(false);
 
@@ -212,7 +212,7 @@ public class MenuManager : MonoBehaviour
     }
 
 
-    // вв Cinematic ввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Cinematic в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     IEnumerator CinematicRoutine()
     {
@@ -268,7 +268,7 @@ public class MenuManager : MonoBehaviour
         _cam.transform.rotation = targetRot;
     }
 
-    // вв Start the game вввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Start the game в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     // Start/Continue button from the UI Toolkit menu: in game = Resume, otherwise = Start
     void HandleStartButton()
@@ -380,7 +380,7 @@ public class MenuManager : MonoBehaviour
         StartGame();
     }
 
-    // вв In-game sign-in (no browser) ввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ In-game sign-in (no browser) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     private System.Action _afterLogin;
 
     void HandleLoginSubmit(string phone, string password)
@@ -461,6 +461,7 @@ public class MenuManager : MonoBehaviour
             // the camera fly-by the car already sits inside an exercise zone while statuses
             // aren't restored yet - a trigger (railway crossing etc.) fires with the wrong
             // state, "eats" the entry and stays locked, since the car is already inside and
+            // OnTriggerEnter won't fire again.
             examResume.TeleportCarToCheckpoint();
             examResume.RestoreExamState();
             _resumeOnEnter = false;
@@ -498,7 +499,7 @@ public class MenuManager : MonoBehaviour
         btnStart?.onClick.AddListener(ResumeGame);
     }
 
-    // вв Pause ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Pause в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void PauseGame()
     {
@@ -574,7 +575,7 @@ public class MenuManager : MonoBehaviour
         menuPanel.alpha = to;
     }
 
-    // вв Settings / Quit ввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Settings / Quit в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void ToggleSettings()
     {

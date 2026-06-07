@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 /// <summary>
 /// Student cabinet (UI Toolkit): a short summary + a scrollable list of attempts
-/// from CRM. The в button launches a 3D replay (via OnReplay -> ReplayCRMSync).
+/// from CRM. The в–¶ button launches a 3D replay (via OnReplay -> ReplayCRMSync).
 /// Attach to the same object as UIDocument/MenuUIToolkit.
 /// </summary>
 [RequireComponent(typeof(UIDocument))]
@@ -65,7 +65,7 @@ public class ProfilePanel : MonoBehaviour
         _init = true;
     }
 
-    // вв API ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ API в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public void Toggle()
     {
         EnsureInit();
@@ -98,7 +98,7 @@ public class ProfilePanel : MonoBehaviour
         StartCoroutine(FetchAttempts(name));
     }
 
-    // вв Loading from CRM вввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Loading from CRM в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     IEnumerator FetchAttempts(string studentName)
     {
         if (_list != null) _list.Clear();
@@ -147,7 +147,7 @@ public class ProfilePanel : MonoBehaviour
             AddRow(a);
     }
 
-    // вв Rows вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Rows в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     void AddRow(Attempt a)
     {
         if (_list == null) return;

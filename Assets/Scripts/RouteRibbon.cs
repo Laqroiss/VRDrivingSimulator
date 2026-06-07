@@ -126,7 +126,7 @@ public class RouteRibbon : MonoBehaviour
         RebuildMesh(); // each frame: the window follows the car, chevron scroll is baked into UV
     }
 
-    // вв Build the spline and project onto the road ввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Build the spline and project onto the road в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     public void BuildSpline()
     {
@@ -198,7 +198,7 @@ public class RouteRibbon : MonoBehaviour
         return new Vector3(p.x, p.y + heightOffset, p.z);
     }
 
-    // вв Ribbon head follows the car вввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Ribbon head follows the car в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void AdvanceHead()
     {
@@ -226,7 +226,7 @@ public class RouteRibbon : MonoBehaviour
         _headIndex = head;
     }
 
-    // вв Mesh generation вввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Mesh generation в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void RebuildMesh()
     {
@@ -304,7 +304,7 @@ public class RouteRibbon : MonoBehaviour
         _mr.enabled = true;
     }
 
-    // вв Material and chevron texture ввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Material and chevron texture в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void SetupMaterial()
     {

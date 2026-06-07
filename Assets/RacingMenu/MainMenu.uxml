@@ -154,6 +154,11 @@
                     <ui:Toggle name="nav-help" class="srow__control" />
                 </ui:VisualElement>
 
+                <ui:VisualElement class="srow">
+                    <ui:Label text="Save Exam to DB" class="srow__label" />
+                    <ui:Toggle name="record-replay" class="srow__control" />
+                </ui:VisualElement>
+
                 <ui:Button name="settings-close" class="btn btn--quit settings-close">
                     <ui:VisualElement class="btn__text" picking-mode="Ignore">
                         <ui:Label text="CLOSE" class="btn__label" />

@@ -149,7 +149,7 @@ public class ParkingZone : MonoBehaviour
                     _fixationMet = true;
                     _phase       = Phase.Done;
 
-                    Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - fixed â  ({_timer:F1}s)");
+                    Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - fixed âœ“  ({_timer:F1}s)");
                     ExamManager.Instance?.CompleteExercise(_exNum);
                 }
             }

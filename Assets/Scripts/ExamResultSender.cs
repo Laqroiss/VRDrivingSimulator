@@ -58,6 +58,7 @@ public class ExamResultSender : MonoBehaviour
     private bool         _wasFinished  = false;
     private string       _attemptId    = null;  // DB record _id (received when created on the server)
     private bool         _attemptBegun = false; // local attempt session started
+    private bool         _recordingDisabled = false; // attempt not saved (recording toggle off in settings)
     private bool         _creating     = false; // server-side creation in progress
     private bool         _saving       = false; // a save is in progress
     private bool         _finalDone    = false; // final save confirmed by the server
@@ -180,7 +181,7 @@ public class ExamResultSender : MonoBehaviour
             }
 
             // Periodically save the current snapshot: local file first, then the server
-            if (_attemptBegun && !_saving)
+            if (_attemptBegun && !_saving && !_recordingDisabled)
             {
                 _autosaveTimer += Time.deltaTime;
                 if (_autosaveTimer >= autosaveInterval)
@@ -306,7 +307,7 @@ public class ExamResultSender : MonoBehaviour
         "}";
     }
 
-    // вв Local backup вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Local backup в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     // An attempt snapshot is ALWAYS written to a file on disk, even if the server is down.
     // The file is deleted only after a confirmed DB save. Unsent files are resent on the
     // next launch (ResendPending).
@@ -319,6 +320,17 @@ public class ExamResultSender : MonoBehaviour
     void BeginAttempt()
     {
         _attemptBegun = true;
+
+        // The "Record Exam" toggle in settings is off - the attempt isn't saved anywhere:
+        // neither the DB nor the local backup (otherwise the backup would resend next launch).
+        // We read the value once at exam start.
+        _recordingDisabled = !MenuUIToolkit.AutoRecordExam;
+        if (_recordingDisabled)
+        {
+            Debug.Log("[ExamResultSender] Attempt recording disabled in settings - exam not saved (neither DB nor local)");
+            return;
+        }
+
         _localGuid    = System.Guid.NewGuid().ToString("N");
         try { Directory.CreateDirectory(BackupDir); }
         catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] No access to local backup: {e.Message}"); }
@@ -396,11 +408,12 @@ public class ExamResultSender : MonoBehaviour
         catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] Failed to delete backup: {e.Message}"); }
     }
 
-    // вв Saving (local + server) ввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Saving (local + server) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     // Saves the current snapshot: local file first (guaranteed), then the server.
     IEnumerator Persist(bool completed)
     {
+        if (_recordingDisabled) yield break;   // recording off - write nothing
         _saving = true;
         string json = BuildJson(completed);
         SaveLocal(json);                       // 1) local - always
@@ -471,6 +484,7 @@ public class ExamResultSender : MonoBehaviour
     {
         if (_finalDone) yield break;
         if (!_attemptBegun) BeginAttempt();   // the exam may have finished instantly
+        if (_recordingDisabled) { _finalDone = true; yield break; } // recording off - don't save the final
         while (_saving || _creating) yield return null;  // wait for any in-flight autosave
 
         yield return Persist(true);
@@ -559,6 +573,7 @@ public class ExamResultSender : MonoBehaviour
         if (_finalDone) return;
         if (_exam == null || _exam.State != ExamManager.ExamState.InProgress) return;
         if (!_attemptBegun) return;
+        if (_recordingDisabled) return;   // recording off - no emergency flush needed
 
         // 1) Local backup - guaranteed, synchronous
         string json = BuildJson(false);

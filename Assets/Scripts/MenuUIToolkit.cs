@@ -31,6 +31,11 @@ public class MenuUIToolkit : MonoBehaviour
     const string K_FPS     = "gfx_fpsCap";
     const string K_INPUT   = "InputType";   // 0 = Keyboard, 1 = Wheel
     const string K_NAVHELP = "nav_help";     // 1 = show the route ribbon
+    public const string K_RECORD = "exam_autoRecord"; // 1 = save the exam attempt (result + replay) to the DB
+
+    /// <summary>Record the exam to the DB? When off, ExamResultSender writes no attempt (neither to the
+    /// server nor the local backup), and ReplayCRMSync writes no replay. Default is on.</summary>
+    public static bool AutoRecordExam => PlayerPrefs.GetInt(K_RECORD, 1) == 1;
     static readonly int[] FpsOptions = { 0, 30, 60, 72, 90, 120, 144 };
 
     private bool _init;
@@ -44,9 +49,9 @@ public class MenuUIToolkit : MonoBehaviour
     private bool _registerMode;
     private Slider _volume;
     private DropdownField _quality, _fps, _inputType;
-    private Toggle _vsync, _navHelp;
+    private Toggle _vsync, _navHelp, _recordReplay;
 
-    // вв Apply saved settings at startup ввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Apply saved settings at startup в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void ApplySaved()
     {
@@ -86,6 +91,7 @@ public class MenuUIToolkit : MonoBehaviour
         _vsync       = r.Q<Toggle>("vsync");
         _inputType   = r.Q<DropdownField>("input-type");
         _navHelp     = r.Q<Toggle>("nav-help");
+        _recordReplay = r.Q<Toggle>("record-replay");
 
         _loginOverlay     = r.Q("login-overlay");
         _loginPhone       = r.Q<TextField>("login-phone");
@@ -113,7 +119,7 @@ public class MenuUIToolkit : MonoBehaviour
         _init = true;
     }
 
-    // вв Public API for MenuManager вввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Public API for MenuManager в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     public void ShowMenu() { EnsureInit(); if (_root != null) _root.style.display = DisplayStyle.Flex; }
     public void HideMenu() { EnsureInit(); if (_root != null) _root.style.display = DisplayStyle.None; }
     public void SetStartText(string t)
@@ -182,7 +188,7 @@ public class MenuUIToolkit : MonoBehaviour
         else    ov.AddToClassList("hidden");
     }
 
-    // вв Settings ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     void SetupSettings()
     {
         if (_volume != null)
@@ -251,6 +257,18 @@ public class MenuUIToolkit : MonoBehaviour
             _navHelp.RegisterValueChangedCallback(e =>
             {
                 PlayerPrefs.SetInt(K_NAVHELP, e.newValue ? 1 : 0);
+                PlayerPrefs.Save();
+            });
+        }
+
+        if (_recordReplay != null)
+        {
+            // Auto-record the exam replay to the DB. Turn off to avoid cluttering the
+            // database with test attempts. ReplayCRMSync reads MenuUIToolkit.AutoRecordExam.
+            _recordReplay.value = PlayerPrefs.GetInt(K_RECORD, 1) == 1;
+            _recordReplay.RegisterValueChangedCallback(e =>
+            {
+                PlayerPrefs.SetInt(K_RECORD, e.newValue ? 1 : 0);
                 PlayerPrefs.Save();
             });
         }

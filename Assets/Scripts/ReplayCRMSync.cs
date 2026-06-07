@@ -20,7 +20,7 @@ using System.Text;
 [RequireComponent(typeof(ExamManager))]
 public class ReplayCRMSync : MonoBehaviour
 {
-    // вв Data formats вввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Data formats в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     [System.Serializable]
     public class CRMFrame
@@ -76,7 +76,7 @@ public class ReplayCRMSync : MonoBehaviour
         public List<PenaltyData> penalties;
     }
 
-    // вв Inspector вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Inspector в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     [Header("References")]
     public ReplaySystem   replaySystem;
@@ -94,7 +94,7 @@ public class ReplayCRMSync : MonoBehaviour
     private TMP_Text      hudTimeText;
     private RectTransform _errorContainer;
 
-    // вв Runtime вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Runtime в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     private ExamManager          _exam;
     private Car                  _car;
@@ -131,7 +131,7 @@ public class ReplayCRMSync : MonoBehaviour
         ThreadPool.QueueUserWorkItem(_ => FetchAndQueueReplay(attemptId));
     }
 
-    // вв Unity вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Unity в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void Awake()
     {
@@ -204,7 +204,7 @@ public class ReplayCRMSync : MonoBehaviour
         }
     }
 
-    // вв Recording вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Recording в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void OnExamStart()
     {
@@ -212,6 +212,17 @@ public class ReplayCRMSync : MonoBehaviour
         _lightChanges.Clear();
         _elapsed = 0f;
         _timer   = 0f;
+
+        // Replay auto-recording can be turned off in the settings menu ("Record Replay")
+        // to avoid cluttering the DB with test attempts. When off, frames aren't collected,
+        // so OnResultSent uploads nothing (frames is empty).
+        if (!MenuUIToolkit.AutoRecordExam)
+        {
+            _recording = false;
+            Debug.Log("[ReplayCRMSync] Replay auto-recording disabled in settings - skipping");
+            return;
+        }
+
         _recording = true;
         for (int i = 0; i < _intersections.Length; i++)
         {
@@ -260,7 +271,7 @@ public class ReplayCRMSync : MonoBehaviour
         _frames.Add(f);
     }
 
-    // вв Upload to CRM вввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Upload to CRM в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void OnResultSent(string attemptId)
     {
@@ -286,7 +297,7 @@ public class ReplayCRMSync : MonoBehaviour
             Debug.LogError($"[ReplayCRMSync] Upload error: {req.error}");
     }
 
-    // вв Scene playback ввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Scene playback в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void StartFullReplay(CRMReplay replay, AttemptMeta meta)
     {
@@ -295,7 +306,7 @@ public class ReplayCRMSync : MonoBehaviour
         // HUD
         InitHUD(meta);
 
-        // Car вЂ”  ReplaySystem
+        // Car - via ReplaySystem
         replaySystem?.StartReplayFromCRMData(replay.frames, replay.fps);
 
         // Scene - separate coroutine
@@ -319,7 +330,7 @@ public class ReplayCRMSync : MonoBehaviour
         canvasGO.AddComponent<UnityEngine.UI.GraphicRaycaster>();
         _hudRoot = canvasGO;
 
-        // вв Main panel (middle-right) ввввввввввввввввввввввввввввввввввввввв
+        // в”Ђв”Ђ Main panel (middle-right) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
         var panel = MakePanel(_hudRoot.transform, new Vector2(340, 220),
             new Vector2(1f, 0.5f), new Vector2(1f, 0.5f),
             new Vector2(-20, 0), new Color(0.05f, 0.07f, 0.12f, 0.88f));
@@ -348,7 +359,7 @@ public class ReplayCRMSync : MonoBehaviour
         hudTimeText   = MakeText(panel.transform, "0:00",        13, FontStyles.Normal,
                                  new Color(0.6f,0.7f,0.9f,1f),  new Vector2(0,y));
 
-        // вв Error container (below the main panel, grows downward) ввввввввв
+        // в”Ђв”Ђ Error container (below the main panel, grows downward) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
         var cntGO = new GameObject("ErrorContainer");
         cntGO.transform.SetParent(_hudRoot.transform, false);
         // Image gives a RectTransform; make it transparent
@@ -372,7 +383,7 @@ public class ReplayCRMSync : MonoBehaviour
         csf.verticalFit   = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
     }
 
-    // вв UI creation helpers вввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ UI creation helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     static RectTransform MakePanel(Transform parent, Vector2 size,
         Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Color color)
@@ -595,7 +606,7 @@ public class ReplayCRMSync : MonoBehaviour
         Debug.Log("[ReplayCRMSync] Playback finished");
     }
 
-    // вв HTTP listener вввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ HTTP listener в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
     void StartHTTPListener()
     {
@@ -622,7 +633,7 @@ public class ReplayCRMSync : MonoBehaviour
                 var ctx = _listener.GetContext();
                 string id = ctx.Request.QueryString["id"];
 
-                string html = "<html><body style='font-family:sans-serif;text-align:center;padding:40px'><h2>в Replay starting...</h2><p>You can close this window</p></body></html>";
+                string html = "<html><body style='font-family:sans-serif;text-align:center;padding:40px'><h2>в–¶ Replay starting...</h2><p>You can close this window</p></body></html>";
                 var buf = Encoding.UTF8.GetBytes(html);
                 ctx.Response.ContentType     = "text/html; charset=utf-8";
                 ctx.Response.ContentLength64 = buf.Length;

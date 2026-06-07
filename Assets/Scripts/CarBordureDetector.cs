@@ -18,7 +18,7 @@ public class CarBordureDetector : MonoBehaviour
     [Tooltip("Impact/bottoming clip. If empty, generated procedurally. A 3D source is created per wheel automatically")]
     public AudioClip kerbClip;
     [Range(0f, 1f)] public float kerbVolume = 1f;
-    [Tooltip("Pitch spread , so repeated hits don't sound identical")]
+    [Tooltip("Pitch spread ±, so repeated hits don't sound identical")]
     [Range(0f, 0.5f)] public float pitchVariation = 0.1f;
     [Tooltip("Min interval between sounds from one wheel (sec) - kills chatter on the contact edge")]
     public float soundCooldown = 0.15f;

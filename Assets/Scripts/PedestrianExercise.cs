@@ -73,7 +73,7 @@ public class PedestrianExercise : MonoBehaviour
                     if (_stopTimer >= 0.3f)
                     {
                         _hasStopped = true;
-                        Debug.Log("PedestrianExercise: stopped â");
+                        Debug.Log("PedestrianExercise: stopped âœ“");
                     }
                 }
                 else _stopTimer = 0f;

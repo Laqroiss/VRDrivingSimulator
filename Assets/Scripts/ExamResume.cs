@@ -27,7 +27,7 @@ public class ExamResume : MonoBehaviour
     [Tooltip("Fallback body ride height above ground for OLD records without a saved height (m)")]
     public float fallbackRideHeight = 0.4f;
 
-    // вв /api/attempts/resume response ввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ /api/attempts/resume response в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     [Serializable] class ResumeResponse
     {
         public bool   found;
@@ -51,7 +51,7 @@ public class ExamResume : MonoBehaviour
     private Car _car;
     Car GetCar() => _car != null ? _car : (_car = FindAnyObjectByType<Car>());
 
-    // вв Loading a specific attempt to continue вввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Loading a specific attempt to continue в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     /// <summary>
     /// Loads the state of a specific (cabinet-selected) attempt from CRM by its id.
     /// cb(true) - the data is usable for continuing (has a track). MenuManager then
@@ -86,7 +86,7 @@ public class ExamResume : MonoBehaviour
         cb?.Invoke(ok);
     }
 
-    // вв Apply вввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+    // в”Ђв”Ђ Apply в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     /// <summary>Places the car at the last saved position. Call before the camera flies into the cockpit.</summary>
     public bool TeleportCarToCheckpoint()
     {
@@ -118,7 +118,7 @@ public class ExamResume : MonoBehaviour
         // car enters their zones after the teleport.
         Physics.SyncTransforms();
 
-        Debug.Log($"[ExamResume] Car placed at the save point ({last.x:F1}, {last.z:F1}), heading {last.rot:F0}");
+        Debug.Log($"[ExamResume] Car placed at the save point ({last.x:F1}, {last.z:F1}), heading {last.rot:F0}В°");
         return true;
     }
 

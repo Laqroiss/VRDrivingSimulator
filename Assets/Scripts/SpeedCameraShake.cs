@@ -9,8 +9,8 @@ using UnityEngine;
 ///
 /// Typical OpenXR hierarchy:
 ///   XR Origin
-///     ââ Camera Offset  â† attach here
-///          ââ Main Camera  (head-tracked, do not attach here)
+///     â””â”€ Camera Offset  â† attach here
+///          â””â”€ Main Camera  (head-tracked, do not attach here)
 ///
 /// TriggerKerbShake() is called from BordureContact / CarBordureDetector.
 /// </summary>
@@ -83,7 +83,7 @@ public class SpeedCameraShake : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
-    // Returns a [-1, 1] vector sampled from Perlin noise with independent axes.
+    // Returns a [-1, 1]Â³ vector sampled from Perlin noise with independent axes.
     static Vector3 SampleNoise3(float t, float freq, float seed)
     {
         return new Vector3(

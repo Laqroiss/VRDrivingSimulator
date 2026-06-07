@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Detects the car touching a curb.
 /// Attach this script to EVERY curb (or to a parent object via GetComponentsInChildren).
-/// 
+///
 /// Quick setup on all curbs at once:
 /// Create an empty BordureManager object and attach the BordureManager script (below).
 /// </summary>

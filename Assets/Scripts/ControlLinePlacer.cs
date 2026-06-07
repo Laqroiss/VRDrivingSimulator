@@ -131,8 +131,8 @@ public class ControlLinePlacerEditor : Editor
         // Point-mode button
         GUI.backgroundColor = _placing ? new Color(1f, 0.85f, 0f) : new Color(0.3f, 0.6f, 1f);
         if (GUILayout.Button(_placing
-                ? "° Point mode ON  -  Q add  /  Z remove  /  click again to exit"
-                : "‚Ô  Enable point placement mode",
+                ? "üü° Point mode ON  -  Q add  /  Z remove  /  click again to exit"
+                : "‚úèÔ∏è  Enable point placement mode",
             GUILayout.Height(38)))
         {
             _placing = !_placing;
@@ -157,14 +157,14 @@ public class ControlLinePlacerEditor : Editor
         EditorGUILayout.Space(6);
 
         GUI.backgroundColor = new Color(0.4f, 0.85f, 0.4f);
-        if (GUILayout.Button("‚  Generate Control Lines", GUILayout.Height(34)))
+        if (GUILayout.Button("‚ñ∂  Generate Control Lines", GUILayout.Height(34)))
         {
             Undo.RegisterFullObjectHierarchyUndo(p.gameObject, "Generate");
             p.Generate();
         }
 
         GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
-        if (GUILayout.Button("‚  Clear All", GUILayout.Height(26)))
+        if (GUILayout.Button("‚úï  Clear All", GUILayout.Height(26)))
         {
             Undo.RegisterFullObjectHierarchyUndo(p.gameObject, "Clear");
             p.Clear();

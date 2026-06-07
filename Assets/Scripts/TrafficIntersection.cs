@@ -1,4 +1,4 @@
-ïusing System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,13 +8,13 @@ using UnityEngine;
 /// </summary>
 public class TrafficIntersection : MonoBehaviour
 {
-    [Header("ïïïïïï 1 (ïïïïïïïïï ïïïï ïïïïïïïï ïïïïï)")]
+    [Header("Side 1 (lights for the first direction)")]
     public List<TrafficLight> sideA;
 
-    [Header("ïïïïïï 2 (ïïïïïïïïïïïï ïïïïï)")]
+    [Header("Side 2 (opposite lights)")]
     public List<TrafficLight> sideB;
 
-    [Header("ïïïïïïïïï ïïïïïïï (ï ïïïïïïïï)")]
+    [Header("Phase durations (seconds)")]
     public float greenTime     = 25f; // 25s of green - enough to cross, with margin
     public float blinkTime     = 3f;
     public float yellowTime    = 2f;
@@ -113,7 +113,7 @@ public class TrafficIntersection : MonoBehaviour
         PhaseRemaining = 0f;
     }
 
-    // ïïïïïïïïïïïïïïï ïïïïïïï ïïï ïïïïïïïïïïïï ïïïïïï ïïïïïï ïïïïïïïïïï
+    // Helper to apply a state to a whole group of lights
     private void SetLights(List<TrafficLight> lights, TrafficLight.LightState state)
     {
         foreach (var light in lights)

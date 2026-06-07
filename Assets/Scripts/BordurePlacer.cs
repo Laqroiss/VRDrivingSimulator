@@ -181,8 +181,8 @@ public class BordurePlacerEditor : Editor
             : new Color(0.3f, 0.6f, 1f);   // blue - mode off
 
         string btnLabel = _placingMode
-            ? "� Point mode ON  (Q - add,  Z - undo,  click again to exit)"
-            : "��  Enable point placement mode";
+            ? "🟠 Point mode ON  (Q - add,  Z - undo,  click again to exit)"
+            : "✏️  Enable point placement mode";
 
         if (GUILayout.Button(btnLabel, GUILayout.Height(36)))
         {
@@ -210,7 +210,7 @@ public class BordurePlacerEditor : Editor
 
         // ——— Generate ———
         GUI.backgroundColor = new Color(0.4f, 0.85f, 0.4f);
-        if (GUILayout.Button("�  Generate Bordures", GUILayout.Height(36)))
+        if (GUILayout.Button("▶  Generate Bordures", GUILayout.Height(36)))
         {
             Undo.RegisterFullObjectHierarchyUndo(placer.gameObject, "Generate Bordures");
             placer.Generate();
@@ -218,7 +218,7 @@ public class BordurePlacerEditor : Editor
 
         // ——— Clear ———
         GUI.backgroundColor = new Color(1f, 0.4f, 0.4f);
-        if (GUILayout.Button("�  Clear All", GUILayout.Height(28)))
+        if (GUILayout.Button("✕  Clear All", GUILayout.Height(28)))
         {
             Undo.RegisterFullObjectHierarchyUndo(placer.gameObject, "Clear Bordures");
             placer.Clear();

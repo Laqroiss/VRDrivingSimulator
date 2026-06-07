@@ -311,7 +311,7 @@ public class ExamManager : MonoBehaviour
         if (ExerciseStatuses[idx] == ExerciseStatus.Completed) return; // already passed - ignore
         ExerciseStatuses[idx] = ExerciseStatus.Completed;
         OnExerciseComplete.Invoke(exerciseNum);
-        Debug.Log($"ExamManager: {GetExerciseName(exerciseNum)} - PASSED â");
+        Debug.Log($"ExamManager: {GetExerciseName(exerciseNum)} - PASSED âœ“");
     }
 
     public void MarkExerciseFailed(int exerciseNum)
