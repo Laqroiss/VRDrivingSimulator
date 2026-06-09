@@ -1,4 +1,4 @@
-ïstruct vertex_t
+ï»¿struct vertex_t
 {
     UNITY_VERTEX_INPUT_INSTANCE_ID
     float4	position		: POSITION;

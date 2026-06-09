@@ -140,6 +140,11 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement class="srow">
+                    <ui:Label text="Render Scale" class="srow__label" />
+                    <ui:DropdownField name="render-scale" class="srow__control" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="srow">
                     <ui:Label text="V-Sync" class="srow__label" />
                     <ui:Toggle name="vsync" class="srow__control" />
                 </ui:VisualElement>

@@ -114,6 +114,18 @@ public class BordurePlacer : MonoBehaviour
 
     void PlaceBorduresAlongPath(List<Vector3> pathPoints)
     {
+        // One shared, GPU-instanced material for the whole curb set. Curbs are
+        // identical cubes, so a single instanced material collapses ~1000 draw
+        // calls into a handful. (Using .material per cube — as before — created a
+        // unique material instance each time and killed batching/instancing.)
+        Material sharedMat = bordureMaterial;
+        if (sharedMat == null)
+        {
+            sharedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            sharedMat.color = new Color(0.75f, 0.75f, 0.75f);
+        }
+        sharedMat.enableInstancing = true;
+
         for (int i = 0; i < pathPoints.Count - 1; i++)
         {
             Vector3 from = pathPoints[i];
@@ -136,14 +148,7 @@ public class BordurePlacer : MonoBehaviour
                 b.transform.localScale = new Vector3(bordureWidth, bordureHeight, actualLen);
                 b.transform.parent = transform;
 
-                if (bordureMaterial != null)
-                    b.GetComponent<Renderer>().material = bordureMaterial;
-                else
-                {
-                    var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                    mat.color = new Color(0.75f, 0.75f, 0.75f);
-                    b.GetComponent<Renderer>().material = mat;
-                }
+                b.GetComponent<Renderer>().sharedMaterial = sharedMat;
                 generatedBordures.Add(b);
             }
         }

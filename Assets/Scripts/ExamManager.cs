@@ -49,7 +49,7 @@ public class ExamManager : MonoBehaviour
     public const int P4_EARLY_START     = 25;
     public const int P4_NO_MOVEMENT     = 25;
 
-    // Ex.5 - U-turn and reverse parking
+    // Ex.5 - Reverse parking
     public const int P5_NO_FIXATION     = 20;
     public const int P5_WHEEL_ON_LINE   = 20;
     public const int P5_OVERTIME        = 15;
@@ -164,7 +164,7 @@ public class ExamManager : MonoBehaviour
         "Ex.2  - Turns at unregulated intersections",
         "Ex.3  - Crossing a regulated intersection",
         "Ex.4  - Pedestrian crossing",
-        "Ex.5  - U-turn and reverse parking",
+        "Ex.5  - Reverse parking",
         "Ex.6  - Reverse parallel parking",
         "Ex.7  - Unregulated railway crossing",
         "Ex.8  - Emergency stop",

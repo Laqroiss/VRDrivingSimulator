@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const EXERCISE_NAMES = [
   '', 'Start', 'Unregulated intersections', 'Regulated intersection',
-  'Pedestrian crossing', 'U-turn & reverse parking', 'Parallel parking',
+  'Pedestrian crossing', 'Reverse parking', 'Parallel parking',
   'Railway crossing', 'Emergency stop', 'Hill start & descent', 'Finish',
 ]
 
@@ -19,8 +19,8 @@ function statusColor(s) {
   return 'var(--muted)'
 }
 function statusLabel(s) {
-  if (s === 'Completed') return 'â'
-  if (s === 'Failed')    return 'â'
+  if (s === 'Completed') return 'ï¿½'
+  if (s === 'Failed')    return 'ï¿½'
   return 'â€“'
 }
 

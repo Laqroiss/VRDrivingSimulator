@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Self-building graphics settings panel (Quality / VSync / FPS cap).
@@ -37,7 +38,9 @@ public class GraphicsSettings : MonoBehaviour
     const string K_QUALITY = "gfx_quality";
     const string K_VSYNC   = "gfx_vsync";
     const string K_FPS     = "gfx_fpsCap";
-    static readonly int[] FpsOptions = { 0, 30, 60, 72, 90, 120, 144 };
+    const string K_RSCALE  = "gfx_renderScale";
+    static readonly int[]   FpsOptions         = { 0, 30, 60, 72, 90, 120, 144 };
+    static readonly float[] RenderScaleOptions = { 0.6f, 0.7f, 0.8f, 0.85f, 0.9f, 1.0f };
 
     private GameObject _panel;
 
@@ -51,6 +54,25 @@ public class GraphicsSettings : MonoBehaviour
         QualitySettings.vSyncCount = PlayerPrefs.GetInt(K_VSYNC, QualitySettings.vSyncCount > 0 ? 1 : 0);
         int fps = PlayerPrefs.GetInt(K_FPS, 0);
         Application.targetFrameRate = fps > 0 ? fps : -1;
+        ApplyRenderScale(PlayerPrefs.GetFloat(K_RSCALE, 1f));
+    }
+
+    // Active URP asset for the current quality level (the per-quality PC/Mobile asset),
+    // falling back to the project-wide default pipeline.
+    static UniversalRenderPipelineAsset GetUrpAsset()
+    {
+        var asset = QualitySettings.renderPipeline as UniversalRenderPipelineAsset;
+        if (asset == null)
+            asset = UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline as UniversalRenderPipelineAsset;
+        return asset;
+    }
+
+    // Render scale renders the game at a fraction of the screen resolution and upscales.
+    // The cheapest big GPU win on weak machines; softens the image slightly.
+    static void ApplyRenderScale(float value)
+    {
+        var urp = GetUrpAsset();
+        if (urp != null) urp.renderScale = Mathf.Clamp(value, 0.1f, 2f);
     }
 
     void Awake()
@@ -131,6 +153,15 @@ public class GraphicsSettings : MonoBehaviour
         var fpsNames = FpsOptions.Select(f => f == 0 ? "Unlimited" : f.ToString()).ToList();
         AddSelector("Frame limit (FPS)", fpsNames, fIdx, i =>
         { int fps = FpsOptions[i]; Application.targetFrameRate = fps > 0 ? fps : -1; SaveInt(K_FPS, fps); });
+
+        // Render scale
+        float savedRs = PlayerPrefs.GetFloat(K_RSCALE, 1f);
+        int rIdx = Array.IndexOf(RenderScaleOptions, savedRs);
+        if (rIdx < 0) rIdx = RenderScaleOptions.Length - 1; // default 100%
+        ApplyRenderScale(RenderScaleOptions[rIdx]);
+        var rsNames = RenderScaleOptions.Select(v => Mathf.RoundToInt(v * 100f) + "%").ToList();
+        AddSelector("Render scale", rsNames, rIdx, i =>
+        { float v = RenderScaleOptions[i]; ApplyRenderScale(v); SaveFloat(K_RSCALE, v); });
 
         Debug.Log($"[GraphicsSettings] Panel built. Open with: {toggleKey} or Settings.Toggle()");
     }
@@ -235,6 +266,8 @@ public class GraphicsSettings : MonoBehaviour
     }
 
     static void SaveInt(string key, int value) { PlayerPrefs.SetInt(key, value); PlayerPrefs.Save(); }
+
+    static void SaveFloat(string key, float value) { PlayerPrefs.SetFloat(key, value); PlayerPrefs.Save(); }
 
     static Font GetFallbackFont()
     {

@@ -52,7 +52,7 @@ public class StatusPanel : MonoBehaviour
         "2.  Unregulated intersections",
         "3.  Regulated intersection",
         "4.  Pedestrian crossing",
-        "5.  U-turn and parking",
+        "5.  Reverse parking",
         "6.  Parallel parking",
         "7.  Railway crossing",
         "8.  Emergency stop",

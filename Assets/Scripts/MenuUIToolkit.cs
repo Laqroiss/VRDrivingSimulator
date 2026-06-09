@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// UI Toolkit menu frontend (UXML/USS). Gameplay logic (camera fly-by, cockpit
@@ -29,6 +30,7 @@ public class MenuUIToolkit : MonoBehaviour
     const string K_QUALITY = "gfx_quality";
     const string K_VSYNC   = "gfx_vsync";
     const string K_FPS     = "gfx_fpsCap";
+    const string K_RSCALE  = "gfx_renderScale"; // URP render scale (resolution multiplier)
     const string K_INPUT   = "InputType";   // 0 = Keyboard, 1 = Wheel
     const string K_NAVHELP = "nav_help";     // 1 = show the route ribbon
     public const string K_RECORD = "exam_autoRecord"; // 1 = save the exam attempt (result + replay) to the DB
@@ -36,7 +38,8 @@ public class MenuUIToolkit : MonoBehaviour
     /// <summary>Record the exam to the DB? When off, ExamResultSender writes no attempt (neither to the
     /// server nor the local backup), and ReplayCRMSync writes no replay. Default is on.</summary>
     public static bool AutoRecordExam => PlayerPrefs.GetInt(K_RECORD, 1) == 1;
-    static readonly int[] FpsOptions = { 0, 30, 60, 72, 90, 120, 144 };
+    static readonly int[]   FpsOptions         = { 0, 30, 60, 72, 90, 120, 144 };
+    static readonly float[] RenderScaleOptions = { 0.6f, 0.7f, 0.8f, 0.85f, 0.9f, 1.0f };
 
     private bool _init;
     private VisualElement _root, _overlay, _loginOverlay;
@@ -48,7 +51,7 @@ public class MenuUIToolkit : MonoBehaviour
     private Label _loginBtnLabel, _loginBtnSub;
     private bool _registerMode;
     private Slider _volume;
-    private DropdownField _quality, _fps, _inputType;
+    private DropdownField _quality, _fps, _inputType, _renderScale;
     private Toggle _vsync, _navHelp, _recordReplay;
 
     // ── Apply saved settings at startup ───────────────────────────────────────
@@ -62,6 +65,24 @@ public class MenuUIToolkit : MonoBehaviour
         int fps = PlayerPrefs.GetInt(K_FPS, 0);
         Application.targetFrameRate = fps > 0 ? fps : -1;
         AudioListener.volume = PlayerPrefs.GetFloat(K_VOLUME, 1f);
+        ApplyRenderScale(PlayerPrefs.GetFloat(K_RSCALE, 1f));
+    }
+
+    // Active URP asset for the current quality level, falling back to the default pipeline.
+    static UniversalRenderPipelineAsset GetUrpAsset()
+    {
+        var asset = QualitySettings.renderPipeline as UniversalRenderPipelineAsset;
+        if (asset == null)
+            asset = UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline as UniversalRenderPipelineAsset;
+        return asset;
+    }
+
+    // Render scale renders the 3D camera at a fraction of screen resolution and upscales.
+    // The cheapest big GPU win on weak machines; softens the image slightly.
+    static void ApplyRenderScale(float value)
+    {
+        var urp = GetUrpAsset();
+        if (urp != null) urp.renderScale = Mathf.Clamp(value, 0.1f, 2f);
     }
 
     void OnEnable()  => EnsureInit();
@@ -88,6 +109,7 @@ public class MenuUIToolkit : MonoBehaviour
         _volume      = r.Q<Slider>("volume");
         _quality     = r.Q<DropdownField>("quality");
         _fps         = r.Q<DropdownField>("fps");
+        _renderScale = r.Q<DropdownField>("render-scale");
         _vsync       = r.Q<Toggle>("vsync");
         _inputType   = r.Q<DropdownField>("input-type");
         _navHelp     = r.Q<Toggle>("nav-help");
@@ -221,6 +243,21 @@ public class MenuUIToolkit : MonoBehaviour
                 int fps = FpsOptions[Mathf.Clamp(_fps.index, 0, FpsOptions.Length - 1)];
                 Application.targetFrameRate = fps > 0 ? fps : -1;
                 PlayerPrefs.SetInt(K_FPS, fps); PlayerPrefs.Save();
+            });
+        }
+
+        if (_renderScale != null)
+        {
+            _renderScale.choices = RenderScaleOptions.Select(v => Mathf.RoundToInt(v * 100f) + "%").ToList();
+            float savedRs = PlayerPrefs.GetFloat(K_RSCALE, 1f);
+            int idx = Array.IndexOf(RenderScaleOptions, savedRs); if (idx < 0) idx = RenderScaleOptions.Length - 1;
+            _renderScale.index = idx;
+            ApplyRenderScale(RenderScaleOptions[idx]);
+            _renderScale.RegisterValueChangedCallback(_ =>
+            {
+                float v = RenderScaleOptions[Mathf.Clamp(_renderScale.index, 0, RenderScaleOptions.Length - 1)];
+                ApplyRenderScale(v);
+                PlayerPrefs.SetFloat(K_RSCALE, v); PlayerPrefs.Save();
             });
         }
 
