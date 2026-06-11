@@ -3,15 +3,18 @@ using UnityEngine;
 /// <summary>
 /// Admin testing aid: an on-screen panel to skip ahead through the exam exercises.
 ///
-/// Visible ONLY when the signed-in account is an admin (User.isAdmin in the CRM, carried through
-/// the login response into AuthManager.IsAdmin) and an exam is in progress. "Skip to Ex.N" marks
-/// every earlier exercise as completed, unlocking N so you can drive straight to it during testing
-/// instead of properly passing the ones before it.
+/// Toggle it with F8. Available ONLY when the signed-in account is an admin
+/// (User.isAdmin in the CRM, carried through the login response into AuthManager.IsAdmin)
+/// and an exam is in progress. "Skip to Ex.N" marks every earlier exercise as completed,
+/// unlocking N so you can drive straight to it during testing instead of properly passing
+/// the ones before it.
 ///
 /// Bootstraps itself on scene load - no scene wiring needed. It does nothing for non-admins.
 /// </summary>
 public class AdminDebugPanel : MonoBehaviour
 {
+    const KeyCode ToggleKey = KeyCode.F8;
+
     static AdminDebugPanel _instance;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -23,8 +26,15 @@ public class AdminDebugPanel : MonoBehaviour
         DontDestroyOnLoad(go);
     }
 
-    bool _collapsed = false;
+    bool _visible = false;
     Vector2 _scroll;
+
+    void Update()
+    {
+        // Only an admin can summon the panel.
+        if (!AuthManager.IsLoggedIn || !AuthManager.IsAdmin) return;
+        if (LegacyInput.GetKeyDown(ToggleKey)) _visible = !_visible;
+    }
 
     void OnGUI()
     {
@@ -33,19 +43,23 @@ public class AdminDebugPanel : MonoBehaviour
         var em = ExamManager.Instance;
         if (em == null || em.State != ExamManager.ExamState.InProgress) return;
 
-        const float w = 300f;
-        float h = _collapsed ? 34f : 36f + 10f * 26f + 30f;
-        var area = new Rect(Screen.width - w - 12f, 12f, w, h);
+        if (!_visible)
+        {
+            // Hint so the admin knows how to open the panel.
+            GUI.Label(new Rect(Screen.width - 160f, 8f, 152f, 22f),
+                      $"[{ToggleKey}] admin panel", RichLabel());
+            return;
+        }
 
-        GUILayout.BeginArea(area, GUI.skin.box);
+        const float w = 300f;
+        float h = 36f + 10f * 26f + 30f;
+        GUILayout.BeginArea(new Rect(Screen.width - w - 12f, 12f, w, h), GUI.skin.box);
 
         GUILayout.BeginHorizontal();
-        GUILayout.Label("<b>ADMIN — skip exercises</b>", RichLabel());
-        if (GUILayout.Button(_collapsed ? "+" : "–", GUILayout.Width(26f)))
-            _collapsed = !_collapsed;
+        GUILayout.Label($"<b>ADMIN — skip exercises</b>  [{ToggleKey}]", RichLabel());
+        if (GUILayout.Button("X", GUILayout.Width(26f)))
+            _visible = false;
         GUILayout.EndHorizontal();
-
-        if (_collapsed) { GUILayout.EndArea(); return; }
 
         _scroll = GUILayout.BeginScrollView(_scroll);
         for (int n = 1; n <= 10; n++)
