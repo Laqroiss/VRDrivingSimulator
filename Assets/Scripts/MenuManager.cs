@@ -375,7 +375,9 @@ public class MenuManager : MonoBehaviour
     void OnStartClicked()
     {
         _resumeOnEnter = false;            // normal start - a new exam, not a resume
-        if (authManager != null && !AuthManager.IsLoggedIn)
+        // Login only matters to attribute a saved attempt to a student. If exam recording is
+        // turned off in settings, nothing is saved - so let the user start without signing in.
+        if (authManager != null && !AuthManager.IsLoggedIn && MenuUIToolkit.AutoRecordExam)
         {
             _afterLogin = StartGame;       // sign in right here, then start
             menuUI?.ShowLogin();
