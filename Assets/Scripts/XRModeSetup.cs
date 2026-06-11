@@ -22,7 +22,26 @@ public class XRModeSetup : MonoBehaviour
             var simulator = GameObject.Find("XR Device Simulator");
             if (simulator != null) simulator.SetActive(false);
 
-            GameLog.Info("[XRModeSetup] No headset connected - TrackedPoseDriver and XR Device Simulator disabled.");
+            // Without a headset the XR UI ray interactors still register with the XRUIInputModule
+            // and feed it an invalid (NaN) controller pose, spamming
+            // "Screen position out of view frustum (NaN)" every frame. Disable any XR UI interactor
+            // (matched by the IUIInteractor interface via reflection, so we don't hard-depend on a
+            // specific XRI version) - the mouse keeps driving the UI.
+            int uiInteractorsOff = 0;
+            foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include))
+            {
+                if (mb == null) continue;
+                foreach (var itf in mb.GetType().GetInterfaces())
+                {
+                    if (itf.Name != "IUIInteractor") continue;
+                    mb.enabled = false;
+                    uiInteractorsOff++;
+                    break;
+                }
+            }
+
+            GameLog.Info($"[XRModeSetup] No headset connected - TrackedPoseDriver, XR Device Simulator " +
+                         $"and {uiInteractorsOff} XR UI interactor(s) disabled.");
         }
         else
         {

@@ -4602,6 +4602,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wheelRadius: 0.45
   cooldown: 2
+  kerbClip: {fileID: 0}
+  kerbVolume: 1
+  pitchVariation: 0.1
+  soundCooldown: 0.15
+  fullImpactSpeed: 6
+  curbResistanceEnabled: 1
+  curbResistance: 320
+  curbResistanceClamp: 8000
   capsuleRadius: 0.85
   centerOffsetY: -0.7
   halfLength: 1.4
@@ -4674,6 +4682,14 @@ MonoBehaviour:
     brake: 0
     slipHistory: 0
     tcsReduction: 0
+    visualBottomOffset: 0
+    dbgGrounded: 0
+    dbgGroundDist: 0
+    dbgCompression: 0
+    dbgCompSpeed: 0
+    dbgVelDamp: 0
+    dbgUpAlign: 0
+    dbgDrop: 0
   - skidTrail: {fileID: 0}
     skidTrailGameObject: {fileID: 0}
     localPosition: {x: 0.73, y: 0, z: 1.285}
@@ -4699,6 +4715,14 @@ MonoBehaviour:
     brake: 0
     slipHistory: 0
     tcsReduction: 0
+    visualBottomOffset: 0
+    dbgGrounded: 0
+    dbgGroundDist: 0
+    dbgCompression: 0
+    dbgCompSpeed: 0
+    dbgVelDamp: 0
+    dbgUpAlign: 0
+    dbgDrop: 0
   - skidTrail: {fileID: 0}
     skidTrailGameObject: {fileID: 0}
     localPosition: {x: -0.73, y: 0, z: 1.285}
@@ -4724,6 +4748,14 @@ MonoBehaviour:
     brake: 0
     slipHistory: 0
     tcsReduction: 0
+    visualBottomOffset: 0
+    dbgGrounded: 0
+    dbgGroundDist: 0
+    dbgCompression: 0
+    dbgCompSpeed: 0
+    dbgVelDamp: 0
+    dbgUpAlign: 0
+    dbgDrop: 0
   - skidTrail: {fileID: 0}
     skidTrailGameObject: {fileID: 0}
     localPosition: {x: -0.73, y: 0, z: -1.285}
@@ -4749,14 +4781,28 @@ MonoBehaviour:
     brake: 0
     slipHistory: 0
     tcsReduction: 0
+    visualBottomOffset: 0
+    dbgGrounded: 0
+    dbgGroundDist: 0
+    dbgCompression: 0
+    dbgCompSpeed: 0
+    dbgVelDamp: 0
+    dbgUpAlign: 0
+    dbgDrop: 0
   wheelGripX: 16
   wheelGripZ: 42
   suspensionForce: 45000
   dampAmount: 20
   suspensionForceClamp: 32000
+  maxSuspensionStep: 0.025
+  suspensionDampRatio: 0.06
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   rb: {fileID: 0}
   forwards: 1
   transmissionMode: 0
+  inputEnabled: 1
   hillHoldAllowed: 0
   hillHoldSpeedThreshold: 0.5
   fullStopHold: 0
@@ -4774,6 +4820,8 @@ MonoBehaviour:
   - {fileID: 6771852738766809417}
   debugLog: 0
   debugLogInterval: 0.5
+  physicsDebug: 0
+  physicsDebugHeartbeat: 0.5
   steeringAssist: 1
   steeringAssistStrength: 0.2
   throttleAssist: 1
@@ -4784,6 +4832,7 @@ MonoBehaviour:
   externalThrottle: 0
   externalBrake: 0
   externalSteer: 0
+  wheelSteerSmoothing: 0.018
   downforce: 0.16
   isBraking: 0
   COMOffset: {x: 0, y: -1, z: 0}
@@ -8597,6 +8646,7 @@ MonoBehaviour:
   indicators: {fileID: 0}
   deadzone: 0.015
   steerSensitivity: 1
+  steerExponent: 1.4
 --- !u!1 &5445196426228819253
 GameObject:
   m_ObjectHideFlags: 0
@@ -11147,7 +11197,6 @@ GameObject:
   - component: {fileID: 8681128079870595474}
   - component: {fileID: 904875448745517904}
   - component: {fileID: 2035802814889183812}
-  - component: {fileID: 4961527822763815148}
   m_Layer: 5
   m_Name: Window
   m_TagString: Untagged
@@ -11216,19 +11265,6 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &4961527822763815148
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6905477051819643221}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5b01eb497714c1449cb2df46eb5ac6f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  range: {x: -7, y: -3}
 --- !u!1 &6994116479002527537
 GameObject:
   m_ObjectHideFlags: 0
