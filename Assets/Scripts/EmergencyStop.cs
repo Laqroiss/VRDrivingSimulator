@@ -21,9 +21,15 @@ public class EmergencyStop : MonoBehaviour
     public AudioSource signalSound;
     public AudioClip   signalClip;
 
-    private const float StopTimeLimit   = 2f;
-    private const float HazardTimeLimit = 3f;
-    private const float MinStopSpeed    = 0.3f;
+    [Header("Timing (tunable)")]
+    [Tooltip("Max time after the signal to come to a full stop (sec). " +
+             "Must allow reaction + braking from up to 20 km/h, so keep it generous.")]
+    public float StopTimeLimit   = 4f;
+    [Tooltip("Max time after stopping to switch on the hazard lights (sec)")]
+    public float HazardTimeLimit = 3f;
+    [Tooltip("Speed below which the car counts as stopped (m/s). Keep it above idle creep " +
+             "so a car gently creeping in Drive still registers as stopped.")]
+    public float MinStopSpeed    = 0.5f;
 
     [Header("Activation")]
     [Tooltip("Exercise number that must be completed before EmergencyStop (7 = railway crossing)")]
@@ -140,9 +146,10 @@ public class EmergencyStop : MonoBehaviour
 
         if (!stopped || !hazardsOn)
         {
-            ExamManager.Instance?.AddPenalty(
-                "Didn't stop within 2s or didn't turn on hazards within 3s of stopping",
-                ExamManager.P8_LATE_STOP_OR_HAZARDS, 8);
+            string reason = !stopped
+                ? "Didn't stop in time after the emergency-stop signal"
+                : "Didn't switch on the hazard lights after stopping (Ex.8)";
+            ExamManager.Instance?.AddPenalty(reason, ExamManager.P8_LATE_STOP_OR_HAZARDS, 8);
         }
 
         // Hold the signal for another resumeDelay sec
