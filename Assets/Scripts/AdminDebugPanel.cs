@@ -89,7 +89,22 @@ public class AdminDebugPanel : MonoBehaviour
             if (em.ExerciseStatuses[n - 1] != ExamManager.ExerciseStatus.Completed)
                 em.CompleteExercise(n);
 
-        GameLog.Info($"[AdminDebugPanel] Skipped to Ex.{target} (marked Ex.1..{target - 1} completed)");
+        // CompleteExercise fires OnExerciseComplete, which activates the OnExerciseComplete gates.
+        // But checkpoint-activated gates (GreenLightTimer in OnCheckpointPass mode) are only armed
+        // by physically driving through their checkpoint - which a skip bypasses - so they would
+        // stay LOCKED. Activate them here so the skipped-over intersections (e.g. TF3) go live.
+        int gatesArmed = 0;
+        foreach (var gate in FindObjectsByType<GreenLightTimer>(FindObjectsInactive.Include))
+            if (gate != null
+                && gate.activationMode == GreenLightTimer.ActivationMode.OnCheckpointPass
+                && !gate.IsActivated)
+            {
+                gate.Activate();
+                gatesArmed++;
+            }
+
+        GameLog.Info($"[AdminDebugPanel] Skipped to Ex.{target} (marked Ex.1..{target - 1} completed, " +
+                     $"armed {gatesArmed} checkpoint gate(s))");
     }
 
     static GUIStyle _rich;
