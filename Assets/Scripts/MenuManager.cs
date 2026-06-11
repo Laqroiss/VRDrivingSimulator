@@ -74,9 +74,13 @@ public class MenuManager : MonoBehaviour
     {
         _cam = Camera.main;
 
-        // Put the car in Park - physically stopped, but not frozen
+        // Put the car in Park - physically stopped, but not frozen - and lock driver input so
+        // it can't be driven away while the menu camera flies over the map.
         if (car != null)
+        {
             car.transmissionMode = Car.TransmissionMode.Park;
+            car.inputEnabled = false;
+        }
 
         // Remember the cockpit pose BEFORE disabling XR
         var pitchObj = GameObject.Find("HeadPitch");
@@ -474,9 +478,12 @@ public class MenuManager : MonoBehaviour
             SnapCameraToCockpit();
         }
 
-        // Leave Park - the driver can shift to Drive and go
+        // Leave Park and hand control to the driver - they can shift to Drive and go
         if (car != null)
+        {
             car.transmissionMode = Car.TransmissionMode.Neutral;
+            car.inputEnabled = true;
+        }
 
         // Switch to pause mode (ESC during the game)
         _inGame = true;
@@ -506,6 +513,9 @@ public class MenuManager : MonoBehaviour
         if (_paused) return;
         _paused = true;
         Time.timeScale = 0f;
+
+        // Lock driver input while paused (the menu is up over the cockpit)
+        if (car != null) car.inputEnabled = false;
 
         // Detach the camera from HeadPitch - it stays put in the world
         if (_cam != null)
@@ -560,6 +570,9 @@ public class MenuManager : MonoBehaviour
         Cursor.visible   = false;
 
         Time.timeScale = 1f;
+
+        // Hand control back to the driver
+        if (car != null) car.inputEnabled = true;
     }
 
     IEnumerator FadeMenuUnscaled(float from, float to, float duration)

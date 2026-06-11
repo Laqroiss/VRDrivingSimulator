@@ -259,6 +259,11 @@ public class Car : MonoBehaviour
     public TransmissionMode transmissionMode = TransmissionMode.Park;
     public TransmissionMode CurrentMode => transmissionMode;
 
+    // When false, the car ignores ALL driver input (steering, throttle, brake, gear keys).
+    // MenuManager clears this while the menu/pause owns the car (cinematic fly-over, paused),
+    // so the car can't be driven away from under the menu, and restores it on cockpit entry.
+    [HideInInspector] public bool inputEnabled = true;
+
     // Enabled externally (HillStartExercise) - holds the car on a slope with the brake
     [HideInInspector] public bool hillHoldAllowed = false;
     [Range(0f, 5f)] public float hillHoldSpeedThreshold = 0.5f;
@@ -400,6 +405,13 @@ public class Car : MonoBehaviour
     void Update()
     {
         externalInput = (inputMode == InputMode.Wheel);
+
+        // Menu/pause owns the car: ignore every driver input and keep it parked in place.
+        if (!inputEnabled)
+        {
+            userInput = Vector2.zero;
+            return;
+        }
 
         if (LegacyInput.GetKeyDown(KeyCode.R))
         {

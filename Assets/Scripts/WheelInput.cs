@@ -65,6 +65,8 @@ public class WheelInput : MonoBehaviour
     {
         if (_device == null || car == null) return;
         if (car.inputMode != Car.InputMode.Wheel) return;
+        // Menu/pause owns the car - ignore the wheel, pedals and shifter buttons too.
+        if (!car.inputEnabled) { car.externalSteer = 0f; car.externalThrottle = 0f; car.externalBrake = 0f; return; }
 
         ReadAxes();
         ReadButtons();
