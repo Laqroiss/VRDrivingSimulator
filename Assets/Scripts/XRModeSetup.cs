@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.XR;
-using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Disables VR head tracking when no headset is connected.
@@ -12,11 +11,6 @@ public class XRModeSetup : MonoBehaviour
     void Awake()
     {
         bool headsetConnected = XRSettings.isDeviceActive;
-
-        // VR renders two high-resolution eye textures, so MSAA costs far more than on a flat screen.
-        // Use a lighter 2x in VR (keeps the thin track lines clean without tanking the GPU) and the
-        // full 4x on desktop, where there is plenty of headroom.
-        ApplyMsaaForDisplay(headsetConnected);
 
         if (!headsetConnected)
         {
@@ -53,14 +47,5 @@ public class XRModeSetup : MonoBehaviour
         {
             GameLog.Info("[XRModeSetup] VR headset active.");
         }
-    }
-
-    // Sets MSAA on the active URP asset: 2x in VR (cheap, still smooths edges), 4x on desktop.
-    static void ApplyMsaaForDisplay(bool vr)
-    {
-        var urp = QualitySettings.renderPipeline as UniversalRenderPipelineAsset
-               ?? UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline as UniversalRenderPipelineAsset;
-        if (urp != null)
-            urp.msaaSampleCount = vr ? 2 : 4;
     }
 }
