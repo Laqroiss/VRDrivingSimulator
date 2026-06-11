@@ -38,6 +38,18 @@ export async function PUT(request, { params }) {
   return NextResponse.json(user)
 }
 
+// Toggle a student's admin rights (grants the in-game admin tools, e.g. the exercise-skip panel).
+export async function PATCH(request, { params }) {
+  if (!isAdmin(request))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await connectDB()
+  const { isAdmin: makeAdmin } = await request.json()
+  const user = await User.findByIdAndUpdate(
+    params.id, { isAdmin: !!makeAdmin }, { new: true, select: '-password' })
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json(user)
+}
+
 export async function DELETE(request, { params }) {
   if (!isAdmin(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

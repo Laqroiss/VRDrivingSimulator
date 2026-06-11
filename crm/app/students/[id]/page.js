@@ -4,6 +4,7 @@ import User from '@/models/User'
 import Attempt from '@/models/Attempt'
 import DeleteButton from '@/components/DeleteButton'
 import EditStudentButton from '@/components/EditStudentButton'
+import AdminToggleButton from '@/components/AdminToggleButton'
 import Counter from '@/components/Counter'
 
 export const dynamic = 'force-dynamic'
@@ -49,8 +50,9 @@ export default async function StudentPage({ params }) {
               <span> {user.phone}</span>
               <span> Registered {new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
             </div>
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <EditStudentButton student={{ _id: user._id.toString(), fullName: user.fullName, phone: user.phone }} />
+              <AdminToggleButton id={user._id.toString()} isAdmin={!!user.isAdmin} />
             </div>
           </div>
         </div>
