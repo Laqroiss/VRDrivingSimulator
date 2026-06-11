@@ -40,7 +40,8 @@ public class RedLightDetector : MonoBehaviour
     private bool  _penalty20Given    = false;
     private bool  _penalty30Given    = false;
 
-    private float _timeInIntersection = 0f;
+    private float _timeInIntersection = 0f; // time on a permissive signal (overtime checks)
+    private float _timeInZone         = 0f; // total time physically in the zone (signal check)
 
     private CarIndicators _indicators;
     private bool _blinkerUsed = false;
@@ -54,24 +55,27 @@ public class RedLightDetector : MonoBehaviour
     {
         if (!_carInZone) return;
 
+        // Turn-signal check is independent of the green-light timer: track time in the zone and
+        // whether the required signal was ever on, from the moment the car enters - so crossing
+        // without waiting for green (light in any state) is still evaluated for the signal.
+        _timeInZone += Time.deltaTime;
+        if (IsBlinkerOn()) _blinkerUsed = true;
+
         bool isGreen = IsGreenLight();
 
-        // Car waits in the zone - wait for green to start the timer
+        // Car waits in the zone - wait for green to start the crossing timer
         if (!_timerRunning && isGreen && !_penalizedRedLight)
         {
             _timerRunning         = true;
             _timeInIntersection   = 0f;
             _penalty20Given       = false;
             _penalty30Given       = false;
-            _blinkerUsed          = false;
             GameLog.Info("RedLightDetector: green signal - timer started");
         }
 
         if (!_timerRunning) return;
 
         _timeInIntersection += Time.deltaTime;
-
-        if (IsBlinkerOn()) _blinkerUsed = true;
 
         if (!_penalty20Given && _timeInIntersection > 20f)
         {
@@ -98,7 +102,9 @@ public class RedLightDetector : MonoBehaviour
         if (other.GetComponentInParent<Car>() == null) return;
         if (ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(3)) return;
 
-        _carInZone = true;
+        _carInZone   = true;
+        _timeInZone  = 0f;
+        _blinkerUsed = false;
 
         if (!_exerciseStarted)
         {
@@ -122,7 +128,6 @@ public class RedLightDetector : MonoBehaviour
         {
             _timerRunning       = true;
             _timeInIntersection = 0f;
-            _blinkerUsed        = false;
         }
     }
 
@@ -136,8 +141,9 @@ public class RedLightDetector : MonoBehaviour
 
         if (!_penalizedRedLight)
         {
-            // Signal check - only if a specific one is set in the inspector (not None)
-            if (requiredBlinker != BlinkerCheck.None && _timeInIntersection > 1f && !_blinkerUsed)
+            // Signal check - only if a specific one is set in the inspector (not None).
+            // Uses time in the zone (not the green timer), so it fires regardless of light state.
+            if (requiredBlinker != BlinkerCheck.None && _timeInZone > 1f && !_blinkerUsed)
                 ExamManager.Instance?.AddPenalty(
                     $"Didn't signal ({BlinkerName()}) while turning (Ex.3)",
                     ExamManager.P3_NO_BLINKER, 3);
