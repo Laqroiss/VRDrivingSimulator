@@ -30,6 +30,7 @@ public class AuthManager : MonoBehaviour
     public const string KEY_ID         = "AuthUserId";
     public const string KEY_PHONE      = "AuthPhone";
     public const string KEY_FULL_NAME  = "AuthFullName";
+    public const string KEY_IS_ADMIN   = "AuthIsAdmin";
 
     private HttpListener    _listener;
     private bool            _waiting = false;
@@ -117,6 +118,7 @@ public class AuthManager : MonoBehaviour
         PlayerPrefs.SetString(KEY_PHONE,     phone);
         PlayerPrefs.SetString(KEY_FULL_NAME, fullName);
         PlayerPrefs.SetString("StudentName", fullName);
+        PlayerPrefs.SetInt(KEY_IS_ADMIN, 0); // browser sign-in doesn't carry the admin flag
         PlayerPrefs.Save();
 
         SetStatus($"Welcome, {FirstName(fullName)}!", false);
@@ -137,7 +139,7 @@ public class AuthManager : MonoBehaviour
 
     void HideAuth() { if (authPanel != null) authPanel.SetActive(false); }
 
-    [System.Serializable] class LoginResp { public string id; public string phone; public string fullName; public string error; }
+    [System.Serializable] class LoginResp { public string id; public string phone; public string fullName; public bool isAdmin; public string error; }
 
     /// <summary>In-game sign-in (no browser): POST to CRM /api/auth/login.</summary>
     public void LoginInline(string phone, string password, System.Action onSuccess, System.Action<string> onError)
@@ -168,9 +170,10 @@ public class AuthManager : MonoBehaviour
             PlayerPrefs.SetString(KEY_ID,        resp.id);
             PlayerPrefs.SetString(KEY_PHONE,     resp.phone);
             PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
+            PlayerPrefs.SetInt(KEY_IS_ADMIN,     resp.isAdmin ? 1 : 0);
             PlayerPrefs.Save();
             if (authPanel != null) authPanel.SetActive(false);
-            GameLog.Info($"[AuthManager] Signed in: {resp.fullName}");
+            GameLog.Info($"[AuthManager] Signed in: {resp.fullName}{(resp.isAdmin ? " (admin)" : "")}");
             onSuccess?.Invoke();
         }
         else
@@ -211,6 +214,7 @@ public class AuthManager : MonoBehaviour
             PlayerPrefs.SetString(KEY_ID,        resp.id);
             PlayerPrefs.SetString(KEY_PHONE,     resp.phone);
             PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
+            PlayerPrefs.SetInt(KEY_IS_ADMIN, 0); // new accounts are never admin
             PlayerPrefs.Save();
             if (authPanel != null) authPanel.SetActive(false);
             GameLog.Info($"[AuthManager] Registered: {resp.fullName}");
@@ -233,6 +237,7 @@ public class AuthManager : MonoBehaviour
         PlayerPrefs.DeleteKey(KEY_ID);
         PlayerPrefs.DeleteKey(KEY_PHONE);
         PlayerPrefs.DeleteKey(KEY_FULL_NAME);
+        PlayerPrefs.DeleteKey(KEY_IS_ADMIN);
         PlayerPrefs.Save();
         if (authPanel != null) authPanel.SetActive(true);
         GameLog.Info("[AuthManager] Logged out");
@@ -255,4 +260,5 @@ public class AuthManager : MonoBehaviour
     public static string CurrentPhone    => PlayerPrefs.GetString(KEY_PHONE,     "");
     public static string CurrentFullName => PlayerPrefs.GetString(KEY_FULL_NAME, "");
     public static bool   IsLoggedIn      => PlayerPrefs.GetInt(KEY_LOGGED_IN, 0) == 1;
+    public static bool   IsAdmin         => PlayerPrefs.GetInt(KEY_IS_ADMIN, 0) == 1;
 }

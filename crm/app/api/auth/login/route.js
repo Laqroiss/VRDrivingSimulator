@@ -18,7 +18,7 @@ export async function POST(request) {
     if (!ok)
       return NextResponse.json({ error: 'Invalid phone or password' }, { status: 401 })
 
-    return NextResponse.json({ id: user._id.toString(), phone: user.phone, fullName: user.fullName })
+    return NextResponse.json({ id: user._id.toString(), phone: user.phone, fullName: user.fullName, isAdmin: !!user.isAdmin })
   } catch (err) {
     console.error('[login]', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
