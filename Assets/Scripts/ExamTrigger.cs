@@ -86,17 +86,20 @@ public class ExamTrigger : MonoBehaviour
 
         _triggered = true;
 
-        // Check the left turn signal
-        if (_indicators == null || !_indicators.LeftIndicatorOn)
+        // Start the exam FIRST: StartExam() clears the penalty list and resets the total, so any
+        // start-line penalty (seatbelt, left signal) MUST be added after it - otherwise it is wiped
+        // out the instant it's recorded, and no start violation is ever counted.
+        ExamManager.Instance.StartExam();
+
+        // Notify Exercise1 of the crossing - it owns the seatbelt AND left-signal checks.
+        // Only fall back to checking the signal here if no Exercise1 is wired, otherwise the
+        // left-signal penalty would be added twice (here and in OnCrossStartLine).
+        if (exercise1 != null)
+            exercise1.OnCrossStartLine();
+        else if (_indicators == null || !_indicators.LeftIndicatorOn)
             ExamManager.Instance.AddPenalty(
                 "Crossed the \"Start\" line with the left turn signal off",
                 ExamManager.P1_NO_LEFT_BLINKER, 1);
-
-        // Notify Exercise1 of the crossing (seatbelt check, etc.)
-        exercise1?.OnCrossStartLine();
-
-        // Start the exam
-        ExamManager.Instance.StartExam();
 
         GameLog.Info("ExamTrigger: Start line crossed");
     }
