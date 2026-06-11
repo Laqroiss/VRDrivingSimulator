@@ -49536,7 +49536,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a64e64835ed9d14f85e4b68a7298656, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExamResultSender
-  apiUrl: http://localhost:3000/api/attempts
   studentName: "\u0417\u0443\u0431\u0435\u043D\u043A\u043E \u041C\u0438\u0445\u0430\u0438\u043B
     \u041F\u0435\u0442\u0440\u043E\u0432\u0438\u0447"
   trackFPS: 5
@@ -49554,7 +49553,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReplayCRMSync
   replaySystem: {fileID: 1692681777}
-  crmUrl: http://localhost:3000
   replayPort: 7779
   recordFPS: 15
 --- !u!114 &315935226
@@ -49569,7 +49567,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ef4998706e1f734bacd854063c24e64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExamResume
-  crmUrl: http://localhost:3000
   fallbackRideHeight: 0.4
 --- !u!21 &318207467
 Material:
@@ -92785,7 +92782,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3557694955480225060, guid: 9e87d1033ccd7574381cb7bae286b823, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -137245,7 +137242,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41c88fbc0d993dd40922340658be18e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProfilePanel
-  crmUrl: http://localhost:3000
 --- !u!1 &887821888
 GameObject:
   m_ObjectHideFlags: 0
@@ -206776,9 +206772,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fe4d05e18b09be49a0a8b211cf927b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AuthManager
-  crmUrl: http://localhost:3000/game-login
   callbackPort: 7777
-  apiBaseUrl: http://localhost:3000
   authPanel: {fileID: 0}
   openBrowserButton: {fileID: 0}
   statusText: {fileID: 0}
