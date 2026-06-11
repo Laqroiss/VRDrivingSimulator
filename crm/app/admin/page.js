@@ -110,7 +110,7 @@ export default function AdminPage() {
             {filtered.length === 0 && (
               <tr><td colSpan={7}>
                 <div className="empty-state">
-                  <div className="icon">ð“</div>
+                  <div className="icon"></div>
                   <p>No students found</p>
                 </div>
               </td></tr>

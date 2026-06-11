@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
             <Logo />
             <NavLinks />
             <div className="nav-spacer" />
-            <a href="/cabinet" className="nav-cabinet">ð‘ Student Portal</a>
+            <a href="/cabinet" className="nav-cabinet"> Student Portal</a>
           </div>
         </header>
         <main className="container" style={{ paddingTop: 32, paddingBottom: 56 }}>

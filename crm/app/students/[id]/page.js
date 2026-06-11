@@ -23,7 +23,7 @@ function initials(name) {
 export default async function StudentPage({ params }) {
   await connectDB()
   const user = await User.findById(params.id, '-password').lean()
-  if (!user) return <div className="empty-state"><div className="icon">â</div><p>Student not found</p></div>
+  if (!user) return <div className="empty-state"><div className="icon"></div><p>Student not found</p></div>
 
   const attempts = await Attempt.find({ studentId: params.id }, '-track').sort({ timestamp: -1 }).lean()
   const passed   = attempts.filter(a => a.passed).length
@@ -46,8 +46,8 @@ export default async function StudentPage({ params }) {
           <div className="student-info">
             <div className="student-name">{user.fullName}</div>
             <div className="student-meta">
-              <span>ðž {user.phone}</span>
-              <span>ð… Registered {new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
+              <span> {user.phone}</span>
+              <span> Registered {new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
             </div>
             <div style={{ marginTop: 10 }}>
               <EditStudentButton student={{ _id: user._id.toString(), fullName: user.fullName, phone: user.phone }} />
@@ -87,7 +87,7 @@ export default async function StudentPage({ params }) {
             {attempts.length === 0 && (
               <tr><td colSpan={6}>
                 <div className="empty-state">
-                  <div className="icon">ð¦</div>
+                  <div className="icon"></div>
                   <p>No exams yet</p>
                 </div>
               </td></tr>

@@ -103,7 +103,7 @@ export default function CabinetPage() {
           <div className="student-info">
             <div className="student-name">{user?.fullName}</div>
             <div className="student-meta">
-              <span>ðž {user?.phone}</span>
+              <span> {user?.phone}</span>
             </div>
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function CabinetPage() {
             {attempts.length === 0 && (
               <tr><td colSpan={6}>
                 <div className="empty-state">
-                  <div className="icon">ð—</div>
+                  <div className="icon"></div>
                   <p>You haven't taken an exam in the simulator yet</p>
                 </div>
               </td></tr>

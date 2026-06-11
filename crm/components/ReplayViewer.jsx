@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 const W = 640, H = 640
 const CAR_LEN = 20, CAR_WID = 12
 
-// вв   вввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+//    
 //    Unity world-  .
 //    Unity:     -  -  .
 const TRACK_BOUNDS = {
@@ -12,7 +12,7 @@ const TRACK_BOUNDS = {
   minZ: -125, maxZ: 125,
 }
 const TRACK_IMAGE = '/track.png'   //   crm/public/
-// ввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввввв
+// 
 
 function worldToCanvas(x, z, bounds) {
   const px = (x - bounds.minX) / (bounds.maxX - bounds.minX) * W
@@ -314,7 +314,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
           }}>
             {lightPositions.map(lp => {
               const { px, py } = worldToCanvas(lp.x, lp.z, TRACK_BOUNDS)
-              return <div key={lp.id}>р¦{lp.id}: world({lp.x.toFixed(0)},{lp.z.toFixed(0)}) в†’ canvas({px.toFixed(0)},{py.toFixed(0)})</div>
+              return <div key={lp.id}>{lp.id}: world({lp.x.toFixed(0)},{lp.z.toFixed(0)}) в†’ canvas({px.toFixed(0)},{py.toFixed(0)})</div>
             })}
           </div>
         )}
@@ -342,7 +342,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
                 boxShadow: `0 0 6px ${color}`,
                 zIndex: 10,
               }}>
-              р¦
+              
             </button>
           )
         })}
@@ -398,7 +398,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
       <div style={{ marginTop: 12, position: 'relative' }}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={toggle} style={{ width: 90, flexShrink: 0 }}>
-            {playing ? 'вЏё Pause' : 'в Play'}
+            {playing ? 'вЏё Pause' : ' Play'}
           </button>
           <input type="range" min={0} max={duration} step={0.1}
             value={track[idx]?.t ?? 0} onChange={onSlider}
@@ -415,7 +415,7 @@ export default function ReplayViewer({ track, penalties, lightEvents = [], light
           <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
             {penalties.some(p => p.t > 0)
               ? 'Click an error to jump the replay:'
-              : 'в No timing data for errors вЂ” retake the exam to enable seeking'}
+              : ' No timing data for errors вЂ” retake the exam to enable seeking'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {penalties.map((p, i) => (

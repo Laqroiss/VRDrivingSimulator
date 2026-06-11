@@ -77,7 +77,7 @@ export default async function AttemptsPage({ searchParams }) {
             {attempts.length === 0 && (
               <tr><td colSpan={7}>
                 <div className="empty-state">
-                  <div className="icon">ð‹</div>
+                  <div className="icon"></div>
                   <p>No data yet. Take an exam in the simulator.</p>
                 </div>
               </td></tr>

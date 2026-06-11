@@ -53,7 +53,7 @@ export default function GameLoginPage({ searchParams }) {
 
         {/* Header */}
         <div style={s.header}>
-          <div style={s.logo}>â</div>
+          <div style={s.logo}></div>
           <div>
             <div style={s.kicker}>DRIVING SCHOOL SYSTEM</div>
             <div style={s.appTitle}>DRIVING SIMULATOR</div>
@@ -64,7 +64,7 @@ export default function GameLoginPage({ searchParams }) {
 
         {done ? (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>â</div>
+            <div style={{ fontSize: 40, marginBottom: 16 }}></div>
             <div style={{ color: '#26d989', fontSize: 18 }}>{status}</div>
           </div>
         ) : (
@@ -111,7 +111,7 @@ export default function GameLoginPage({ searchParams }) {
         )}
 
         <div style={s.footer}>
-          <span>â STATE LICENSE #2024-AV</span>
+          <span> STATE LICENSE #2024-AV</span>
           <span>v 3.4.1 / VR</span>
         </div>
       </div>

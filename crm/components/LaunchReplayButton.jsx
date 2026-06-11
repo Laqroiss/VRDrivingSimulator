@@ -17,7 +17,7 @@ export default function LaunchReplayButton({ attemptId, hasReplay }) {
 
   if (!hasReplay) return (
     <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
-      <div>ð¬</div>
+      <div></div>
       <div>No replay</div>
       <div>recorded</div>
     </div>
@@ -42,7 +42,7 @@ export default function LaunchReplayButton({ attemptId, hasReplay }) {
           boxShadow: '0 0 20px rgba(59,130,246,0.3)',
         }}
       >
-        â Play in game
+         Play in game
       </button>
       {status && (
         <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6 }}>{status}</div>

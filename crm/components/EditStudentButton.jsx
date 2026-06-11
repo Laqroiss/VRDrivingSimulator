@@ -30,7 +30,7 @@ export default function EditStudentButton({ student }) {
 
   return (
     <>
-      <button className="ghost" onClick={() => setOpen(true)}>вп Edit</button>
+      <button className="ghost" onClick={() => setOpen(true)}> Edit</button>
 
       {open && (
         <div style={{
@@ -46,7 +46,7 @@ export default function EditStudentButton({ student }) {
             {/*  */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div style={{ fontWeight: 800, fontSize: 17 }}>Edit student</div>
-              <button className="ghost" onClick={() => setOpen(false)} style={{ padding: '4px 10px' }}>в</button>
+              <button className="ghost" onClick={() => setOpen(false)} style={{ padding: '4px 10px' }}></button>
             </div>
 
             <div className="road-stripe" style={{ marginBottom: 20 }} />
@@ -71,7 +71,7 @@ export default function EditStudentButton({ student }) {
 
             {saved && (
               <div style={{ color: 'var(--green)', background: 'rgba(34,197,94,.1)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 7, padding: '9px 12px', marginBottom: 12, fontSize: 13 }}>
-                в Saved successfully
+                 Saved successfully
               </div>
             )}
 

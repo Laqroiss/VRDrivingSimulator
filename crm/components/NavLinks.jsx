@@ -2,8 +2,8 @@
 import { usePathname } from 'next/navigation'
 
 const LINKS = [
-  { href: '/admin',    label: 'Students', icon: 'ð¤' },
-  { href: '/attempts', label: 'Attempts', icon: 'ð‹' },
+  { href: '/admin',    label: 'Students', icon: '' },
+  { href: '/attempts', label: 'Attempts', icon: '' },
 ]
 
 export default function NavLinks() {
