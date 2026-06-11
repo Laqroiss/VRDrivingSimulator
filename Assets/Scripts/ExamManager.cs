@@ -364,11 +364,19 @@ public class ExamManager : MonoBehaviour
         if (State == ExamState.Finished) return;
         State = ExamState.Finished;
 
-        // Penalty for skipped exercises 2-9
+        // Resolve mandatory exercises 3-9 that never reached a final status:
+        //   Pending - never engaged   -> "skipped" penalty
+        //   Active  - engaged but the exam ended before it resolved -> recorded as failed,
+        //             so it can't stay in limbo (neither passed nor failed) in the result/DB.
         int[] mandatory = { 3, 4, 5, 6, 7, 8, 9 }; // 2 removed if there are no unregulated intersections
         foreach (int n in mandatory)
-            if (ExerciseStatuses[n - 1] == ExerciseStatus.Pending)
+        {
+            var status = ExerciseStatuses[n - 1];
+            if (status == ExerciseStatus.Pending)
                 AddPenalty($"Skipped: {GetExerciseName(n)}", PG_SKIPPED, 0);
+            else if (status == ExerciseStatus.Active)
+                MarkExerciseFailed(n);
+        }
 
         OnExamFinish.Invoke();
         bool passed = TotalPenaltyPoints < 100;

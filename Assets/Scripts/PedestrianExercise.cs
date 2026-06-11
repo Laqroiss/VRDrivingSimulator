@@ -21,6 +21,7 @@ public class PedestrianExercise : MonoBehaviour
 
     private float _stopTimer = 0f;
     private float _holdTimer = 0f;
+    private float _activeTimer = 0f;  // time since activation - drives the no-resolution watchdog
 
     private Rigidbody   _carRb;
     private BoxCollider _zone;
@@ -47,6 +48,22 @@ public class PedestrianExercise : MonoBehaviour
     {
         if (_phase == Phase.WaitingActivation || _phase == Phase.Done) return;
         if (_carRb == null || _zone == null) return;
+
+        // Watchdog: once active, the exercise must always reach a verdict. If it never resolves
+        // within noMovementTimeout (driver never completes the stop-and-go, creeps without leaving
+        // the zone, or never reaches the crossing), record the "no movement" penalty and close it -
+        // otherwise the exercise hangs in Active forever (neither passed nor failed).
+        _activeTimer += Time.deltaTime;
+        if (_activeTimer >= noMovementTimeout)
+        {
+            _phase = Phase.Done;
+            ExamManager.Instance?.AddPenalty(
+                "Did not complete the pedestrian-crossing stop in time (Ex.4)",
+                ExamManager.P4_NO_MOVEMENT, 4);
+            ExamManager.Instance?.CompleteExercise(4);
+            GameLog.Warn("PedestrianExercise: timed out without resolution - penalized and closed");
+            return;
+        }
 
         bool inZone = IsCarInZone();
 
