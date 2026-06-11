@@ -22,11 +22,11 @@ public class XRModeSetup : MonoBehaviour
             var simulator = GameObject.Find("XR Device Simulator");
             if (simulator != null) simulator.SetActive(false);
 
-            Debug.Log("[XRModeSetup] No headset connected - TrackedPoseDriver and XR Device Simulator disabled.");
+            GameLog.Info("[XRModeSetup] No headset connected - TrackedPoseDriver and XR Device Simulator disabled.");
         }
         else
         {
-            Debug.Log("[XRModeSetup] VR headset active.");
+            GameLog.Info("[XRModeSetup] VR headset active.");
         }
     }
 }

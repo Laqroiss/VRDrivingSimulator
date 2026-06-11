@@ -19,9 +19,8 @@ using UnityEngine.Networking;
 /// </summary>
 public class ExamResume : MonoBehaviour
 {
-    [Header("CRM")]
-    [Tooltip("CRM API base, e.g. http://localhost:3000")]
-    public string crmUrl = "http://localhost:3000";
+    // CRM base address, from the central config (StreamingAssets/crm.json).
+    string crmUrl => CrmConfig.BaseUrl;
 
     [Header("Teleport")]
     [Tooltip("Fallback body ride height above ground for OLD records without a saved height (m)")]
@@ -73,14 +72,14 @@ public class ExamResume : MonoBehaviour
         if (req.result == UnityWebRequest.Result.Success)
         {
             try { _data = JsonUtility.FromJson<ResumeResponse>(req.downloadHandler.text); }
-            catch (Exception e) { Debug.LogWarning($"[ExamResume] Response parse: {e.Message}"); }
+            catch (Exception e) { GameLog.Warn($"[ExamResume] Response parse: {e.Message}"); }
 
             ok = _data != null && _data.found && _data.track != null && _data.track.Length > 0;
             if (!ok) _data = null;
         }
         else
         {
-            Debug.LogWarning($"[ExamResume] CRM unreachable while loading attempt: {req.error}");
+            GameLog.Warn($"[ExamResume] CRM unreachable while loading attempt: {req.error}");
         }
 
         cb?.Invoke(ok);
@@ -118,7 +117,7 @@ public class ExamResume : MonoBehaviour
         // car enters their zones after the teleport.
         Physics.SyncTransforms();
 
-        Debug.Log($"[ExamResume] Car placed at the save point ({last.x:F1}, {last.z:F1}), heading {last.rot:F0}°");
+        GameLog.Info($"[ExamResume] Car placed at the save point ({last.x:F1}, {last.z:F1}), heading {last.rot:F0}°");
         return true;
     }
 
@@ -149,7 +148,7 @@ public class ExamResume : MonoBehaviour
     public void RestoreExamState()
     {
         if (!HasResumable) return;
-        if (ExamManager.Instance == null) { Debug.LogWarning("[ExamResume] No ExamManager"); return; }
+        if (ExamManager.Instance == null) { GameLog.Warn("[ExamResume] No ExamManager"); return; }
 
         // Penalties -> ExamManager.PenaltyRecord
         var penalties = new List<ExamManager.PenaltyRecord>();
@@ -195,7 +194,7 @@ public class ExamResume : MonoBehaviour
                 if (ped != null && gateSet.Contains(ped.gameObject.name))
                     ped.Activate();
         }
-        if (opened > 0) Debug.Log($"[ExamResume] Traffic-light gates restored: {opened}");
+        if (opened > 0) GameLog.Info($"[ExamResume] Traffic-light gates restored: {opened}");
 
         // Keep appending to the same DB record (track + penalties stay intact)
         var sender = ExamManager.Instance.GetComponent<ExamResultSender>();

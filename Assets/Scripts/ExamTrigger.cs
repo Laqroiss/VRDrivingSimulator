@@ -98,7 +98,7 @@ public class ExamTrigger : MonoBehaviour
         // Start the exam
         ExamManager.Instance.StartExam();
 
-        Debug.Log("ExamTrigger: Start line crossed");
+        GameLog.Info("ExamTrigger: Start line crossed");
     }
 
     void HandleFinish()
@@ -119,7 +119,7 @@ public class ExamTrigger : MonoBehaviour
         ExamManager.Instance.CompleteExercise(10);
         ExamManager.Instance.FinishExam();
 
-        Debug.Log("ExamTrigger: Finish!");
+        GameLog.Info("ExamTrigger: Finish!");
     }
 
     void OnDrawGizmos()

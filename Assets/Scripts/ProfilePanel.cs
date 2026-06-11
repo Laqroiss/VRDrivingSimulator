@@ -13,8 +13,8 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(UIDocument))]
 public class ProfilePanel : MonoBehaviour
 {
-    [Header("CRM")]
-    public string crmUrl = "http://localhost:3000";
+    // CRM base address, from the central config (StreamingAssets/crm.json).
+    string crmUrl => CrmConfig.BaseUrl;
 
     /// <summary>attemptId -> launch a replay. MenuManager wires this to ReplayCRMSync.</summary>
     public event Action<string> OnReplay;
@@ -121,7 +121,7 @@ public class ProfilePanel : MonoBehaviour
 
         AttemptList data = null;
         try { data = JsonUtility.FromJson<AttemptList>("{\"items\":" + req.downloadHandler.text + "}"); }
-        catch (Exception e) { Debug.LogWarning($"[ProfilePanel] Response parse: {e.Message}"); }
+        catch (Exception e) { GameLog.Warn($"[ProfilePanel] Response parse: {e.Message}"); }
 
         var items = data?.items;
         if (items == null || items.Length == 0)

@@ -216,7 +216,7 @@ public class ReplaySystem : MonoBehaviour
         _current = new ReplaySession { name = sessionName ?? $"Attempt {_sessionNum}  ({timestamp})" };
         _recording   = true;
         _recordTimer = 0f;
-        Debug.Log($"[Replay] Recording started: {_current.name}");
+        GameLog.Info($"[Replay] Recording started: {_current.name}");
         UpdateRecordButton();
     }
 
@@ -229,7 +229,7 @@ public class ReplaySystem : MonoBehaviour
                 _sessions.RemoveAt(0);
 
             _sessions.Add(_current);
-            Debug.Log($"[Replay] Recorded {_current.frames.Count} frames ({_current.duration:F1} sec)");
+            GameLog.Info($"[Replay] Recorded {_current.frames.Count} frames ({_current.duration:F1} sec)");
             RefreshReplayList();
         }
         _current = null;
@@ -373,7 +373,7 @@ public class ReplaySystem : MonoBehaviour
             }
             else
             {
-                Debug.Log($"[Replay] Replay available: {s.name} ({s.duration:F1} sec)");
+                GameLog.Info($"[Replay] Replay available: {s.name} ({s.duration:F1} sec)");
             }
         }
     }
@@ -388,7 +388,7 @@ public class ReplaySystem : MonoBehaviour
             replaySlider.maxValue = session.frames.Count - 1;
             replaySlider.value   = 0;
         }
-        Debug.Log($"[Replay] Selected: {session.name}");
+        GameLog.Info($"[Replay] Selected: {session.name}");
     }
 
     // ── Playback ────────────────────────────────────────────────────────────
@@ -553,7 +553,7 @@ public class ReplaySystem : MonoBehaviour
                 _freeYaw   = replayCamera.transform.eulerAngles.y;
                 _freePitch = replayCamera.transform.eulerAngles.x;
             }
-            Debug.Log($"[Replay Cam] Mode: {_camMode}  pos={replayCamera.transform.position}");
+            GameLog.Info($"[Replay Cam] Mode: {_camMode}  pos={replayCamera.transform.position}");
         }
 
         bool  rmb    = LegacyInput.GetKey(KeyCode.Mouse1);
@@ -723,7 +723,7 @@ public class ReplaySystem : MonoBehaviour
                         gw = _ghost.transform.GetChild(idx);
                 }
                 if (gw == null)
-                    Debug.LogWarning($"[Replay] Cloned wheel not found in the ghost (idx) - skipping");
+                    GameLog.Warn($"[Replay] Cloned wheel not found in the ghost (idx) - skipping");
                 ghostWheelList.Add(gw);
             }
         }

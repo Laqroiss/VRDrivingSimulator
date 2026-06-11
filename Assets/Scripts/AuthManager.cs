@@ -18,10 +18,8 @@ using System.Text;
 public class AuthManager : MonoBehaviour
 {
     [Header("CRM")]
-    public string crmUrl       = "http://localhost:3000/game-login";
+    [Tooltip("Local port the browser sign-in redirects back to. Must match the CRM redirect.")]
     public int    callbackPort = 7777;
-    [Tooltip("CRM API base for in-game sign-in (no browser)")]
-    public string apiBaseUrl   = "http://localhost:3000";
 
     [Header("UI")]
     public GameObject authPanel;
@@ -70,7 +68,7 @@ public class AuthManager : MonoBehaviour
         _listener.Prefixes.Add($"http://localhost:{callbackPort}/");
         _listener.Start();
 
-        Application.OpenURL($"{crmUrl}?port={callbackPort}");
+        Application.OpenURL($"{CrmConfig.BaseUrl}/game-login?port={callbackPort}");
 
         string userId = null, fullName = null, phone = null, error = null;
         bool done = false;
@@ -153,7 +151,7 @@ public class AuthManager : MonoBehaviour
         { onError?.Invoke("Enter phone and password"); yield break; }
 
         string json = "{\"phone\":\"" + EscapeJson(phone.Trim()) + "\",\"password\":\"" + EscapeJson(password) + "\"}";
-        using var req = new UnityWebRequest($"{apiBaseUrl}/api/auth/login", "POST")
+        using var req = new UnityWebRequest($"{CrmConfig.BaseUrl}/api/auth/login", "POST")
         {
             uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)),
             downloadHandler = new DownloadHandlerBuffer(),
@@ -172,7 +170,7 @@ public class AuthManager : MonoBehaviour
             PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
             PlayerPrefs.Save();
             if (authPanel != null) authPanel.SetActive(false);
-            Debug.Log($"[AuthManager] Signed in: {resp.fullName}");
+            GameLog.Info($"[AuthManager] Signed in: {resp.fullName}");
             onSuccess?.Invoke();
         }
         else
@@ -196,7 +194,7 @@ public class AuthManager : MonoBehaviour
 
         string json = "{\"fullName\":\"" + EscapeJson(fullName.Trim()) + "\",\"phone\":\"" + EscapeJson(phone.Trim())
                     + "\",\"password\":\"" + EscapeJson(password) + "\"}";
-        using var req = new UnityWebRequest($"{apiBaseUrl}/api/auth/register", "POST")
+        using var req = new UnityWebRequest($"{CrmConfig.BaseUrl}/api/auth/register", "POST")
         {
             uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json)),
             downloadHandler = new DownloadHandlerBuffer(),
@@ -215,7 +213,7 @@ public class AuthManager : MonoBehaviour
             PlayerPrefs.SetString(KEY_FULL_NAME, resp.fullName);
             PlayerPrefs.Save();
             if (authPanel != null) authPanel.SetActive(false);
-            Debug.Log($"[AuthManager] Registered: {resp.fullName}");
+            GameLog.Info($"[AuthManager] Registered: {resp.fullName}");
             onSuccess?.Invoke();
         }
         else
@@ -237,7 +235,7 @@ public class AuthManager : MonoBehaviour
         PlayerPrefs.DeleteKey(KEY_FULL_NAME);
         PlayerPrefs.Save();
         if (authPanel != null) authPanel.SetActive(true);
-        Debug.Log("[AuthManager] Logged out");
+        GameLog.Info("[AuthManager] Logged out");
     }
 
     void SetStatus(string msg, bool isError)

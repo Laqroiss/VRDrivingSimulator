@@ -64,7 +64,7 @@ public class RedLightDetector : MonoBehaviour
             _penalty20Given       = false;
             _penalty30Given       = false;
             _blinkerUsed          = false;
-            Debug.Log("RedLightDetector: green signal - timer started");
+            GameLog.Info("RedLightDetector: green signal - timer started");
         }
 
         if (!_timerRunning) return;

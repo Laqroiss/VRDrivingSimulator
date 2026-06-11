@@ -55,7 +55,7 @@ public class ControlLinePlacer : MonoBehaviour
 
         if (points.Count < 2)
         {
-            Debug.LogWarning("ControlLinePlacer: at least 2 points are required");
+            GameLog.Warn("ControlLinePlacer: at least 2 points are required");
             return;
         }
 
@@ -101,7 +101,7 @@ public class ControlLinePlacer : MonoBehaviour
             }
         }
 
-        Debug.Log($"ControlLinePlacer: created {generated.Count} segments (Ex.{exerciseNum})");
+        GameLog.Info($"ControlLinePlacer: created {generated.Count} segments (Ex.{exerciseNum})");
     }
 
     public void Clear()

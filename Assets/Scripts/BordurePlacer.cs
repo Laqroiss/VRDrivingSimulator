@@ -43,7 +43,7 @@ public class BordurePlacer : MonoBehaviour
 
         found.Sort((a, b) => ExtractNumber(a.name).CompareTo(ExtractNumber(b.name)));
         points = found;
-        Debug.Log($"BordurePlacer: found {points.Count} points");
+        GameLog.Info($"BordurePlacer: found {points.Count} points");
     }
 
     // Add a point at a position
@@ -68,7 +68,7 @@ public class BordurePlacer : MonoBehaviour
 #else
             Destroy(last.gameObject);
 #endif
-        Debug.Log($"BordurePlacer: removed the last point, {points.Count} left");
+        GameLog.Info($"BordurePlacer: removed the last point, {points.Count} left");
     }
 
     int ExtractNumber(string name)
@@ -91,13 +91,13 @@ public class BordurePlacer : MonoBehaviour
                 if (p != null) positions.Add(p.position);
             if (positions.Count < 2)
             {
-                Debug.LogWarning("BordurePlacer: at least 2 points are required");
+                GameLog.Warn("BordurePlacer: at least 2 points are required");
                 return;
             }
         }
         else
         {
-            if (arcCenter == null) { Debug.LogWarning("Set Arc Center"); return; }
+            if (arcCenter == null) { GameLog.Warn("Set Arc Center"); return; }
             for (int i = 0; i <= arcSegments; i++)
             {
                 float t = (float)i / arcSegments;
@@ -109,7 +109,7 @@ public class BordurePlacer : MonoBehaviour
         }
 
         PlaceBorduresAlongPath(positions);
-        Debug.Log($"BordurePlacer: created {generatedBordures.Count} curbs");
+        GameLog.Info($"BordurePlacer: created {generatedBordures.Count} curbs");
     }
 
     void PlaceBorduresAlongPath(List<Vector3> pathPoints)
@@ -193,9 +193,9 @@ public class BordurePlacerEditor : Editor
         {
             _placingMode = !_placingMode;
             if (_placingMode)
-                Debug.Log("BordurePlacer: point mode on. Q = add a point under the cursor, Z = remove the last one.");
+                GameLog.Info("BordurePlacer: point mode on. Q = add a point under the cursor, Z = remove the last one.");
             else
-                Debug.Log("BordurePlacer: point mode off.");
+                GameLog.Info("BordurePlacer: point mode off.");
         }
 
         EditorGUILayout.LabelField($"Points in list: {placer.points.Count}", EditorStyles.miniLabel);

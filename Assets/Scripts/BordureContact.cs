@@ -29,7 +29,7 @@ public class BordureContact : MonoBehaviour
 
         SpeedCameraShake.Instance?.TriggerKerbShake();
         ExamManager.Instance?.AddError($"Curb touch ({gameObject.name})");
-        Debug.Log($"BordureContact: touch {gameObject.name}, force: {impulse:F2}");
+        GameLog.Info($"BordureContact: touch {gameObject.name}, force: {impulse:F2}");
     }
 }
 
@@ -62,7 +62,7 @@ public class BordureManager : MonoBehaviour
         }
 
         if (count > 0)
-            Debug.Log($"BordureManager: added BordureContact to {count} curbs");
+            GameLog.Info($"BordureManager: added BordureContact to {count} curbs");
     }
 
 #if UNITY_EDITOR
@@ -78,7 +78,7 @@ public class BordureManager : MonoBehaviour
             bc.minImpactForce = 0.5f;
             count++;
         }
-        Debug.Log($"Setup: added BordureContact to {count} curbs");
+        GameLog.Info($"Setup: added BordureContact to {count} curbs");
     }
 #endif
 
@@ -99,6 +99,6 @@ public class WheelBordureDetector : MonoBehaviour
         _lastErrorTime = Time.time;
         SpeedCameraShake.Instance?.TriggerKerbShake();
         ExamManager.Instance?.AddError($"Wheel touched a curb ({gameObject.name})");
-        Debug.Log($"WheelBordureDetector: wheel {gameObject.name} touched {collision.gameObject.name}, force: {impulse:F2}");
+        GameLog.Info($"WheelBordureDetector: wheel {gameObject.name} touched {collision.gameObject.name}, force: {impulse:F2}");
     }
 }

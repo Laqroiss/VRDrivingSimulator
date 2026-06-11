@@ -27,7 +27,7 @@ public static class SceneOptimizer
     static void Optimize()
     {
         // Active renderers only; intentionally hidden objects stay hidden.
-        var all = Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        var all = Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude);
 
         foreach (var prefix in Prefixes)
             CombineByPrefix(all, prefix);
@@ -77,6 +77,6 @@ public static class SceneOptimizer
         go.AddComponent<MeshRenderer>().sharedMaterial = shared;
 
         if (_logResult)
-            Debug.Log($"[SceneOptimizer] Merged {combines.Count} '{prefix}' meshes into 1 draw call.");
+            GameLog.Info($"[SceneOptimizer] Merged {combines.Count} '{prefix}' meshes into 1 draw call.");
     }
 }

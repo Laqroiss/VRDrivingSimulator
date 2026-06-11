@@ -204,7 +204,7 @@ public class StatusPanel : MonoBehaviour
         if (_resultsShown) return; // guard against rebuilding
         _resultsShown = true;
 
-        Debug.Log($"[StatusPanel] ShowResults called. Penalty={exam.TotalPenaltyPoints}");
+        GameLog.Info($"[StatusPanel] ShowResults called. Penalty={exam.TotalPenaltyPoints}");
 
         bool passed = exam.TotalPenaltyPoints < 100;
 

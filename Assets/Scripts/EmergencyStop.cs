@@ -61,7 +61,7 @@ public class EmergencyStop : MonoBehaviour
                 ExamManager.Instance.OnExerciseComplete.AddListener(OnExerciseDone);
         }
 
-        Debug.Log($"EmergencyStop: Rigidbody={_carRb != null}, Indicators={_indicators != null}, activated={_activated}");
+        GameLog.Info($"EmergencyStop: Rigidbody={_carRb != null}, Indicators={_indicators != null}, activated={_activated}");
     }
 
     void OnDestroy()
@@ -75,7 +75,7 @@ public class EmergencyStop : MonoBehaviour
         if (!_activated && exercise == activateAfterExercise)
         {
             _activated = true;
-            Debug.Log($"EmergencyStop: activated after Ex.{exercise} finished");
+            GameLog.Info($"EmergencyStop: activated after Ex.{exercise} finished");
         }
     }
 
@@ -90,7 +90,7 @@ public class EmergencyStop : MonoBehaviour
         if (other.GetComponentInParent<Car>() == null) return;
 
         _triggered = true;
-        Debug.Log("EmergencyStop: car entered the zone");
+        GameLog.Info("EmergencyStop: car entered the zone");
         StartCoroutine(EmergencyRoutine());
     }
 
@@ -98,13 +98,13 @@ public class EmergencyStop : MonoBehaviour
     {
         // Random delay before the signal
         float delay = Random.Range(minDelay, maxDelay);
-        Debug.Log($"EmergencyStop: signal in {delay:F1} sec...");
+        GameLog.Info($"EmergencyStop: signal in {delay:F1} sec...");
         yield return new WaitForSeconds(delay);
 
         // ——— Signal ON ———
         ExamManager.Instance?.SetExerciseActive(8);
         SetSignal(true);
-        Debug.Log("EmergencyStop: SIGNAL! Stop and turn on the hazards!");
+        GameLog.Info("EmergencyStop: SIGNAL! Stop and turn on the hazards!");
 
         // Wait for the stop (max 2 sec)
         float stopTimer = 0f;
@@ -115,7 +115,7 @@ public class EmergencyStop : MonoBehaviour
             if (_carRb != null && _carRb.linearVelocity.magnitude <= MinStopSpeed)
             {
                 stopped = true;
-                Debug.Log("EmergencyStop: car stopped ✓");
+                GameLog.Info("EmergencyStop: car stopped ✓");
                 break;
             }
             stopTimer += Time.deltaTime;
@@ -131,7 +131,7 @@ public class EmergencyStop : MonoBehaviour
             if (_indicators != null && _indicators.HazardLightsOn)
             {
                 hazardsOn = true;
-                Debug.Log("EmergencyStop: hazards on ✓");
+                GameLog.Info("EmergencyStop: hazards on ✓");
                 break;
             }
             hazardTimer += Time.deltaTime;
@@ -150,7 +150,7 @@ public class EmergencyStop : MonoBehaviour
 
         // ——— Signal OFF ———
         SetSignal(false);
-        Debug.Log("EmergencyStop: signal cleared - turn off hazards and drive");
+        GameLog.Info("EmergencyStop: signal cleared - turn off hazards and drive");
 
         // Wait for movement to start (max 30 sec)
         float waitTimer = 0f;

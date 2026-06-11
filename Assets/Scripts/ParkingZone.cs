@@ -113,7 +113,7 @@ public class ParkingZone : MonoBehaviour
             _overtimeGiven = false;
 
             ExamManager.Instance?.SetExerciseActive(_exNum);
-            Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - entered, timer started");
+            GameLog.Info($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - entered, timer started");
         }
 
         if (_phase != Phase.Active) return;
@@ -149,7 +149,7 @@ public class ParkingZone : MonoBehaviour
                     _fixationMet = true;
                     _phase       = Phase.Done;
 
-                    Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - fixed ✓  ({_timer:F1}s)");
+                    GameLog.Info($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - fixed ✓  ({_timer:F1}s)");
                     ExamManager.Instance?.CompleteExercise(_exNum);
                 }
             }
@@ -164,7 +164,7 @@ public class ParkingZone : MonoBehaviour
         {
             _phase     = Phase.Done;
             _holdTimer = 0f;
-            Debug.Log($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - left the zone without fixation -> FAILED");
+            GameLog.Info($"ParkingZone: {ExamManager.GetExerciseName(_exNum)} - left the zone without fixation -> FAILED");
             ExamManager.Instance?.MarkExerciseFailed(_exNum);
         }
     }

@@ -21,7 +21,7 @@ public class GreenLightActivator : MonoBehaviour
         if (!col.isTrigger)
         {
             col.isTrigger = true;
-            Debug.LogWarning($"GreenLightActivator [{name}]: Collider auto-set to Is Trigger");
+            GameLog.Warn($"GreenLightActivator [{name}]: Collider auto-set to Is Trigger");
         }
     }
 
@@ -32,7 +32,7 @@ public class GreenLightActivator : MonoBehaviour
         foreach (var t in targets)
             if (t != null) t.Activate();
 
-        Debug.Log($"GreenLightActivator [{name}]: car passed the checkpoint, activated {targets.Length} timer(s)");
+        GameLog.Info($"GreenLightActivator [{name}]: car passed the checkpoint, activated {targets.Length} timer(s)");
     }
 
     void OnDrawGizmos()

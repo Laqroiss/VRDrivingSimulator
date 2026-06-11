@@ -73,7 +73,7 @@ public class HillStartExercise : MonoBehaviour
         car.fullStopHold    = true;     // hard lock - prevents rolling back
 
         ExamManager.Instance?.SetExerciseActive(9);
-        Debug.Log("HillStartExercise: car in the hill zone (full stop hold ON)");
+        GameLog.Info("HillStartExercise: car in the hill zone (full stop hold ON)");
     }
 
     void OnTriggerExit(Collider other)
@@ -121,7 +121,7 @@ public class HillStartExercise : MonoBehaviour
                     _stopPosition = _carRb.position;
                     _holdTimer    = 0f;
                     _noMoveTimer  = 0f;
-                    Debug.Log("HillStartExercise: car stopped");
+                    GameLog.Info("HillStartExercise: car stopped");
                 }
             }
             else
@@ -150,7 +150,7 @@ public class HillStartExercise : MonoBehaviour
                 {
                     _holdComplete = true;
                     _noMoveTimer  = 0f;
-                    Debug.Log("HillStartExercise: 3 seconds held, OK to drive");
+                    GameLog.Info("HillStartExercise: 3 seconds held, OK to drive");
                 }
             }
             else

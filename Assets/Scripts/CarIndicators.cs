@@ -195,7 +195,7 @@ public class CarIndicators : MonoBehaviour
         _relayPlayed = true; // first click - right when turned on
         if (relayAudioSource != null && relayClick != null)
             relayAudioSource.PlayOneShot(relayClick);
-        Debug.Log("CarIndicators: Left turn signal ON");
+        GameLog.Info("CarIndicators: Left turn signal ON");
     }
 
     public void TurnOffLeft()
@@ -204,7 +204,7 @@ public class CarIndicators : MonoBehaviour
         _leftArmed = false;
         SetLights(leftIndicatorLights, false);
         if (leftUIIcon != null) leftUIIcon.color = iconOffColor;
-        Debug.Log("CarIndicators: Left turn signal OFF");
+        GameLog.Info("CarIndicators: Left turn signal OFF");
     }
 
     public void TurnOnRight()
@@ -217,7 +217,7 @@ public class CarIndicators : MonoBehaviour
         _relayPlayed = true;
         if (relayAudioSource != null && relayClick != null)
             relayAudioSource.PlayOneShot(relayClick);
-        Debug.Log("CarIndicators: Right turn signal ON");
+        GameLog.Info("CarIndicators: Right turn signal ON");
     }
 
     public void TurnOffRight()
@@ -226,7 +226,7 @@ public class CarIndicators : MonoBehaviour
         _rightArmed = false;
         SetLights(rightIndicatorLights, false);
         if (rightUIIcon != null) rightUIIcon.color = iconOffColor;
-        Debug.Log("CarIndicators: Right turn signal OFF");
+        GameLog.Info("CarIndicators: Right turn signal OFF");
     }
 
     public void TurnOnHazard()
@@ -241,7 +241,7 @@ public class CarIndicators : MonoBehaviour
         _relayPlayed = true;
         if (relayAudioSource != null && relayClick != null)
             relayAudioSource.PlayOneShot(relayClick);
-        Debug.Log("CarIndicators: Hazards ON");
+        GameLog.Info("CarIndicators: Hazards ON");
     }
 
     public void TurnOffHazard()
@@ -250,7 +250,7 @@ public class CarIndicators : MonoBehaviour
         SetLights(leftIndicatorLights,  false);
         SetLights(rightIndicatorLights, false);
         ResetIconColors();
-        Debug.Log("CarIndicators: Hazards OFF");
+        GameLog.Info("CarIndicators: Hazards OFF");
     }
 
     private void SetLights(GameObject[] lights, bool active)

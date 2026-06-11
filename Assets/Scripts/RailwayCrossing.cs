@@ -94,7 +94,7 @@ public class RailwayCrossing : MonoBehaviour
         if (requireParallelParkingFirst &&
             ExamManager.Instance != null && !ExamManager.Instance.IsExerciseUnlocked(7))
         {
-            Debug.Log("RailwayCrossing: zone ignored - previous exercise not finished yet");
+            GameLog.Info("RailwayCrossing: zone ignored - previous exercise not finished yet");
             return;
         }
 
@@ -102,7 +102,7 @@ public class RailwayCrossing : MonoBehaviour
         if (_carRb == null) _carRb = other.GetComponentInParent<Rigidbody>();
         ExamManager.Instance?.SetExerciseActive(7);
         StartCoroutine(CheckCrossing());
-        Debug.Log("RailwayCrossing: car in the crossing zone");
+        GameLog.Info("RailwayCrossing: car in the crossing zone");
     }
 
     IEnumerator CheckCrossing()

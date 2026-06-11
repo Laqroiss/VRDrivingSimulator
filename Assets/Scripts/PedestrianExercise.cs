@@ -40,7 +40,7 @@ public class PedestrianExercise : MonoBehaviour
         _phase = Phase.WaitingEntry;
         ExamManager.Instance?.SetExerciseActive(4);
         ExamManager.Instance?.MarkGateActivated(gameObject.name);
-        Debug.Log("PedestrianExercise: activated - watch for the pedestrian crossing");
+        GameLog.Info("PedestrianExercise: activated - watch for the pedestrian crossing");
     }
 
     void Update()
@@ -57,7 +57,7 @@ public class PedestrianExercise : MonoBehaviour
             _hasStopped = false;
             _stopTimer  = 0f;
             _holdTimer  = 0f;
-            Debug.Log("PedestrianExercise: car entered the crossing zone");
+            GameLog.Info("PedestrianExercise: car entered the crossing zone");
         }
 
         // ——— Car in the zone ———
@@ -73,7 +73,7 @@ public class PedestrianExercise : MonoBehaviour
                     if (_stopTimer >= 0.3f)
                     {
                         _hasStopped = true;
-                        Debug.Log("PedestrianExercise: stopped ✓");
+                        GameLog.Info("PedestrianExercise: stopped ✓");
                     }
                 }
                 else _stopTimer = 0f;

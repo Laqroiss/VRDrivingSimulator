@@ -238,7 +238,7 @@ public class ExamManager : MonoBehaviour
         _namedTimers.Clear();
         _speedViolationTimer = 0f;
         OnExamStart.Invoke();
-        Debug.Log("ExamManager: Exam started!");
+        GameLog.Info("ExamManager: Exam started!");
     }
 
     /// <summary>
@@ -269,7 +269,7 @@ public class ExamManager : MonoBehaviour
         _speedViolationTimer = 0f;
         _penaltyGraceUntil   = Time.time + 2.5f;   // 2.5s without penalties: the car lands and settles
         OnExamStart.Invoke();
-        Debug.Log($"ExamManager: Exam RESUMED - penalty {TotalPenaltyPoints} pts, " +
+        GameLog.Info($"ExamManager: Exam RESUMED - penalty {TotalPenaltyPoints} pts, " +
                   $"{elapsedSeconds:F0}s elapsed, {ExamTimeLeft:F0}s left");
     }
 
@@ -300,7 +300,7 @@ public class ExamManager : MonoBehaviour
             ExerciseStatuses[idx] = ExerciseStatus.Active;
             if (ExerciseActivatedAt[idx] < 0f) ExerciseActivatedAt[idx] = ExamElapsed;
             OnExerciseActivate.Invoke(exerciseNum);
-            Debug.Log($"ExamManager: {GetExerciseName(exerciseNum)} - started");
+            GameLog.Info($"ExamManager: {GetExerciseName(exerciseNum)} - started");
         }
     }
 
@@ -311,7 +311,7 @@ public class ExamManager : MonoBehaviour
         if (ExerciseStatuses[idx] == ExerciseStatus.Completed) return; // already passed - ignore
         ExerciseStatuses[idx] = ExerciseStatus.Completed;
         OnExerciseComplete.Invoke(exerciseNum);
-        Debug.Log($"ExamManager: {GetExerciseName(exerciseNum)} - PASSED ✓");
+        GameLog.Info($"ExamManager: {GetExerciseName(exerciseNum)} - PASSED ✓");
     }
 
     public void MarkExerciseFailed(int exerciseNum)
@@ -321,7 +321,7 @@ public class ExamManager : MonoBehaviour
         if (ExerciseStatuses[idx] != ExerciseStatus.Completed)
         {
             ExerciseStatuses[idx] = ExerciseStatus.Failed;
-            Debug.LogWarning($"ExamManager: {GetExerciseName(exerciseNum)} - failed");
+            GameLog.Warn($"ExamManager: {GetExerciseName(exerciseNum)} - failed");
         }
     }
 
@@ -340,7 +340,7 @@ public class ExamManager : MonoBehaviour
         OnPenalty.Invoke(description, points);
 
         string prefix = exerciseNum > 0 ? GetExerciseName(exerciseNum) : "General violation";
-        Debug.LogWarning($"PENALTY | {prefix} | {description} - {points} pts (total: {TotalPenaltyPoints} pts)");
+        GameLog.Warn($"PENALTY | {prefix} | {description} - {points} pts (total: {TotalPenaltyPoints} pts)");
     }
 
     /// <summary>
@@ -372,7 +372,7 @@ public class ExamManager : MonoBehaviour
 
         OnExamFinish.Invoke();
         bool passed = TotalPenaltyPoints < 100;
-        Debug.Log($"ExamManager: Finish. Penalty: {TotalPenaltyPoints} pts. Result: {(passed ? "PASSED" : "FAILED")}");
+        GameLog.Info($"ExamManager: Finish. Penalty: {TotalPenaltyPoints} pts. Result: {(passed ? "PASSED" : "FAILED")}");
     }
 
     // ——— Proxies for backward compatibility with old scripts ———

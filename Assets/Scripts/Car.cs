@@ -68,7 +68,7 @@ public class Engine
             int prev = currentGear + 1;
             currentGear++;
             switchingGears = true;
-            Debug.Log($"<color=#7CFC00>[GEAR ↑]</color> {prev} → {currentGear + 1}  RPM={rpm:F0}  reason={lastShiftReason}");
+            GameLog.Info($"<color=#7CFC00>[GEAR ↑]</color> {prev} → {currentGear + 1}  RPM={rpm:F0}  reason={lastShiftReason}");
             context.StartCoroutine(ResetSwitchingGearsCoroutine());
         }
     }
@@ -80,7 +80,7 @@ public class Engine
             int prev = currentGear + 1;
             currentGear--;
             switchingGears = true;
-            Debug.Log($"<color=#FFA500>[GEAR ↓]</color> {prev} → {currentGear + 1}  RPM={rpm:F0}  reason={lastShiftReason}");
+            GameLog.Info($"<color=#FFA500>[GEAR ↓]</color> {prev} → {currentGear + 1}  RPM={rpm:F0}  reason={lastShiftReason}");
             context.StartCoroutine(ResetSwitchingGearsCoroutine());
         }
     }
@@ -430,14 +430,14 @@ public class Car : MonoBehaviour
             if (currentSpeedKmh < shiftLockSpeed)
                 transmissionMode = TransmissionMode.Reverse;
             else
-                Debug.LogWarning($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Reverse at {currentSpeedKmh:F1} km/h. Stop first.");
+                GameLog.Warn($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Reverse at {currentSpeedKmh:F1} km/h. Stop first.");
         }
         else if (LegacyInput.GetKeyDown(KeyCode.F))
         {
             if (currentSpeedKmh < shiftLockSpeed)
                 transmissionMode = TransmissionMode.Drive;
             else
-                Debug.LogWarning($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Drive at {currentSpeedKmh:F1} km/h. Stop first.");
+                GameLog.Warn($"<color=#FF8C00>[GEAR LOCK]</color> Can't engage Drive at {currentSpeedKmh:F1} km/h. Stop first.");
         }
 
         // ── Input ───────────────────────────────────────────────────────────────
@@ -573,7 +573,7 @@ public class Car : MonoBehaviour
                          : wrongDirection ? "<color=#FFA500>opposing</color>"
                          : hillHold       ? "<color=#FFD700>hillHold</color>"
                                           : "off";
-            Debug.Log(
+            GameLog.Info(
                 $"[CAR] mode=<b>{mode}</b> gear=<b>{e.getCurrentGear()}</b> " +
                 $"RPM=<b>{e.getRPM():F0}</b> speed=<b>{speedKmh:F1} km/h</b> " +
                 $"gas={gas} brake={brake}"
@@ -632,8 +632,8 @@ public class Car : MonoBehaviour
             sb.Append($" comp={w.dbgCompression:F3} N={w.normalForce:F0} cSpd={w.dbgCompSpeed:+0.0;-0.0}");
             sb.Append($" vDmp={w.dbgVelDamp:F0} up={w.dbgUpAlign:F2} drop={w.dbgDrop:F3} slip={w.slip:F2}");
         }
-        if (anomaly) Debug.LogWarning(sb.ToString());
-        else         Debug.Log(sb.ToString());
+        if (anomaly) GameLog.Warn(sb.ToString());
+        else         GameLog.Info(sb.ToString());
     }
 
     // Body collider impact log (barrier/wall/obstacle) - only with physicsDebug on.
@@ -644,7 +644,7 @@ public class Car : MonoBehaviour
         if (!physicsDebug) return;
         float spdKmh = rb != null ? rb.linearVelocity.magnitude * 3.6f : 0f;
         Vector3 n = c.contactCount > 0 ? c.GetContact(0).normal : Vector3.zero;
-        Debug.LogWarning(
+        GameLog.Warn(
             $"[PHYS HIT] '{c.gameObject.name}' impulse={c.impulse.magnitude:F0} " +
             $"relVel={c.relativeVelocity.magnitude:F1} spd={spdKmh:F1}km/h normal=({n.x:F2},{n.y:F2},{n.z:F2})");
     }

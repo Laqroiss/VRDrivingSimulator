@@ -56,7 +56,7 @@ public class RouteSegmentController : MonoBehaviour
                                             : segment1;
         ribbon.BuildSpline(); // rebuild the ribbon for the new spline
 
-        Debug.Log($"[RouteSegmentController] Segment {stage} active");
+        GameLog.Info($"[RouteSegmentController] Segment {stage} active");
     }
 }
 #endif

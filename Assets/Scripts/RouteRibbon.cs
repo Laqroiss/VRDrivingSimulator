@@ -153,9 +153,9 @@ public class RouteRibbon : MonoBehaviour
             _carIndex = 0;
             return;
         }
-        Debug.LogWarning("[RouteRibbon] No assigned spline with >=2 knots - ribbon not built.");
+        GameLog.Warn("[RouteRibbon] No assigned spline with >=2 knots - ribbon not built.");
 #else
-        Debug.LogWarning("[RouteRibbon] Needs the Splines package and the USE_SPLINES define.");
+        GameLog.Warn("[RouteRibbon] Needs the Splines package and the USE_SPLINES define.");
 #endif
     }
 

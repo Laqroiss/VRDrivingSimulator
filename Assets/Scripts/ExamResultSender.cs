@@ -12,9 +12,8 @@ using System.Text;
 /// </summary>
 public class ExamResultSender : MonoBehaviour
 {
-    [Header("CRM")]
-    [Tooltip("CRM API URL, e.g. http://localhost:3000/api/attempts")]
-    public string apiUrl = "http://localhost:3000/api/attempts";
+    // CRM attempts endpoint, derived from the central server address (StreamingAssets/crm.json).
+    string apiUrl => $"{CrmConfig.BaseUrl}/api/attempts";
 
     [Header("Student")]
     [Tooltip("Student name - set by the instructor before the exam")]
@@ -118,7 +117,7 @@ public class ExamResultSender : MonoBehaviour
                     _lightPositions.Add(new LightPos { id = posId++, x = tl.transform.position.x, z = tl.transform.position.z });
                 }
         }
-        Debug.Log($"[ExamResultSender] Traffic lights found: {_lightPositions.Count}");
+        GameLog.Info($"[ExamResultSender] Traffic lights found: {_lightPositions.Count}");
 
         // Resend attempts left in the local backup from previous sessions
         // (e.g. the exam ran while the server was down).
@@ -327,13 +326,13 @@ public class ExamResultSender : MonoBehaviour
         _recordingDisabled = !MenuUIToolkit.AutoRecordExam;
         if (_recordingDisabled)
         {
-            Debug.Log("[ExamResultSender] Attempt recording disabled in settings - exam not saved (neither DB nor local)");
+            GameLog.Info("[ExamResultSender] Attempt recording disabled in settings - exam not saved (neither DB nor local)");
             return;
         }
 
         _localGuid    = System.Guid.NewGuid().ToString("N");
         try { Directory.CreateDirectory(BackupDir); }
-        catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] No access to local backup: {e.Message}"); }
+        catch (System.Exception e) { GameLog.Warn($"[ExamResultSender] No access to local backup: {e.Message}"); }
         SaveLocal(BuildJson(false));
         StartCoroutine(Persist(false));
     }
@@ -380,7 +379,7 @@ public class ExamResultSender : MonoBehaviour
         try { Directory.CreateDirectory(BackupDir); } catch { }
         SaveLocal(BuildJson(false));
 
-        Debug.Log($"[ExamResultSender] Resumed attempt {attemptId}: track {_track.Count} pts, " +
+        GameLog.Info($"[ExamResultSender] Resumed attempt {attemptId}: track {_track.Count} pts, " +
                   $"penalties {_lastPenCount}, {_elapsed:F0}s elapsed");
     }
 
@@ -398,14 +397,14 @@ public class ExamResultSender : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogWarning($"[ExamResultSender] Local backup not written: {e.Message}");
+            GameLog.Warn($"[ExamResultSender] Local backup not written: {e.Message}");
         }
     }
 
     void DeleteLocal()
     {
         try { if (LocalPath != null && File.Exists(LocalPath)) File.Delete(LocalPath); }
-        catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] Failed to delete backup: {e.Message}"); }
+        catch (System.Exception e) { GameLog.Warn($"[ExamResultSender] Failed to delete backup: {e.Message}"); }
     }
 
     // ── Saving (local + server) ─────────────────────────────────────────────────
@@ -454,11 +453,11 @@ public class ExamResultSender : MonoBehaviour
             var resp   = JsonUtility.FromJson<AttemptResponse>(req.downloadHandler.text);
             _attemptId = resp?.id;
             _lastNetOk = !string.IsNullOrEmpty(_attemptId);
-            Debug.Log($"[ExamResultSender] Attempt created in DB: {_attemptId}");
+            GameLog.Info($"[ExamResultSender] Attempt created in DB: {_attemptId}");
         }
         else
         {
-            Debug.LogWarning($"[ExamResultSender] Server unreachable, attempt only in local backup: {req.error}");
+            GameLog.Warn($"[ExamResultSender] Server unreachable, attempt only in local backup: {req.error}");
         }
         _creating = false;
     }
@@ -476,7 +475,7 @@ public class ExamResultSender : MonoBehaviour
         if (req.result == UnityWebRequest.Result.Success)
             _lastNetOk = true;
         else
-            Debug.LogWarning($"[ExamResultSender] DB save failed (kept in backup): {req.error}");
+            GameLog.Warn($"[ExamResultSender] DB save failed (kept in backup): {req.error}");
     }
 
     // Final save when the exam finishes + signal to load the replay.
@@ -492,13 +491,13 @@ public class ExamResultSender : MonoBehaviour
         if (_lastNetOk && !string.IsNullOrEmpty(_attemptId))
         {
             _finalDone = true;
-            Debug.Log("[ExamResultSender] Final result saved to CRM");
+            GameLog.Info("[ExamResultSender] Final result saved to CRM");
             OnResultSent?.Invoke(_attemptId);
         }
         else
         {
             // Server unreachable - result saved locally, will resend on next launch
-            Debug.LogWarning("[ExamResultSender] Final saved locally only - will resend on next launch");
+            GameLog.Warn("[ExamResultSender] Final saved locally only - will resend on next launch");
         }
     }
 
@@ -509,7 +508,7 @@ public class ExamResultSender : MonoBehaviour
 
         string[] files;
         try { files = Directory.GetFiles(BackupDir, "*.json"); }
-        catch (System.Exception e) { Debug.LogWarning($"[ExamResultSender] Reading backups failed: {e.Message}"); yield break; }
+        catch (System.Exception e) { GameLog.Warn($"[ExamResultSender] Reading backups failed: {e.Message}"); yield break; }
 
         foreach (var file in files)
         {
@@ -554,11 +553,11 @@ public class ExamResultSender : MonoBehaviour
             if (ok)
             {
                 try { File.Delete(file); } catch { }
-                Debug.Log($"[ExamResultSender] Resent backup saved to DB: {Path.GetFileName(file)}");
+                GameLog.Info($"[ExamResultSender] Resent backup saved to DB: {Path.GetFileName(file)}");
             }
             else
             {
-                Debug.LogWarning($"[ExamResultSender] Backup {Path.GetFileName(file)} not resent - server unreachable");
+                GameLog.Warn($"[ExamResultSender] Backup {Path.GetFileName(file)} not resent - server unreachable");
             }
         }
     }
@@ -587,12 +586,12 @@ public class ExamResultSender : MonoBehaviour
             {
                 var content = new System.Net.Http.StringContent(json, Encoding.UTF8, "application/json");
                 var resp = client.PutAsync($"{apiUrl}/{_attemptId}", content).Result;
-                Debug.Log($"[ExamResultSender] Emergency save on exit: {resp.StatusCode}");
+                GameLog.Info($"[ExamResultSender] Emergency save on exit: {resp.StatusCode}");
             }
         }
         catch (System.Exception e)
         {
-            Debug.LogWarning($"[ExamResultSender] Emergency network save failed (local backup exists): {e.Message}");
+            GameLog.Warn($"[ExamResultSender] Emergency network save failed (local backup exists): {e.Message}");
         }
     }
 

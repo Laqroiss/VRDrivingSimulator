@@ -46,7 +46,7 @@ public class WheelInput : MonoBehaviour
             d.name.ToLower().Contains("genius") ||
             d.name.ToLower().Contains("akino"));
 
-        if (_device == null) { Debug.Log("[Wheel] Not found"); return; }
+        if (_device == null) { GameLog.Info("[Wheel] Not found"); return; }
 
         _steerAxis = _device.TryGetChildControl<AxisControl>("stick/x");
         _gasAxis   = _device.TryGetChildControl<AxisControl>("stick/y");
@@ -58,7 +58,7 @@ public class WheelInput : MonoBehaviour
         _btn5 = _device.TryGetChildControl<ButtonControl>("button5"); // Left     (phys. 5)
         _btn6 = _device.TryGetChildControl<ButtonControl>("button6"); // Right    (phys. 6)
 
-        Debug.Log($"[Wheel] Connected: {_device.name}");
+        GameLog.Info($"[Wheel] Connected: {_device.name}");
     }
 
     void Update()
@@ -109,7 +109,7 @@ public class WheelInput : MonoBehaviour
         // Park can always be engaged - the car is physically locked in Car.cs
         if (mode != Car.TransmissionMode.Park && speedKmh >= car.shiftLockSpeed)
         {
-            Debug.LogWarning($"[Wheel] Can't shift to {mode} at {speedKmh:F1} km/h");
+            GameLog.Warn($"[Wheel] Can't shift to {mode} at {speedKmh:F1} km/h");
             return;
         }
         car.transmissionMode = mode;

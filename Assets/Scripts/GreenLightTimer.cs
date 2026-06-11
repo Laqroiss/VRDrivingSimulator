@@ -44,7 +44,7 @@ public class GreenLightTimer : MonoBehaviour
             if (ExamManager.Instance != null)
                 ExamManager.Instance.OnExerciseComplete.AddListener(OnExerciseDone);
             else
-                Debug.LogWarning($"GreenLightTimer [{name}]: ExamManager.Instance == null in Start");
+                GameLog.Warn($"GreenLightTimer [{name}]: ExamManager.Instance == null in Start");
         }
         // OnCheckpointPass - activated externally via Activate()
     }
@@ -61,7 +61,7 @@ public class GreenLightTimer : MonoBehaviour
         {
             _activated = true;
             ExamManager.Instance?.MarkGateActivated(gameObject.name);
-            Debug.Log($"GreenLightTimer [{name}]: activated after Ex.{completedExercise} finished");
+            GameLog.Info($"GreenLightTimer [{name}]: activated after Ex.{completedExercise} finished");
         }
     }
 
@@ -71,7 +71,7 @@ public class GreenLightTimer : MonoBehaviour
         if (_activated) return;
         _activated = true;
         ExamManager.Instance?.MarkGateActivated(gameObject.name);
-        Debug.Log($"GreenLightTimer [{name}]: activated by external call");
+        GameLog.Info($"GreenLightTimer [{name}]: activated by external call");
     }
 
     // ── Trigger (CheckGreenLight zone) ────────────────────────────────────
@@ -139,7 +139,7 @@ public class GreenLightTimer : MonoBehaviour
         _timer = ExamManager.Instance != null ? ExamManager.Instance.GetNamedTimer(gameObject.name) : 0f;
         _penalty20Done = false;
         _penalty30Done = false;
-        Debug.Log($"GreenLightTimer [{name}]: timer started ({source}, light={lightState})");
+        GameLog.Info($"GreenLightTimer [{name}]: timer started ({source}, light={lightState})");
     }
 
     // ── Called from IntersectionPassRelay when exiting the intersection zone ─
@@ -149,7 +149,7 @@ public class GreenLightTimer : MonoBehaviour
         if (!_timerActive) return;
 
         if (ExamManager.Instance != null) _timer = ExamManager.Instance.GetNamedTimer(gameObject.name);
-        Debug.Log($"GreenLightTimer [{name}]: exited IntersectionPass - total {_timer:F1} sec");
+        GameLog.Info($"GreenLightTimer [{name}]: exited IntersectionPass - total {_timer:F1} sec");
 
         if (!_penalty20Done && _timer > 20f) Apply20Penalty();
         if (!_penalty30Done && _timer > 30f) Apply30Penalty();

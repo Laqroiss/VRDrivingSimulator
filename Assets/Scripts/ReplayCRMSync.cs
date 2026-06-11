@@ -82,7 +82,9 @@ public class ReplayCRMSync : MonoBehaviour
     public ReplaySystem   replaySystem;
 
     [Header("CRM")]
-    public string crmUrl     = "http://localhost:3000";
+    // CRM base address, from the central config (StreamingAssets/crm.json).
+    string crmUrl => CrmConfig.BaseUrl;
+    [Tooltip("Local port the CRM cabinet uses to trigger an in-sim replay.")]
     public int    replayPort = 7779;
     public float  recordFPS  = 30f;
 
@@ -126,8 +128,8 @@ public class ReplayCRMSync : MonoBehaviour
     /// <summary>Launch a 3D replay of an attempt by its id (from the cabinet). Network request runs in the background.</summary>
     public void PlayReplayById(string attemptId)
     {
-        if (string.IsNullOrEmpty(attemptId)) { Debug.LogWarning("[ReplayCRMSync] PlayReplayById: empty id"); return; }
-        Debug.Log($"[ReplayCRMSync] Launching replay from cabinet: id='{attemptId}'  ->  {crmUrl}/api/attempts/{attemptId}/replay");
+        if (string.IsNullOrEmpty(attemptId)) { GameLog.Warn("[ReplayCRMSync] PlayReplayById: empty id"); return; }
+        GameLog.Info($"[ReplayCRMSync] Launching replay from cabinet: id='{attemptId}'  ->  {crmUrl}/api/attempts/{attemptId}/replay");
         ThreadPool.QueueUserWorkItem(_ => FetchAndQueueReplay(attemptId));
     }
 
@@ -219,7 +221,7 @@ public class ReplayCRMSync : MonoBehaviour
         if (!MenuUIToolkit.AutoRecordExam)
         {
             _recording = false;
-            Debug.Log("[ReplayCRMSync] Replay auto-recording disabled in settings - skipping");
+            GameLog.Info("[ReplayCRMSync] Replay auto-recording disabled in settings - skipping");
             return;
         }
 
@@ -230,14 +232,14 @@ public class ReplayCRMSync : MonoBehaviour
             _lastPhaseB[i] = "";
         }
         replaySystem?.StartRecording("Exam");
-        Debug.Log("[ReplayCRMSync] Recording started");
+        GameLog.Info("[ReplayCRMSync] Recording started");
     }
 
     void OnExamFinish()
     {
         _recording = false;
         replaySystem?.StopRecording();
-        Debug.Log($"[ReplayCRMSync] Frames recorded: {_frames.Count}, light changes: {_lightChanges.Count}");
+        GameLog.Info($"[ReplayCRMSync] Frames recorded: {_frames.Count}, light changes: {_lightChanges.Count}");
     }
 
     void RecordFrame()
@@ -283,7 +285,7 @@ public class ReplayCRMSync : MonoBehaviour
     {
         var replay = new CRMReplay { fps = recordFPS, frames = _frames, lightChanges = _lightChanges };
         string json = JsonUtility.ToJson(replay);
-        Debug.Log($"[ReplayCRMSync] Uploading replay ({_frames.Count} frames, {json.Length / 1024} KB)...");
+        GameLog.Info($"[ReplayCRMSync] Uploading replay ({_frames.Count} frames, {json.Length / 1024} KB)...");
 
         var req = new UnityWebRequest($"{crmUrl}/api/attempts/{attemptId}/replay", "POST");
         req.uploadHandler   = new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
@@ -292,7 +294,7 @@ public class ReplayCRMSync : MonoBehaviour
         yield return req.SendWebRequest();
 
         if (req.result == UnityWebRequest.Result.Success)
-            Debug.Log("[ReplayCRMSync] Replay uploaded to CRM");
+            GameLog.Info("[ReplayCRMSync] Replay uploaded to CRM");
         else
             Debug.LogError($"[ReplayCRMSync] Upload error: {req.error}");
     }
@@ -460,7 +462,7 @@ public class ReplayCRMSync : MonoBehaviour
     void SpawnError(PenaltyData p, int accumulatedScore)
     {
         if (_errorContainer == null) return;
-        Debug.Log($"[ReplayCRMSync] SpawnError: penalty.t={p.t:F1}s  frameT={replaySystem?.CurrentReplayTime:F1}s  '{p.description}'");
+        GameLog.Info($"[ReplayCRMSync] SpawnError: penalty.t={p.t:F1}s  frameT={replaySystem?.CurrentReplayTime:F1}s  '{p.description}'");
         if (hudScoreText != null) hudScoreText.text = $"{accumulatedScore} pts";
 
         // Card background
@@ -603,7 +605,7 @@ public class ReplayCRMSync : MonoBehaviour
         HideHUD();
         OnReplayFinished?.Invoke();
 
-        Debug.Log("[ReplayCRMSync] Playback finished");
+        GameLog.Info("[ReplayCRMSync] Playback finished");
     }
 
     // ── HTTP listener ────────────────────────────────────────────────────────
@@ -616,11 +618,11 @@ public class ReplayCRMSync : MonoBehaviour
             _listener.Prefixes.Add($"http://localhost:{replayPort}/");
             _listener.Start();
             ThreadPool.QueueUserWorkItem(_ => ListenLoop());
-            Debug.Log($"[ReplayCRMSync] Listening for replay commands on port {replayPort}");
+            GameLog.Info($"[ReplayCRMSync] Listening for replay commands on port {replayPort}");
         }
         catch (System.Exception e)
         {
-            Debug.LogWarning($"[ReplayCRMSync] Failed to start HTTP listener: {e.Message}");
+            GameLog.Warn($"[ReplayCRMSync] Failed to start HTTP listener: {e.Message}");
         }
     }
 
@@ -644,7 +646,7 @@ public class ReplayCRMSync : MonoBehaviour
                     ThreadPool.QueueUserWorkItem(_ => FetchAndQueueReplay(id));
             }
             catch (HttpListenerException) { break; }
-            catch (System.Exception e) { Debug.LogWarning($"[ReplayCRMSync] {e.Message}"); }
+            catch (System.Exception e) { GameLog.Warn($"[ReplayCRMSync] {e.Message}"); }
         }
     }
 
@@ -659,7 +661,7 @@ public class ReplayCRMSync : MonoBehaviour
             replayTask.Wait();
             var replay = JsonUtility.FromJson<CRMReplay>(replayTask.Result);
             if (replay?.frames == null || replay.frames.Count == 0)
-            { Debug.LogWarning("[ReplayCRMSync] Replay is empty"); _replayLoadFailed = true; return; }
+            { GameLog.Warn("[ReplayCRMSync] Replay is empty"); _replayLoadFailed = true; return; }
 
             // 2. Attempt metadata (student name, penalties)
             AttemptMeta meta = null;
@@ -673,7 +675,7 @@ public class ReplayCRMSync : MonoBehaviour
                 if (meta?.penalties != null)
                     foreach (var pen in meta.penalties)
                         sb.Append($"  t={pen.t:F1}s  {pen.points}pts  {pen.description}\n");
-                Debug.Log(sb.ToString());
+                GameLog.Info(sb.ToString());
             }
             catch (System.Exception me)
             {
@@ -683,7 +685,7 @@ public class ReplayCRMSync : MonoBehaviour
             _pendingReplay = replay;
             _pendingMeta   = meta;
             _launchReplay  = true;
-            Debug.Log($"[ReplayCRMSync] Replay ready: {replay.frames.Count} frames | student: {meta?.studentName ?? "?"} | penalties: {meta?.penalties?.Count ?? 0}");
+            GameLog.Info($"[ReplayCRMSync] Replay ready: {replay.frames.Count} frames | student: {meta?.studentName ?? "?"} | penalties: {meta?.penalties?.Count ?? 0}");
         }
         catch (System.Exception e)
         {

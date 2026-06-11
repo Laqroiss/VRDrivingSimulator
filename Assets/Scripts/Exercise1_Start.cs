@@ -120,19 +120,19 @@ public class Exercise1_Start : MonoBehaviour
         if (LegacyInput.GetKeyDown(KeyCode.B) && !_seatbeltOn)
         {
             _seatbeltOn = true;
-            Debug.Log("Exercise1: Seatbelt fastened");
+            GameLog.Info("Exercise1: Seatbelt fastened");
         }
         // M - mirrors
         if (LegacyInput.GetKeyDown(KeyCode.M) && !_mirrorsSet)
         {
             _mirrorsSet = true;
-            Debug.Log("Exercise1: Mirrors adjusted");
+            GameLog.Info("Exercise1: Mirrors adjusted");
         }
         // E - start the engine (or automatically)
         if (LegacyInput.GetKeyDown(KeyCode.E) && !_engineOn)
         {
             _engineOn = true;
-            Debug.Log("Exercise1: Engine started");
+            GameLog.Info("Exercise1: Engine started");
         }
     }
 
@@ -160,7 +160,7 @@ public class Exercise1_Start : MonoBehaviour
                 "Crossed the \"Start\" line with the left turn signal off",
                 ExamManager.P1_NO_LEFT_BLINKER, 1);
 
-        Debug.Log("Exercise1: Crossed the start line");
+        GameLog.Info("Exercise1: Crossed the start line");
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public class Exercise1_Start : MonoBehaviour
 
         ExamManager.Instance?.SetExerciseActive(1);
         ExamManager.Instance?.StartExam();
-        Debug.Log("Exercise1: \"START\" signal given!");
+        GameLog.Info("Exercise1: \"START\" signal given!");
     }
 
     public bool SeatbeltOn => _seatbeltOn;

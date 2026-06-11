@@ -90,7 +90,7 @@ public class GraphicsSettings : MonoBehaviour
 
     public void Toggle()
     {
-        if (_panel == null) { Debug.LogWarning("[GraphicsSettings] Panel not built."); return; }
+        if (_panel == null) { GameLog.Warn("[GraphicsSettings] Panel not built."); return; }
         bool on = !_panel.activeSelf;
         _panel.SetActive(on);
         if (on)
@@ -163,7 +163,7 @@ public class GraphicsSettings : MonoBehaviour
         AddSelector("Render scale", rsNames, rIdx, i =>
         { float v = RenderScaleOptions[i]; ApplyRenderScale(v); SaveFloat(K_RSCALE, v); });
 
-        Debug.Log($"[GraphicsSettings] Panel built. Open with: {toggleKey} or Settings.Toggle()");
+        GameLog.Info($"[GraphicsSettings] Panel built. Open with: {toggleKey} or Settings.Toggle()");
     }
 
     // ── Elements ──────────────────────────────────────────────────────────────────

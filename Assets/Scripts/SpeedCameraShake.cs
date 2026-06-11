@@ -40,7 +40,7 @@ public class SpeedCameraShake : MonoBehaviour
     {
         _rb = GetComponentInParent<Rigidbody>();
         if (_rb == null)
-            Debug.LogWarning("SpeedCameraShake: no Rigidbody found in parent hierarchy.");
+            GameLog.Warn("SpeedCameraShake: no Rigidbody found in parent hierarchy.");
     }
 
     void LateUpdate()

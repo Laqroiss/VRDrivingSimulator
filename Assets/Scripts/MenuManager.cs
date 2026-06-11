@@ -288,7 +288,7 @@ public class MenuManager : MonoBehaviour
         menuUI?.SetSettingsVisible(false);
         examResume.LoadResumable(attemptId, ok =>
         {
-            if (!ok) { Debug.LogWarning("[MenuManager] Failed to load the attempt to continue"); return; }
+            if (!ok) { GameLog.Warn("[MenuManager] Failed to load the attempt to continue"); return; }
             _resumeOnEnter = true;
             StartGame();
         });
@@ -347,7 +347,7 @@ public class MenuManager : MonoBehaviour
     // When the replay ends - restore the menu/pause and cursor
     void OnReplayFinished()
     {
-        Debug.Log($"[MenuManager] Replay finished -> returning (inGame context={_replayCtxInGame})");
+        GameLog.Info($"[MenuManager] Replay finished -> returning (inGame context={_replayCtxInGame})");
         StartCoroutine(AfterReplay());
     }
 
