@@ -46,13 +46,25 @@ public class PedestrianExercise : MonoBehaviour
 
     void Update()
     {
-        if (_phase == Phase.WaitingActivation || _phase == Phase.Done) return;
+        if (_phase == Phase.Done) return;
         if (_carRb == null || _zone == null) return;
 
+        bool inZone = IsCarInZone();
+
+        // Self-arm fallback: the exercise is normally activated by RedLightDetector (TF1_Check),
+        // but that signal can be missed (gate not armed, admin skip, alternate route). If it never
+        // came, activate as soon as the driver actually reaches the crossing zone - Activate() still
+        // checks that Ex.4 is unlocked. Guarantees the exercise runs instead of hanging unactivated.
+        if (_phase == Phase.WaitingActivation)
+        {
+            if (inZone) Activate();
+            if (_phase == Phase.WaitingActivation) return; // not armed yet - nothing to do
+        }
+
         // Watchdog: once active, the exercise must always reach a verdict. If it never resolves
-        // within noMovementTimeout (driver never completes the stop-and-go, creeps without leaving
-        // the zone, or never reaches the crossing), record the "no movement" penalty and close it -
-        // otherwise the exercise hangs in Active forever (neither passed nor failed).
+        // within noMovementTimeout (driver never completes the stop-and-go, or creeps without
+        // leaving the zone), record the "no movement" penalty and close it - otherwise it would
+        // hang in Active forever (neither passed nor failed).
         _activeTimer += Time.deltaTime;
         if (_activeTimer >= noMovementTimeout)
         {
@@ -64,8 +76,6 @@ public class PedestrianExercise : MonoBehaviour
             GameLog.Warn("PedestrianExercise: timed out without resolution - penalized and closed");
             return;
         }
-
-        bool inZone = IsCarInZone();
 
         // ——— Entering the zone ———
         if (_phase == Phase.WaitingEntry && inZone)
