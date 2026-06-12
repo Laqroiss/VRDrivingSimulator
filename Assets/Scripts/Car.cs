@@ -346,11 +346,18 @@ public class Car : MonoBehaviour
     public Vector3 COMOffset = new Vector3(0, -0.2f, 0);
     public float Inertia = 1.2f; // Multiplier for inertia tensor
 
-    void Start()
+    void Awake()
     {
+        // Assign rb in Awake (not Start): several exercise scripts read car.rb in their own Start(),
+        // and the Start() order between scripts is non-deterministic - it differs between the editor
+        // and a build, which made e.g. the pedestrian exercise work in the editor but not the build
+        // (its _carRb stayed null, so its Update bailed out every frame). Awake always runs first.
         rb = GetComponent<Rigidbody>();
         if (!rb) rb = gameObject.AddComponent<Rigidbody>();
+    }
 
+    void Start()
+    {
         foreach (var w in wheels)
         {
             w.wheelObject = Instantiate(wheelPrefab, transform);
